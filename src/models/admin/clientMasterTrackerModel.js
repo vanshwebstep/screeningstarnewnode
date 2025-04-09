@@ -1328,7 +1328,7 @@ const Customer = {
           )
         };
       });
-
+      console.log(`formattedResults - `, formattedResults);
       // Return the first result or null if not found
       callback(null, formattedResults.length > 0 ? formattedResults[0] : null);
     } catch (error) {
