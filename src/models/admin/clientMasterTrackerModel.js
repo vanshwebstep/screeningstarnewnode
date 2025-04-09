@@ -1288,17 +1288,61 @@ const Customer = {
   },
 
   getCMTApplicationById: async (client_application_id, callback) => {
-    const sql =
-      "SELECT * FROM `cmt_applications` WHERE `client_application_id` = ?";
 
-    const results = await sequelize.query(sql, {
-      replacements: [`${client_application_id}`], // Positional replacements using ?
-      type: QueryTypes.SELECT,
-    });
-    callback(null, results[0] || null); // Return the first result or null if not found
+    // Fetch holidays
+    const holidaysQuery = `SELECT id AS holiday_id, title AS holiday_title, date AS holiday_date FROM holidays;`;
+    const holidayResults = await sequelize.query(holidaysQuery, { type: QueryTypes.SELECT });
 
+    // Prepare holiday dates for calculations
+    const holidayDates = holidayResults.map(holiday => moment(holiday.holiday_date).startOf("day"));
 
+    // Fetch weekends
+    const weekendsQuery = `SELECT weekends FROM company_info WHERE status = 1;`;
+    const weekendResults = await sequelize.query(weekendsQuery, { type: QueryTypes.SELECT });
+
+    const weekends = weekendResults[0]?.weekends ? JSON.parse(weekendResults[0].weekends) : [];
+    const weekendsSet = new Set(weekends.map(day => day.toLowerCase()));
+
+    const now = new Date();
+    const month = `${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+
+    const sql = `
+      SELECT cmt.*, cm.tat_days 
+      FROM \`cmt_applications\` cmt
+      LEFT JOIN \`customer_metas\` cm ON cm.customer_id = cmt.customer_id
+      WHERE cmt.\`client_application_id\` = ?
+    `;
+
+    try {
+      const results = await sequelize.query(sql, {
+        replacements: [client_application_id], // Positional replacements using ?
+        type: QueryTypes.SELECT,
+      });
+
+      // Format results
+      const formattedResults = results.map((result, index) => {
+        return {
+          ...result,
+          created_at: new Date(result.created_at).toISOString(), // Format created_at
+          deadline_date: calculateDueDate(
+            moment(result.created_at),
+            result.tat_days,
+            holidayDates,
+            weekendsSet
+          )
+        };
+      });
+
+      // Return the first result or null if not found
+      callback(null, formattedResults.length > 0 ? formattedResults[0] : null);
+    } catch (error) {
+      // If there's an error, pass it to the callback
+      callback(error);
+    }
   },
+
 
   getCMTApplicationIDByClientApplicationId: async (
     client_application_id,
