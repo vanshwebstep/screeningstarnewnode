@@ -1304,8 +1304,9 @@ const Customer = {
     const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
 
     const sql = `
-      SELECT cmt.*, cm.tat_days 
+      SELECT ca.created_at as application_created_at, cmt.*, cm.tat_days 
       FROM \`cmt_applications\` cmt
+      LEFT JOIN \`client_applications\` ca ON ca.id = cmt.client_application_id
       LEFT JOIN \`customer_metas\` cm ON cm.customer_id = cmt.customer_id
       WHERE cmt.\`client_application_id\` = ?
     `;
@@ -1320,8 +1321,8 @@ const Customer = {
       const formattedResults = results.map((result, index) => {
         return {
           ...result,
-          deadline_date: calculateDueDate(
-            moment(result.created_at),
+          new_deadline_date: calculateDueDate(
+            moment(result.application_created_at),
             result.tat_days,
             holidayDates,
             weekendsSet
