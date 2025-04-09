@@ -7,15 +7,15 @@ const generateTable = (branches, password) => {
   let table =
     '<table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse;">';
   table +=
-    "<tr><th>Sr. No.</th><th>Email</th><th>Name</th><th>Password</th></tr>";
+    "<tr><th>SL No</th><th>Organization Name</th><th>Username</th><th>Password</th></tr>";
 
   branches.forEach((branch, index) => {
     table += `<tr>
                 <td>${index + 1}</td>
+                <td>${branch.name}</td>
                 <td style="text-decoration: none; color: inherit; background-color: inherit; user-select: none;">${
                   branch.email
                 }</td>
-                <td>${branch.name}</td>
                 <td>${password}</td>
               </tr>`;
   });
