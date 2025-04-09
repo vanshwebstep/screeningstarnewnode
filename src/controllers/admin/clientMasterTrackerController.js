@@ -521,6 +521,7 @@ exports.applicationByID = (req, res) => {
                         token: newToken,
                       });
                     } else {
+                      console.log(`CMTApplicationData - `, CMTApplicationData);
                       return res.json({
                         status: true,
                         message: "Application fetched successfully 2",
