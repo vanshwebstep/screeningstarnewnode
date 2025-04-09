@@ -662,7 +662,7 @@ const Customer = {
           cm.custom_address,
           cm.client_spoc_name,
           cm.tat_days,
-          cm.deadline_date,
+          cmt.deadline_date,
           cmt.first_insuff_reopened_date,
           cmt.second_insufficiency_marks,
           cmt.second_insuff_date,
