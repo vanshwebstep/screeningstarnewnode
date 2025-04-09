@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { sequelize } = require("../../config/db");
 const { QueryTypes } = require("sequelize");
 
+const moment = require("moment");
 // Function to hash the password using MD5
 const hashPassword = (password) =>
   crypto.createHash("md5").update(password).digest("hex");
