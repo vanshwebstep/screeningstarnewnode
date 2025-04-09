@@ -724,12 +724,6 @@ const Customer = {
         return {
           ...result,
           created_at: new Date(result.created_at).toISOString(), // Format created_at
-          deadline_date: calculateDueDate(
-            moment(result.created_at),
-            result.tat_days,
-            holidayDates,
-            weekendsSet
-          )
         };
       });
       callback(null, formattedResults);
