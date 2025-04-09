@@ -6,6 +6,50 @@ const { QueryTypes } = require("sequelize");
 const hashPassword = (password) =>
   crypto.createHash("md5").update(password).digest("hex");
 
+function calculateDueDate(startDate, tatDays = 0, holidayDates, weekendsSet) {
+  // console.log("Starting calculation...");
+  // console.log("Start Date:", startDate.format("YYYY-MM-DD"));
+  // console.log("TAT Days:", tatDays);
+  // console.log("Holiday Dates:", holidayDates.map(date => date.format("YYYY-MM-DD")));
+  // console.log("Weekends Set:", weekendsSet);
+
+  // Track remaining TAT days to process
+  let remainingDays = tatDays;
+
+  // Generate potential dates to check
+  const potentialDates = Array.from({ length: tatDays * 2 }, (_, i) =>
+    startDate.clone().add(i + 1, "days")
+  );
+
+  // console.log("Generated Potential Dates:", potentialDates.map(date => date.format("YYYY-MM-DD")));
+
+  // Calculate the final due date
+  let finalDueDate = potentialDates.find((date) => {
+    const dayName = date.format("dddd").toLowerCase();
+    // console.log(`Checking date: ${date.format("YYYY-MM-DD")} (Day: ${dayName})`);
+
+    // Skip weekends
+    if (weekendsSet.has(dayName)) {
+      // console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a weekend.`);
+      return false;
+    }
+
+    // Skip holidays
+    if (holidayDates.some((holiday) => holiday.isSame(date, "day"))) {
+      // console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a holiday.`);
+      return false;
+    }
+
+    remainingDays--;
+    // console.log(`Remaining Days: ${remainingDays}`);
+
+    return remainingDays <= 0;
+  });
+
+  // console.log("Final Due Date:", finalDueDate ? finalDueDate.format("YYYY-MM-DD") : "Not Found");
+  return finalDueDate;
+}
+
 const Customer = {
   list: async (filter_status, callback) => {
     let client_application_ids = [];
@@ -554,43 +598,56 @@ const Customer = {
     filter_month,
     callback
   ) => {
-    // Start a connection
+    try {
+      // Fetch holidays
+      const holidaysQuery = `SELECT id AS holiday_id, title AS holiday_title, date AS holiday_date FROM holidays;`;
+      const holidayResults = await sequelize.query(holidaysQuery, { type: QueryTypes.SELECT });
 
-    const now = new Date();
-    const month = `${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+      // Prepare holiday dates for calculations
+      const holidayDates = holidayResults.map(holiday => moment(holiday.holiday_date).startOf("day"));
 
-    // Define SQL conditions for each filter status
-    const conditions = {
-      overallCount: `AND (cmt.overall_status='wip' OR cmt.overall_status='insuff' OR cmt.overall_status='initiated' OR cmt.overall_status='hold' OR cmt.overall_status='closure advice' OR cmt.overall_status='stopcheck' OR cmt.overall_status='active employment' OR cmt.overall_status='nil' OR cmt.overall_status='' OR cmt.overall_status='not doable' OR cmt.overall_status='candidate denied' OR (cmt.overall_status='completed' AND cmt.report_date LIKE '%-${month}-%') OR (cmt.overall_status='completed' AND cmt.report_date NOT LIKE '%-${month}-%')) AND c.status = 1`,
-      qcStatusPendingCount: `AND ca.is_report_downloaded = '1' AND LOWER(cmt.is_verify) = 'no' AND ca.status = 'completed'`,
-      wipCount: `AND cmt.overall_status = 'wip'`,
-      insuffCount: `AND cmt.overall_status = 'insuff'`,
-      completedGreenCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'GREEN'`,
-      completedRedCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'RED'`,
-      completedYellowCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'YELLOW'`,
-      completedPinkCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'PINK'`,
-      completedOrangeCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'ORANGE'`,
-      previousCompletedCount: `AND (cmt.overall_status = 'completed' AND cmt.report_date NOT LIKE '%-${month}-%') AND c.status=1`,
-      stopcheckCount: `AND cmt.overall_status = 'stopcheck'`,
-      activeEmploymentCount: `AND cmt.overall_status = 'active employment'`,
-      nilCount: `AND cmt.overall_status IN ('nil', '')`,
-      candidateDeniedCount: `AND cmt.overall_status = 'candidate denied'`,
-      notDoableCount: `AND cmt.overall_status = 'not doable'`,
-      initiatedCount: `AND cmt.overall_status = 'initiated'`,
-      holdCount: `AND cmt.overall_status = 'hold'`,
-      closureAdviceCount: `AND cmt.overall_status = 'closure advice'`
-    };
+      // Fetch weekends
+      const weekendsQuery = `SELECT weekends FROM company_info WHERE status = 1;`;
+      const weekendResults = await sequelize.query(weekendsQuery, { type: QueryTypes.SELECT });
 
-    // Construct SQL condition based on filter_status
-    let sqlCondition = '';
-    if (filter_status && filter_status.trim() !== "") {
-      sqlCondition = conditions[filter_status] || '';
-    }
+      const weekends = weekendResults[0]?.weekends ? JSON.parse(weekendResults[0].weekends) : [];
+      const weekendsSet = new Set(weekends.map(day => day.toLowerCase()));
 
-    // Base SQL query with JOINs to fetch data
-    let sql = `
+      const now = new Date();
+      const month = `${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+
+      // Define SQL conditions for each filter status
+      const conditions = {
+        overallCount: `AND (cmt.overall_status='wip' OR cmt.overall_status='insuff' OR cmt.overall_status='initiated' OR cmt.overall_status='hold' OR cmt.overall_status='closure advice' OR cmt.overall_status='stopcheck' OR cmt.overall_status='active employment' OR cmt.overall_status='nil' OR cmt.overall_status='' OR cmt.overall_status='not doable' OR cmt.overall_status='candidate denied' OR (cmt.overall_status='completed' AND cmt.report_date LIKE '%-${month}-%') OR (cmt.overall_status='completed' AND cmt.report_date NOT LIKE '%-${month}-%')) AND c.status = 1`,
+        qcStatusPendingCount: `AND ca.is_report_downloaded = '1' AND LOWER(cmt.is_verify) = 'no' AND ca.status = 'completed'`,
+        wipCount: `AND cmt.overall_status = 'wip'`,
+        insuffCount: `AND cmt.overall_status = 'insuff'`,
+        completedGreenCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'GREEN'`,
+        completedRedCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'RED'`,
+        completedYellowCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'YELLOW'`,
+        completedPinkCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'PINK'`,
+        completedOrangeCount: `AND cmt.overall_status = 'completed' AND cmt.report_date LIKE '%-${month}-%' AND cmt.final_verification_status = 'ORANGE'`,
+        previousCompletedCount: `AND (cmt.overall_status = 'completed' AND cmt.report_date NOT LIKE '%-${month}-%') AND c.status=1`,
+        stopcheckCount: `AND cmt.overall_status = 'stopcheck'`,
+        activeEmploymentCount: `AND cmt.overall_status = 'active employment'`,
+        nilCount: `AND cmt.overall_status IN ('nil', '')`,
+        candidateDeniedCount: `AND cmt.overall_status = 'candidate denied'`,
+        notDoableCount: `AND cmt.overall_status = 'not doable'`,
+        initiatedCount: `AND cmt.overall_status = 'initiated'`,
+        holdCount: `AND cmt.overall_status = 'hold'`,
+        closureAdviceCount: `AND cmt.overall_status = 'closure advice'`
+      };
+
+      // Construct SQL condition based on filter_status
+      let sqlCondition = '';
+      if (filter_status && filter_status.trim() !== "") {
+        sqlCondition = conditions[filter_status] || '';
+      }
+
+      // Base SQL query with JOINs to fetch data
+      let sql = `
           SELECT 
           ca.*, 
           c.name AS customer_name,
@@ -603,6 +660,7 @@ const Customer = {
           cm.custom_template,
           cm.custom_address,
           cm.client_spoc_name,
+          cm.tat_days,
           cmt.first_insuff_reopened_date,
           cmt.second_insufficiency_marks,
           cmt.second_insuff_date,
@@ -646,23 +704,38 @@ const Customer = {
           ${sqlCondition}
       `;
 
-    // Parameters for SQL query
-    const params = [branch_id];
+      // Parameters for SQL query
+      const params = [branch_id];
 
-    // Apply filter_month condition if provided
-    if (filter_month && filter_month.trim() !== "") {
-      sql += ` AND ca.\`created_at\` LIKE ?`; // Use LIKE for partial match
-      params.push(`${filter_month}%`); // Append "%" to filter by year-month
+      // Apply filter_month condition if provided
+      if (filter_month && filter_month.trim() !== "") {
+        sql += ` AND ca.\`created_at\` LIKE ?`; // Use LIKE for partial match
+        params.push(`${filter_month}%`); // Append "%" to filter by year-month
+      }
+
+      // Final ordering of results
+      sql += ` ORDER BY ca.\`created_at\` DESC, ca.\`is_highlight\` DESC`;
+      // Execute query
+      const results = await sequelize.query(sql, { replacements: params, type: QueryTypes.SELECT });
+
+      // Format results
+      const formattedResults = results.map((result, index) => {
+        return {
+          ...result,
+          created_at: new Date(result.created_at).toISOString(), // Format created_at
+          deadline_date: calculateDueDate(
+            moment(result.created_at),
+            result.tat_days,
+            holidayDates,
+            weekendsSet
+          )
+        };
+      });
+      callback(null, formattedResults);
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+      callback(err, null);
     }
-
-    // Final ordering of results
-    sql += ` ORDER BY ca.\`created_at\` DESC, ca.\`is_highlight\` DESC`;
-    const results = await sequelize.query(sql, {
-      replacements: params, // Positional replacements using ?
-      type: QueryTypes.SELECT,
-    });
-    callback(null, results);
-
   },
 
 
