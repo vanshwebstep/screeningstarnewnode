@@ -644,7 +644,7 @@ const Admin = {
 
   findById: async (id, callback) => {
     const sql = `
-      SELECT \`id\`, \`emp_id\`, \`name\`, \`profile_picture\`, \`date_of_joining\`, \`designation\`, \`role\`, \`email\`, \`mobile\`, \`status\`, \`login_token\`, \`token_expiry\`, \`check_in_status\`, \`check_in_time\`, \`check_out_status\`, \`check_out_time\`
+      SELECT \`id\`, \`emp_id\`, \`name\`, \`profile_picture\`, \`date_of_joining\`, \`designation\`, \`role\`, \`email\`, \`mobile\`, \`status\`, \`login_token\`, \`token_expiry\`
       FROM \`admins\`
       WHERE \`id\` = ?
     `;
