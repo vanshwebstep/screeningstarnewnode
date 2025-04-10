@@ -11,6 +11,7 @@ function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet
   console.log("Starting calculation...");
   console.log("Start Date:", startDate.format("YYYY-MM-DD"));
   console.log("TAT Days:", tatDays);
+  console.log("TAT Days (type):", typeof tatDays);
   console.log("Holiday Dates:", holidayDates.map(date => date.format("YYYY-MM-DD")));
   console.log("Weekends Set:", weekendsSet);
 
@@ -62,8 +63,6 @@ function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet
 const Customer = {
   list: async (filter_status, callback) => {
     let client_application_ids = [];
-
-
 
     if (filter_status && filter_status !== null && filter_status !== "") {
 
