@@ -23,10 +23,7 @@ const tatDelay = {
                         THEN logs.check_out_time 
                         END) AS last_logout_time,
                     -- First login time (check-in)
-                    MIN(CASE 
-                        WHEN logs.check_in_status = 1 AND logs.created_at IS NOT NULL AND logs.created_at IS NULL 
-                        THEN logs.created_at 
-                        END) AS created_at
+                    MIN(logs.created_at) AS created_at
                 FROM admin_login_logs AS logs
                 INNER JOIN admins ON logs.admin_id = admins.id
                 WHERE logs.action IN ('login')
