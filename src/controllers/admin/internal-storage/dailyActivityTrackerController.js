@@ -249,7 +249,7 @@ exports.update = (req, res) => {
 
             const newToken = result.newToken;
 
-            DailyActivity.getById(id, (err, currentVendor) => {
+            DailyActivity.getById(id, (err, currentDailyActivity) => {
                 if (err) {
                     console.error("Error fetching service data:", err);
                     return res.status(500).json({
