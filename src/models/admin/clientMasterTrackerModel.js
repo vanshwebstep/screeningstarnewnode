@@ -825,6 +825,12 @@ const Customer = {
             holidayDates,
             weekendsSet
           ),
+          tat_days: getActualCalendarDays(
+            moment(result.created_at),
+            result.tat_days,
+            holidayDates,
+            weekendsSet
+          ),
           report_completed_status
         };
       });
