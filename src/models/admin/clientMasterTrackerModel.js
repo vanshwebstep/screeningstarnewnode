@@ -8,6 +8,9 @@ const hashPassword = (password) =>
   crypto.createHash("md5").update(password).digest("hex");
 
 function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+  tatDays = parseInt(tatDays, 10);
+  tatDays = isNaN(tatDays) ? 0 : tatDays;
+
   console.log("Starting calculation...");
   console.log("Start Date:", startDate.format("YYYY-MM-DD"));
   console.log("TAT Days:", tatDays);
