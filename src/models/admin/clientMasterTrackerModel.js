@@ -63,6 +63,79 @@ function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet
   return finalDueDate;
 }
 
+function getActualCalendarDays(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+  tatDays = parseInt(tatDays, 10);
+  tatDays = isNaN(tatDays) ? 0 : tatDays;
+
+  let currentDate = startDate.clone();
+  let countedWorkingDays = 0;
+  let totalDays = 0;
+
+  while (countedWorkingDays < tatDays) {
+    const dayName = currentDate.format("dddd").toLowerCase();
+    const isWeekend = weekendsSet.has(dayName);
+    const isHoliday = holidayDates.some(holiday => holiday.isSame(currentDate, "day"));
+
+    if (!isWeekend && !isHoliday) {
+      countedWorkingDays++;
+    }
+
+    if (countedWorkingDays < tatDays) {
+      currentDate.add(1, "day");
+      totalDays++;
+    }
+  }
+
+  return totalDays;
+}
+
+function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+  tatDays = parseInt(tatDays, 10);
+  tatDays = isNaN(tatDays) ? 0 : tatDays;
+
+  const today = moment().startOf('day');
+  const currentDate = startDate.clone();
+  let countedWorkingDays = 0;
+  let totalCalendarDaysNeeded = 0;
+
+  // Calculate how many calendar days are required to fulfill TAT
+  while (countedWorkingDays < tatDays) {
+    const dayName = currentDate.format("dddd").toLowerCase();
+    const isWeekend = weekendsSet.has(dayName);
+    const isHoliday = holidayDates.some(holiday => holiday.isSame(currentDate, "day"));
+
+    if (!isWeekend && !isHoliday) {
+      countedWorkingDays++;
+    }
+
+    if (countedWorkingDays < tatDays) {
+      currentDate.add(1, "day");
+      totalCalendarDaysNeeded++;
+    }
+  }
+
+  // Compare today with deadline
+  const daysPassed = today.diff(startDate, 'days');
+
+  if (daysPassed < totalCalendarDaysNeeded) {
+    return {
+      status: 'early',
+      used: daysPassed,
+      remaining: totalCalendarDaysNeeded - daysPassed,
+    };
+  } else if (daysPassed === totalCalendarDaysNeeded) {
+    return {
+      status: 'on_time',
+      used: daysPassed,
+    };
+  } else {
+    return {
+      status: 'exceed',
+      exceededBy: daysPassed - totalCalendarDaysNeeded,
+    };
+  }
+}
+
 const Customer = {
   list: async (filter_status, callback) => {
     let client_application_ids = [];
@@ -732,15 +805,27 @@ const Customer = {
 
       // Format results
       const formattedResults = results.map((result, index) => {
+        let report_completed_status;
+
+        if (result.is_report_completed && result.report_completed_at) {
+          report_completed_status = evaluateTatProgress(
+            moment(result.created_at),
+            result.tat_days,
+            holidayDates,
+            weekendsSet
+          );
+        }
+
         return {
           ...result,
-          created_at: new Date(result.created_at).toISOString(), // Format created_at
+          created_at: new Date(result.created_at).toISOString(),
           new_deadline_date: calculateDueDate(
             moment(result.created_at),
             result.tat_days,
             holidayDates,
             weekendsSet
-          )
+          ),
+          report_completed_status
         };
       });
       callback(null, formattedResults);
