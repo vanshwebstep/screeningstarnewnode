@@ -585,6 +585,7 @@ exports.validateLogin = (req, res) => {
         status: true,
         message: "Login verified successfully",
         token: newToken,
+        admin
       });
     });
   });
@@ -924,5 +925,131 @@ exports.forgotPassword = (req, res) => {
         message: "Password updated successfully.",
       });
     });
+  });
+};
+
+exports.checkIn = (req, res) => {
+  const { admin_id, _token } = req.body;
+  const { ipAddress, ipType } = getClientIpAddress(req);
+  const missingFields = [];
+
+  // Validate required fields
+  if (!admin_id || admin_id === "") missingFields.push("Admin ID");
+  if (!_token || _token === "") missingFields.push("Admin Token");
+
+  // If there are missing fields, return an error response
+  if (missingFields.length > 0) {
+    return res.status(400).json({
+      status: false,
+      message: `Missing required fields: ${missingFields.join(", ")}`,
+    });
+  }
+
+  Common.isAdminTokenValid(_token, admin_id, (err, result) => {
+    if (err) {
+      console.error("Error checking token validity:", err);
+      return res.status(500).json(err);
+    }
+
+    if (!result.status) {
+      return res
+        .status(401)
+        .json({ status: false, err: result, message: result.message });
+    }
+
+    const newToken = result.newToken;
+    Admin.updateCheckInStatus(
+      { checkInStatus: `check-in`, checkInTime: new Date(), adminId: admin_id },
+      (err, result) => {
+        if (err) {
+          console.error("Database error during admin check in:", err);
+          Common.adminActivityLog(
+            ipAddress,
+            ipType,
+            admin_id,
+            "Admin",
+            "Update",
+            "0",
+            null,
+            err.message,
+            () => { }
+          );
+          return res.status(500).json({
+            status: false,
+            message: err.message || "Failed to check in Admin. Please try again later.",
+            token: newToken,
+          });
+        }
+
+        return res.status(201).json({
+          status: true,
+          message: "Admin checkin successfully.",
+          token: newToken,
+        });
+
+      });
+  });
+};
+
+exports.checkOut = (req, res) => {
+  const { admin_id, _token } = req.body;
+  const { ipAddress, ipType } = getClientIpAddress(req);
+  const missingFields = [];
+
+  // Validate required fields
+  if (!admin_id || admin_id === "") missingFields.push("Admin ID");
+  if (!_token || _token === "") missingFields.push("Admin Token");
+
+  // If there are missing fields, return an error response
+  if (missingFields.length > 0) {
+    return res.status(400).json({
+      status: false,
+      message: `Missing required fields: ${missingFields.join(", ")}`,
+    });
+  }
+
+  Common.isAdminTokenValid(_token, admin_id, (err, result) => {
+    if (err) {
+      console.error("Error checking token validity:", err);
+      return res.status(500).json(err);
+    }
+
+    if (!result.status) {
+      return res
+        .status(401)
+        .json({ status: false, err: result, message: result.message });
+    }
+
+    const newToken = result.newToken;
+    Admin.updateCheckInStatus(
+      { checkInStatus: `check-out`, checkInTime: new Date(), adminId: admin_id },
+      (err, result) => {
+        if (err) {
+          console.error("Database error during admin check out:", err);
+          Common.adminActivityLog(
+            ipAddress,
+            ipType,
+            admin_id,
+            "Admin",
+            "Update",
+            "0",
+            null,
+            err.message,
+            () => { }
+          );
+          return res.status(500).json({
+            status: false,
+            message: err.message || "Failed to check out Admin. Please try again later.",
+            token: newToken,
+          });
+        }
+
+        return res.status(201).json({
+          status: true,
+          message: "Admin check out successfully.",
+          token: newToken,
+        });
+
+      });
   });
 };

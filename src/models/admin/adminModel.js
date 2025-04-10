@@ -418,10 +418,7 @@ const Admin = {
         params: queryParams, // Return the parameters used in the query
       });
     }
-
-
   },
-
 
   findByEmailOrMobile: async (username, callback) => {
     const sql = `
@@ -444,7 +441,7 @@ const Admin = {
     callback(null, results);
   },
 
-  findByEmailOrMobileAllInfo:async  (username, callback) => {
+  findByEmailOrMobileAllInfo: async (username, callback) => {
     const sql = `
       SELECT *
       FROM \`admins\`
@@ -454,18 +451,18 @@ const Admin = {
       replacements: [username, username], // Positional replacements using ?
       type: QueryTypes.SELECT,
     });
-       
-       
 
-        if (results.length === 0) {
-          return callback(
-            { message: "No admin found with the provided email or mobile" },
-            null
-          );
-        }
 
-        callback(null, results);
-   },
+
+    if (results.length === 0) {
+      return callback(
+        { message: "No admin found with the provided email or mobile" },
+        null
+      );
+    }
+
+    callback(null, results);
+  },
 
   validatePassword: async (username, password, callback) => {
     const sql = `
@@ -489,60 +486,60 @@ const Admin = {
     callback(null, results);
   },
 
-  updatePassword:async  (new_password, admin_id, callback) => {
+  updatePassword: async (new_password, admin_id, callback) => {
     const sql = `UPDATE \`admins\` SET \`password\` = MD5(?), \`reset_password_token\` = null, \`login_token\` = null, \`token_expiry\` = null, \`password_token_expiry\` = null WHERE \`id\` = ?`;
 
-     
+
     const results = await sequelize.query(sql, {
       replacements: [new_password, admin_id], // Positional replacements using ?
       type: QueryTypes.UPDATE,
     });
 
-     
-        if (results.affectedRows === 0) {
-          return callback(
-            {
-              message:
-                "Admin not found or password not updated. Please check the provided details.",
-            },
-            null
-          );
-        }
 
-        callback(null, {
-          message: "Password updated successfully.",
-          affectedRows: results.affectedRows,
-        });
+    if (results.affectedRows === 0) {
+      return callback(
+        {
+          message:
+            "Admin not found or password not updated. Please check the provided details.",
+        },
+        null
+      );
+    }
 
-   
+    callback(null, {
+      message: "Password updated successfully.",
+      affectedRows: results.affectedRows,
+    });
+
+
   },
 
-  updateOTP:async  (admin_id, otp, otp_expiry, callback) => {
+  updateOTP: async (admin_id, otp, otp_expiry, callback) => {
     const sql = `UPDATE \`admins\` SET \`otp\` = ?, \`otp_expiry\` = ?,  \`reset_password_token\` = null, \`login_token\` = null, \`token_expiry\` = null, \`password_token_expiry\` = null WHERE \`id\` = ?`;
     const results = await sequelize.query(sql, {
       replacements: [otp, otp_expiry, admin_id], // Positional replacements using ?
       type: QueryTypes.UPDATE,
     });
-     
-        
 
-          // Check if the admin_id was found and the update affected any rows
-          if (results.affectedRows === 0) {
-            return callback(
-              {
-                message:
-                  "Admin not found or password not updated. Please check the provided details.",
-              },
-              null
-            );
-          }
 
-          callback(null, {
-            message: "Password updated successfully.",
-            affectedRows: results.affectedRows,
-          });
-       
-   
+
+    // Check if the admin_id was found and the update affected any rows
+    if (results.affectedRows === 0) {
+      return callback(
+        {
+          message:
+            "Admin not found or password not updated. Please check the provided details.",
+        },
+        null
+      );
+    }
+
+    callback(null, {
+      message: "Password updated successfully.",
+      affectedRows: results.affectedRows,
+    });
+
+
   },
 
   updateToken: async (id, token, tokenExpiry, callback) => {
@@ -569,7 +566,7 @@ const Admin = {
     callback(null, results);
   },
 
-  setResetPasswordToken:async  (id, token, tokenExpiry, callback) => {
+  setResetPasswordToken: async (id, token, tokenExpiry, callback) => {
     const sql = `
       UPDATE \`admins\`
       SET \`reset_password_token\` = ?, \`password_token_expiry\` = ?
@@ -580,19 +577,19 @@ const Admin = {
       type: QueryTypes.UPDATE,
     });
 
-       
 
-        if (results.affectedRows === 0) {
-          return callback(
-            {
-              message:
-                "Token update failed. Admin not found or no changes made.",
-            },
-            null
-          );
-        }
 
-        callback(null, results);
+    if (results.affectedRows === 0) {
+      return callback(
+        {
+          message:
+            "Token update failed. Admin not found or no changes made.",
+        },
+        null
+      );
+    }
+
+    callback(null, results);
   },
 
   validateLogin: async (id, callback) => {
@@ -605,15 +602,15 @@ const Admin = {
       replacements: [id], // Positional replacements using ?
       type: QueryTypes.SELECT,
     });
-      
 
-        if (results.length === 0) {
-          return callback({ message: "Admin not found" }, null);
-        }
 
-        callback(null, results);
-     
-   
+    if (results.length === 0) {
+      return callback({ message: "Admin not found" }, null);
+    }
+
+    callback(null, results);
+
+
   },
 
   // Clear login token and token expiry
@@ -647,7 +644,7 @@ const Admin = {
 
   findById: async (id, callback) => {
     const sql = `
-      SELECT \`id\`, \`emp_id\`, \`name\`, \`profile_picture\`, \`date_of_joining\`, \`designation\`, \`role\`, \`email\`, \`mobile\`, \`status\`, \`login_token\`, \`token_expiry\`
+      SELECT \`id\`, \`emp_id\`, \`name\`, \`profile_picture\`, \`date_of_joining\`, \`designation\`, \`role\`, \`email\`, \`mobile\`, \`status\`, \`login_token\`, \`token_expiry\`, \`check_in_status\`, \`check_in_time\`, \`check_out_status\`, \`check_out_time\`
       FROM \`admins\`
       WHERE \`id\` = ?
     `;
@@ -694,10 +691,87 @@ const Admin = {
 
     // If the role is "admin" or "admin_user"
     return callback(null, { finalServiceIds: [] });
+  },
 
+  updateCheckInStatus: async (data, callback) => {
+    const { checkInStatus, checkInTime, adminId } = data;
 
+    let sqlSelect;
+    let updateSql;
+    if (checkInStatus === 'check-in') {
+      sqlSelect = `
+            SELECT * FROM \`admin_login_logs\`
+            WHERE DATE(\`created_at\`) = ? AND \`admin_id\` = ? AND \`action\` = 'login' 
+            ORDER BY \`created_at\` ASC
+            LIMIT 1;
+        `;
+      updateSql = `
+            UPDATE \`admin_login_logs\`
+            SET \`check_in_status\` = 1, \`check_in_time\` = ?
+            WHERE \`id\` = ?;
+        `;
+    } else if (checkInStatus === 'check-out') {
+      sqlSelect = `
+            SELECT * FROM \`admin_login_logs\`
+            WHERE DATE(\`created_at\`) = ? AND \`admin_id\` = ? AND \`action\` = 'login'
+            ORDER BY \`created_at\` ASC
+            LIMIT 1;
+        `;
+      updateSql = `
+            UPDATE \`admin_login_logs\`
+            SET \`check_out_status\` = 1, \`check_out_time\` = ?
+            WHERE \`id\` = ?;
+        `;
+    } else {
+      return callback({ message: "Invalid checkInStatus" }, null);
+    }
+
+    try {
+      // Ensure checkInTime is a string with the format YYYY-MM-DD (if it's a Date object, convert it)
+      const formattedCheckInTime = new Date(checkInTime).toISOString().split('T')[0]; // Extracts the date part
+
+      console.log('Formatted Check-in Time:', formattedCheckInTime); // Debug log to check the formatted date
+      console.log('Admin ID:', adminId); // Debug log to check the adminId
+
+      // Execute the query to get results
+      const results = await sequelize.query(sqlSelect, {
+        replacements: [formattedCheckInTime, adminId], // Pass the formatted checkInTime to match the date part
+        type: QueryTypes.SELECT,
+      });
+
+      // Check if results are found
+      if (results.length === 0) {
+        console.log('No results found for the given date and adminId.');
+        return callback({ message: "No Login Log Found. Please login first." }, null);
+      }
+
+      // Check if already checked in or checked out based on the status
+      const existingLog = results[0];
+      if (checkInStatus === 'check-in' && existingLog.check_in_status === 1) {
+        console.log('Admin already checked in.');
+        return callback({ message: "Admin already checked in." }, null);
+      } else if (checkInStatus === 'check-out' && existingLog.check_out_status === 1) {
+        console.log('Admin already checked out.');
+        return callback({ message: "Admin already checked out." }, null);
+      }
+
+      console.log(`Results found:`, results.length);
+
+      // Execute the update query
+      await sequelize.query(updateSql, {
+        replacements: [checkInTime, existingLog.id], // Update the first record found
+        type: QueryTypes.UPDATE,
+      });
+
+      // Successful update
+      callback(null, { message: "Check-in status updated successfully." });
+
+    } catch (error) {
+      // Catch any SQL or Sequelize-related errors
+      console.error('Error during admin check-in:', error);
+      callback(error, null);
+    }
   }
-
 };
 
 module.exports = Admin;

@@ -7,6 +7,8 @@ const myProfileRoutes = require("./myProfileRoutes");
 
 // Authentication routes
 router.post("/login", authController.login);
+router.post("/check-in", authController.checkIn);
+router.post("/check-out", authController.checkOut);
 router.post("/verify-two-factor", authController.verifyTwoFactor);
 router.put("/update-password", authController.updatePassword);
 router.post("/forgot-password-request", authController.forgotPasswordRequest);

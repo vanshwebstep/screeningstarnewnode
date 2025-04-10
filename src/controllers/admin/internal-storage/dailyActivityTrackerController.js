@@ -260,7 +260,7 @@ exports.update = (req, res) => {
                 }
 
                 const changes = {
-                    old: currentDailyActivity.title,
+                    old: currentDailyActivity,
                     new: {
                         bd_expert_name,
                         date,
