@@ -7,7 +7,7 @@ const moment = require("moment");
 const hashPassword = (password) =>
   crypto.createHash("md5").update(password).digest("hex");
 
-async function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
   tatDays = parseInt(tatDays, 10);
   tatDays = isNaN(tatDays) ? 0 : tatDays;
 
@@ -54,8 +54,7 @@ async function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weeke
   return currentDate;
 }
 
-
-async function getActualCalendarDays(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+function getActualCalendarDays(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
   // console.log("Initial Input:");
   // console.log("Start Date:", startDate.format("YYYY-MM-DD"));
   // console.log("TAT Days (raw):", tatDays);
@@ -96,7 +95,7 @@ async function getActualCalendarDays(startDate, tatDays = 0, holidayDates = [], 
   return totalDays;
 }
 
-async function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
   // console.log("==== Evaluate TAT Progress ====");
   // console.log("Start Date:", startDate.format("YYYY-MM-DD"));
   // console.log("TAT Days (raw):", tatDays);
@@ -539,7 +538,7 @@ const Customer = {
               );
             }
           );
-          // // console.log(`rawResult - `, result);
+          // console.log(`rawResult - `, result);
           result.head_branch_applications_count =
             headBranchApplicationsCount;
           // if (result.branch_count === 1) {
@@ -576,7 +575,7 @@ const Customer = {
           }
           // }
         }
-        // // console.log(`results - `, results);
+        // console.log(`results - `, results);
         callback(null, results);
       });
 
@@ -843,7 +842,7 @@ const Customer = {
           const tatDays = parseInt(result.tat_days || 0, 10);
 
           if (result.is_report_completed && result.report_completed_at) {
-            report_completed_status = await evaluateTatProgress(
+            report_completed_status = evaluateTatProgress(
               createdAtMoment,
               tatDays,
               holidayDates,
@@ -852,14 +851,14 @@ const Customer = {
             // console.log(`Report completed status for ID ${result.id}:`, report_completed_status);
           }
 
-          const newDeadlineDate = await calculateDueDate(
+          const newDeadlineDate = calculateDueDate(
             createdAtMoment,
             tatDays,
             holidayDates,
             weekendsSet
           );
 
-          const actualCalendarDays = await getActualCalendarDays(
+          const actualCalendarDays = getActualCalendarDays(
             createdAtMoment,
             tatDays,
             holidayDates,
@@ -883,7 +882,6 @@ const Customer = {
       callback(err, null);
     }
   },
-
 
   applicationByID: async (application_id, branch_id, callback) => {
 
@@ -1286,7 +1284,7 @@ const Customer = {
           AND (c.status = 1)
           AND CAST(a.branch_id AS CHAR) = ?
       `;
-    // // console.log(`overallCountSQL - `, overallCountSQL);
+    // console.log(`overallCountSQL - `, overallCountSQL);
     const overallCountResult = await sequelize.query(overallCountSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1312,7 +1310,7 @@ const Customer = {
           order by 
             b.id DESC
         `;
-    // // console.log(`qcStatusPendingSQL - `, qcStatusPendingSQL);
+    // console.log(`qcStatusPendingSQL - `, qcStatusPendingSQL);
     const qcStatusPendingResult = await sequelize.query(qcStatusPendingSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1339,7 +1337,7 @@ const Customer = {
           GROUP BY 
             b.overall_status
         `;
-    // // console.log(`wipInsuffSQL - `, wipInsuffSQL);
+    // console.log(`wipInsuffSQL - `, wipInsuffSQL);
 
     const wipInsuffResult = await sequelize.query(wipInsuffSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
@@ -1372,7 +1370,7 @@ const Customer = {
             GROUP BY
               b.overall_status
           `;
-    // // console.log(`completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL - `, completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL);
+    // console.log(`completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL - `, completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL);
     const completedStocheckactiveEmployementNilNotDoubleCandidateDeniedResult = await sequelize.query(completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1411,7 +1409,7 @@ const Customer = {
             GROUP BY
               b.overall_status
             `;
-    // // console.log(`completedGreenRedYellowPinkOrangeSQL - `, completedGreenRedYellowPinkOrangeSQL);
+    // console.log(`completedGreenRedYellowPinkOrangeSQL - `, completedGreenRedYellowPinkOrangeSQL);
     const completedGreenRedYellowPinkOrangeResult = await sequelize.query(completedGreenRedYellowPinkOrangeSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1479,7 +1477,7 @@ const Customer = {
           )
         };
       });
-      // // console.log(`formattedResults - `, formattedResults);
+      // console.log(`formattedResults - `, formattedResults);
       // Return the first result or null if not found
       callback(null, formattedResults.length > 0 ? formattedResults[0] : null);
     } catch (error) {
