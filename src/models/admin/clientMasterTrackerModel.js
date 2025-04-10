@@ -7,7 +7,7 @@ const moment = require("moment");
 const hashPassword = (password) =>
   crypto.createHash("md5").update(password).digest("hex");
 
-function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+async function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
   tatDays = parseInt(tatDays, 10);
   tatDays = isNaN(tatDays) ? 0 : tatDays;
 
@@ -18,54 +18,53 @@ function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet
   // console.log("Holiday Dates:", holidayDates.map(date => date.format("YYYY-MM-DD")));
   // console.log("Weekends Set:", weekendsSet);
 
-  // Handle TAT = 0 edge case
+  // Helper to check if a date is working
+  const isWorkingDay = (date) => {
+    const dayName = date.format("dddd").toLowerCase();
+    return !weekendsSet.has(dayName) && !holidayDates.some(h => h.isSame(date, 'day'));
+  };
+
+  let currentDate = startDate.clone();
+
   if (tatDays === 0) {
-    let nextValidDate = startDate.clone();
-    while (
-      weekendsSet.has(nextValidDate.format("dddd").toLowerCase()) ||
-      holidayDates.some(holiday => holiday.isSame(nextValidDate, "day"))
-    ) {
-      nextValidDate.add(1, "day");
+    // console.log("TAT = 0, finding next working day...");
+    while (!isWorkingDay(currentDate)) {
+      currentDate.add(1, 'day');
     }
-    // console.log("Final Due Date (TAT = 0):", nextValidDate.format("YYYY-MM-DD"));
-    return nextValidDate;
+    // console.log("Final Due Date (TAT = 0):", currentDate.format("YYYY-MM-DD"));
+    return currentDate;
   }
 
-  // Normal case
+  // console.log("Calculating with TAT days...");
   let remainingDays = tatDays;
-  const potentialDates = Array.from({ length: tatDays * 2 }, (_, i) =>
-    startDate.clone().add(i + 1, "days")
-  );
 
-  // console.log("Generated Potential Dates:", potentialDates.map(date => date.format("YYYY-MM-DD")));
+  while (remainingDays > 0) {
+    currentDate.add(1, 'day');
 
-  let finalDueDate = potentialDates.find((date) => {
-    const dayName = date.format("dddd").toLowerCase();
-    // console.log(`Checking date: ${date.format("YYYY-MM-DD")} (Day: ${dayName})`);
-
-    if (weekendsSet.has(dayName)) {
-      // console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a weekend.`);
-      return false;
+    if (isWorkingDay(currentDate)) {
+      remainingDays--;
     }
 
-    if (holidayDates.some((holiday) => holiday.isSame(date, "day"))) {
-      // console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a holiday.`);
-      return false;
+    if (tatDays > 1000 && remainingDays % 100000 === 0) {
+      // console.log(`...Still calculating, ${remainingDays} working days remaining`);
     }
+  }
 
-    remainingDays--;
-    // console.log(`Remaining Days: ${remainingDays}`);
-
-    return remainingDays <= 0;
-  });
-
-  // console.log("Final Due Date:", finalDueDate ? finalDueDate.format("YYYY-MM-DD") : "Not Found");
-  return finalDueDate;
+  // console.log("Final Due Date:", currentDate.format("YYYY-MM-DD"));
+  return currentDate;
 }
 
-function getActualCalendarDays(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+
+async function getActualCalendarDays(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+  // console.log("Initial Input:");
+  // console.log("Start Date:", startDate.format("YYYY-MM-DD"));
+  // console.log("TAT Days (raw):", tatDays);
+  // console.log("Holiday Dates:", holidayDates.map(d => d.format("YYYY-MM-DD")));
+  // console.log("Weekends Set 2 :", Array.from(weekendsSet));
+
   tatDays = parseInt(tatDays, 10);
   tatDays = isNaN(tatDays) ? 0 : tatDays;
+  // console.log("Parsed TAT Days:", tatDays);
 
   let currentDate = startDate.clone();
   let countedWorkingDays = 0;
@@ -73,11 +72,18 @@ function getActualCalendarDays(startDate, tatDays = 0, holidayDates = [], weeken
 
   while (countedWorkingDays < tatDays) {
     const dayName = currentDate.format("dddd").toLowerCase();
+    const formattedDate = currentDate.format("YYYY-MM-DD");
     const isWeekend = weekendsSet.has(dayName);
     const isHoliday = holidayDates.some(holiday => holiday.isSame(currentDate, "day"));
 
+    // console.log(`Checking Date: ${formattedDate} (Day: ${dayName})`);
+    // console.log(`Is Weekend: ${isWeekend}, Is Holiday: ${isHoliday}`);
+
     if (!isWeekend && !isHoliday) {
       countedWorkingDays++;
+      // console.log(`Counted as working day. Total working days so far: ${countedWorkingDays}`);
+    } else {
+      // console.log("Skipped (Weekend or Holiday)");
     }
 
     if (countedWorkingDays < tatDays) {
@@ -86,14 +92,24 @@ function getActualCalendarDays(startDate, tatDays = 0, holidayDates = [], weeken
     }
   }
 
+  // console.log("Total Actual Calendar Days (excluding start date):", totalDays);
   return totalDays;
 }
 
-function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+async function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
+  // console.log("==== Evaluate TAT Progress ====");
+  // console.log("Start Date:", startDate.format("YYYY-MM-DD"));
+  // console.log("TAT Days (raw):", tatDays);
+  // console.log("Holiday Dates:", holidayDates.map(d => d.format("YYYY-MM-DD")));
+  // console.log("Weekends Set 3 :", Array.from(weekendsSet));
+
   tatDays = parseInt(tatDays, 10);
   tatDays = isNaN(tatDays) ? 0 : tatDays;
+  // console.log("Parsed TAT Days:", tatDays);
 
   const today = moment().startOf('day');
+  // console.log("Today:", today.format("YYYY-MM-DD"));
+
   const currentDate = startDate.clone();
   let countedWorkingDays = 0;
   let totalCalendarDaysNeeded = 0;
@@ -101,11 +117,18 @@ function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekends
   // Calculate how many calendar days are required to fulfill TAT
   while (countedWorkingDays < tatDays) {
     const dayName = currentDate.format("dddd").toLowerCase();
+    const formattedDate = currentDate.format("YYYY-MM-DD");
     const isWeekend = weekendsSet.has(dayName);
     const isHoliday = holidayDates.some(holiday => holiday.isSame(currentDate, "day"));
 
+    // console.log(`Checking Date: ${formattedDate} (Day: ${dayName})`);
+    // console.log(`Is Weekend: ${isWeekend}, Is Holiday: ${isHoliday}`);
+
     if (!isWeekend && !isHoliday) {
       countedWorkingDays++;
+      // console.log(`✅ Counted as Working Day. Total Working Days So Far: ${countedWorkingDays}`);
+    } else {
+      // console.log("❌ Skipped (Weekend or Holiday)");
     }
 
     if (countedWorkingDays < tatDays) {
@@ -114,21 +137,26 @@ function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekends
     }
   }
 
-  // Compare today with deadline
+  // console.log("Total Calendar Days Needed (excluding start date):", totalCalendarDaysNeeded);
+
   const daysPassed = today.diff(startDate, 'days');
+  // console.log("Days Passed Since Start Date:", daysPassed);
 
   if (daysPassed < totalCalendarDaysNeeded) {
+    // console.log("Status: EARLY");
     return {
       status: 'early',
       used: daysPassed,
       remaining: totalCalendarDaysNeeded - daysPassed,
     };
   } else if (daysPassed === totalCalendarDaysNeeded) {
+    // console.log("Status: ON TIME");
     return {
       status: 'on_time',
       used: daysPassed,
     };
   } else {
+    // console.log("Status: EXCEED");
     return {
       status: 'exceed',
       exceededBy: daysPassed - totalCalendarDaysNeeded,
@@ -511,7 +539,7 @@ const Customer = {
               );
             }
           );
-          // console.log(`rawResult - `, result);
+          // // console.log(`rawResult - `, result);
           result.head_branch_applications_count =
             headBranchApplicationsCount;
           // if (result.branch_count === 1) {
@@ -548,7 +576,7 @@ const Customer = {
           }
           // }
         }
-        // console.log(`results - `, results);
+        // // console.log(`results - `, results);
         callback(null, results);
       });
 
@@ -803,37 +831,52 @@ const Customer = {
       // Execute query
       const results = await sequelize.query(sql, { replacements: params, type: QueryTypes.SELECT });
 
-      // Format results
-      const formattedResults = results.map((result, index) => {
-        let report_completed_status;
+      // console.log(`results - `, results);
 
-        if (result.is_report_completed && result.report_completed_at) {
-          report_completed_status = evaluateTatProgress(
-            moment(result.created_at),
-            result.tat_days,
+      // Format results
+      const formattedResults = await Promise.all(
+        results.map(async (result, index) => {
+          // console.log(`Processing result index ${index} with ID: ${result.id}`);
+          let report_completed_status = null;
+
+          const createdAtMoment = moment(result.created_at);
+          const tatDays = parseInt(result.tat_days || 0, 10);
+
+          if (result.is_report_completed && result.report_completed_at) {
+            report_completed_status = await evaluateTatProgress(
+              createdAtMoment,
+              tatDays,
+              holidayDates,
+              weekendsSet
+            );
+            // console.log(`Report completed status for ID ${result.id}:`, report_completed_status);
+          }
+
+          const newDeadlineDate = await calculateDueDate(
+            createdAtMoment,
+            tatDays,
             holidayDates,
             weekendsSet
           );
-        }
 
-        return {
-          ...result,
-          created_at: new Date(result.created_at).toISOString(),
-          new_deadline_date: calculateDueDate(
-            moment(result.created_at),
-            result.tat_days,
+          const actualCalendarDays = await getActualCalendarDays(
+            createdAtMoment,
+            tatDays,
             holidayDates,
             weekendsSet
-          ),
-          tat_days: getActualCalendarDays(
-            moment(result.created_at),
-            result.tat_days,
-            holidayDates,
-            weekendsSet
-          ),
-          report_completed_status
-        };
-      });
+          );
+
+          return {
+            ...result,
+            created_at: new Date(result.created_at).toISOString(),
+            new_deadline_date: newDeadlineDate,
+            tat_days: actualCalendarDays,
+            report_completed_status
+          };
+        })
+      );
+
+      // console.log("Formatted Results:", formattedResults.length);
       callback(null, formattedResults);
     } catch (err) {
       console.error("Error fetching applications:", err);
@@ -1243,7 +1286,7 @@ const Customer = {
           AND (c.status = 1)
           AND CAST(a.branch_id AS CHAR) = ?
       `;
-    // console.log(`overallCountSQL - `, overallCountSQL);
+    // // console.log(`overallCountSQL - `, overallCountSQL);
     const overallCountResult = await sequelize.query(overallCountSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1269,7 +1312,7 @@ const Customer = {
           order by 
             b.id DESC
         `;
-    // console.log(`qcStatusPendingSQL - `, qcStatusPendingSQL);
+    // // console.log(`qcStatusPendingSQL - `, qcStatusPendingSQL);
     const qcStatusPendingResult = await sequelize.query(qcStatusPendingSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1296,7 +1339,7 @@ const Customer = {
           GROUP BY 
             b.overall_status
         `;
-    // console.log(`wipInsuffSQL - `, wipInsuffSQL);
+    // // console.log(`wipInsuffSQL - `, wipInsuffSQL);
 
     const wipInsuffResult = await sequelize.query(wipInsuffSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
@@ -1329,7 +1372,7 @@ const Customer = {
             GROUP BY
               b.overall_status
           `;
-    // console.log(`completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL - `, completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL);
+    // // console.log(`completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL - `, completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL);
     const completedStocheckactiveEmployementNilNotDoubleCandidateDeniedResult = await sequelize.query(completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1368,7 +1411,7 @@ const Customer = {
             GROUP BY
               b.overall_status
             `;
-    // console.log(`completedGreenRedYellowPinkOrangeSQL - `, completedGreenRedYellowPinkOrangeSQL);
+    // // console.log(`completedGreenRedYellowPinkOrangeSQL - `, completedGreenRedYellowPinkOrangeSQL);
     const completedGreenRedYellowPinkOrangeResult = await sequelize.query(completedGreenRedYellowPinkOrangeSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1436,7 +1479,7 @@ const Customer = {
           )
         };
       });
-      // console.log(`formattedResults - `, formattedResults);
+      // // console.log(`formattedResults - `, formattedResults);
       // Return the first result or null if not found
       callback(null, formattedResults.length > 0 ? formattedResults[0] : null);
     } catch (error) {
