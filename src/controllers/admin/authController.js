@@ -584,7 +584,8 @@ exports.validateLogin = (req, res) => {
       return res.status(200).json({
         status: true,
         message: "Login verified successfully",
-        token: newToken
+        token: newToken,
+        admin
       });
     });
   });

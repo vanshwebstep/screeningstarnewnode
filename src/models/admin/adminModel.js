@@ -644,12 +644,34 @@ const Admin = {
 
   findById: async (id, callback) => {
     const sql = `
-      SELECT \`id\`, \`emp_id\`, \`name\`, \`profile_picture\`, \`date_of_joining\`, \`designation\`, \`role\`, \`email\`, \`mobile\`, \`status\`, \`login_token\`, \`token_expiry\`
-      FROM \`admins\`
-      WHERE \`id\` = ?
-    `;
+                SELECT 
+                  admin.\`id\`, 
+                  admin.\`emp_id\`, 
+                  admin.\`name\`, 
+                  admin.\`profile_picture\`, 
+                  admin.\`date_of_joining\`, 
+                  admin.\`designation\`, 
+                  admin.\`role\`, 
+                  admin.\`email\`, 
+                  admin.\`mobile\`, 
+                  admin.\`status\`, 
+                  admin.\`login_token\`, 
+                  admin.\`token_expiry\`, 
+                  log.\`check_in_status\`, 
+                  log.\`check_in_time\`, 
+                  log.\`check_out_status\`, 
+                  log.\`check_out_time\`
+                FROM \`admins\` admin
+                LEFT JOIN \`admin_login_logs\` log 
+                  ON admin.\`id\` = log.\`admin_id\`
+                WHERE admin.\`id\` = ? 
+                  AND DATE(log.\`created_at\`) = CURDATE() 
+                  AND log.\`admin_id\` = ? 
+                  AND log.\`action\` = 'login' 
+                ORDER BY log.\`created_at\` ASC 
+                LIMIT 1;`;
     const results = await sequelize.query(sql, {
-      replacements: [id], // Positional replacements using ?
+      replacements: [id, id], // Positional replacements using ?
       type: QueryTypes.SELECT,
     });
 
