@@ -11,12 +11,12 @@ function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet
   tatDays = parseInt(tatDays, 10);
   tatDays = isNaN(tatDays) ? 0 : tatDays;
 
-  console.log("Starting calculation...");
-  console.log("Start Date:", startDate.format("YYYY-MM-DD"));
-  console.log("TAT Days:", tatDays);
-  console.log("TAT Days (type):", typeof tatDays);
-  console.log("Holiday Dates:", holidayDates.map(date => date.format("YYYY-MM-DD")));
-  console.log("Weekends Set:", weekendsSet);
+  // console.log("Starting calculation...");
+  // console.log("Start Date:", startDate.format("YYYY-MM-DD"));
+  // console.log("TAT Days:", tatDays);
+  // console.log("TAT Days (type):", typeof tatDays);
+  // console.log("Holiday Dates:", holidayDates.map(date => date.format("YYYY-MM-DD")));
+  // console.log("Weekends Set:", weekendsSet);
 
   // Handle TAT = 0 edge case
   if (tatDays === 0) {
@@ -27,7 +27,7 @@ function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet
     ) {
       nextValidDate.add(1, "day");
     }
-    console.log("Final Due Date (TAT = 0):", nextValidDate.format("YYYY-MM-DD"));
+    // console.log("Final Due Date (TAT = 0):", nextValidDate.format("YYYY-MM-DD"));
     return nextValidDate;
   }
 
@@ -37,29 +37,29 @@ function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet
     startDate.clone().add(i + 1, "days")
   );
 
-  console.log("Generated Potential Dates:", potentialDates.map(date => date.format("YYYY-MM-DD")));
+  // console.log("Generated Potential Dates:", potentialDates.map(date => date.format("YYYY-MM-DD")));
 
   let finalDueDate = potentialDates.find((date) => {
     const dayName = date.format("dddd").toLowerCase();
-    console.log(`Checking date: ${date.format("YYYY-MM-DD")} (Day: ${dayName})`);
+    // console.log(`Checking date: ${date.format("YYYY-MM-DD")} (Day: ${dayName})`);
 
     if (weekendsSet.has(dayName)) {
-      console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a weekend.`);
+      // console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a weekend.`);
       return false;
     }
 
     if (holidayDates.some((holiday) => holiday.isSame(date, "day"))) {
-      console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a holiday.`);
+      // console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a holiday.`);
       return false;
     }
 
     remainingDays--;
-    console.log(`Remaining Days: ${remainingDays}`);
+    // console.log(`Remaining Days: ${remainingDays}`);
 
     return remainingDays <= 0;
   });
 
-  console.log("Final Due Date:", finalDueDate ? finalDueDate.format("YYYY-MM-DD") : "Not Found");
+  // console.log("Final Due Date:", finalDueDate ? finalDueDate.format("YYYY-MM-DD") : "Not Found");
   return finalDueDate;
 }
 
@@ -438,7 +438,7 @@ const Customer = {
               );
             }
           );
-          console.log(`rawResult - `, result);
+          // console.log(`rawResult - `, result);
           result.head_branch_applications_count =
             headBranchApplicationsCount;
           // if (result.branch_count === 1) {
@@ -475,7 +475,7 @@ const Customer = {
           }
           // }
         }
-        console.log(`results - `, results);
+        // console.log(`results - `, results);
         callback(null, results);
       });
 
@@ -735,6 +735,12 @@ const Customer = {
         return {
           ...result,
           created_at: new Date(result.created_at).toISOString(), // Format created_at
+          new_deadline_date: calculateDueDate(
+            moment(result.created_at),
+            result.tat_days,
+            holidayDates,
+            weekendsSet
+          )
         };
       });
       callback(null, formattedResults);
@@ -1146,7 +1152,7 @@ const Customer = {
           AND (c.status = 1)
           AND CAST(a.branch_id AS CHAR) = ?
       `;
-    console.log(`overallCountSQL - `, overallCountSQL);
+    // console.log(`overallCountSQL - `, overallCountSQL);
     const overallCountResult = await sequelize.query(overallCountSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1172,7 +1178,7 @@ const Customer = {
           order by 
             b.id DESC
         `;
-    console.log(`qcStatusPendingSQL - `, qcStatusPendingSQL);
+    // console.log(`qcStatusPendingSQL - `, qcStatusPendingSQL);
     const qcStatusPendingResult = await sequelize.query(qcStatusPendingSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1199,7 +1205,7 @@ const Customer = {
           GROUP BY 
             b.overall_status
         `;
-    console.log(`wipInsuffSQL - `, wipInsuffSQL);
+    // console.log(`wipInsuffSQL - `, wipInsuffSQL);
 
     const wipInsuffResult = await sequelize.query(wipInsuffSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
@@ -1232,7 +1238,7 @@ const Customer = {
             GROUP BY
               b.overall_status
           `;
-    console.log(`completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL - `, completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL);
+    // console.log(`completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL - `, completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL);
     const completedStocheckactiveEmployementNilNotDoubleCandidateDeniedResult = await sequelize.query(completedStocheckactiveEmployementNilNotDoubleCandidateDeniedSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1271,7 +1277,7 @@ const Customer = {
             GROUP BY
               b.overall_status
             `;
-    console.log(`completedGreenRedYellowPinkOrangeSQL - `, completedGreenRedYellowPinkOrangeSQL);
+    // console.log(`completedGreenRedYellowPinkOrangeSQL - `, completedGreenRedYellowPinkOrangeSQL);
     const completedGreenRedYellowPinkOrangeResult = await sequelize.query(completedGreenRedYellowPinkOrangeSQL, {
       replacements: [String(branch_id)], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -1339,7 +1345,7 @@ const Customer = {
           )
         };
       });
-      console.log(`formattedResults - `, formattedResults);
+      // console.log(`formattedResults - `, formattedResults);
       // Return the first result or null if not found
       callback(null, formattedResults.length > 0 ? formattedResults[0] : null);
     } catch (error) {
