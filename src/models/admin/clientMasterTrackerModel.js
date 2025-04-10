@@ -7,35 +7,43 @@ const moment = require("moment");
 const hashPassword = (password) =>
   crypto.createHash("md5").update(password).digest("hex");
 
-function calculateDueDate(startDate, tatDays = 0, holidayDates, weekendsSet) {
+function calculateDueDate(startDate, tatDays = 0, holidayDates = [], weekendsSet = new Set()) {
   console.log("Starting calculation...");
   console.log("Start Date:", startDate.format("YYYY-MM-DD"));
   console.log("TAT Days:", tatDays);
   console.log("Holiday Dates:", holidayDates.map(date => date.format("YYYY-MM-DD")));
   console.log("Weekends Set:", weekendsSet);
 
-  // Track remaining TAT days to process
-  let remainingDays = tatDays;
+  // Handle TAT = 0 edge case
+  if (tatDays === 0) {
+    let nextValidDate = startDate.clone();
+    while (
+      weekendsSet.has(nextValidDate.format("dddd").toLowerCase()) ||
+      holidayDates.some(holiday => holiday.isSame(nextValidDate, "day"))
+    ) {
+      nextValidDate.add(1, "day");
+    }
+    console.log("Final Due Date (TAT = 0):", nextValidDate.format("YYYY-MM-DD"));
+    return nextValidDate;
+  }
 
-  // Generate potential dates to check
+  // Normal case
+  let remainingDays = tatDays;
   const potentialDates = Array.from({ length: tatDays * 2 }, (_, i) =>
     startDate.clone().add(i + 1, "days")
   );
 
   console.log("Generated Potential Dates:", potentialDates.map(date => date.format("YYYY-MM-DD")));
 
-  // Calculate the final due date
   let finalDueDate = potentialDates.find((date) => {
     const dayName = date.format("dddd").toLowerCase();
     console.log(`Checking date: ${date.format("YYYY-MM-DD")} (Day: ${dayName})`);
 
-    // Skip weekends
     if (weekendsSet.has(dayName)) {
       console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a weekend.`);
       return false;
     }
 
-    // Skip holidays
     if (holidayDates.some((holiday) => holiday.isSame(date, "day"))) {
       console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a holiday.`);
       return false;
