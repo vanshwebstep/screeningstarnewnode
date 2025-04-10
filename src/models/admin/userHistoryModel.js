@@ -14,12 +14,12 @@ const tatDelay = {
                     admins.emp_id,
                     -- First login time (check-in)
                     MIN(CASE 
-                        WHEN logs.check_in_status = 1 AND logs.check_in_time IS NOT NULL AND logs.check_in_time IS NULL 
+                        WHEN logs.check_in_status = 1 AND logs.check_in_time IS NOT NULL 
                         THEN logs.check_in_time 
                         END) AS first_login_time,
                     -- Last logout time (check-out)
                     MAX(CASE 
-                        WHEN logs.check_out_status = 1 AND logs.check_out_time IS NOT NULL AND logs.check_out_time IS NULL 
+                        WHEN logs.check_out_status = 1 AND logs.check_out_time IS NOT NULL 
                         THEN logs.check_out_time 
                         END) AS last_logout_time,
                     -- First login time (check-in)
