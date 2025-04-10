@@ -1923,6 +1923,28 @@ const Customer = {
     callback(null, results);
 
   },
+
+  updateReportCompletedStatus: async (data, callback) => {
+    const { is_report_completed, report_completed_at, application_id } = data;
+
+    const sql = `
+      UPDATE \`client_applications\` 
+      SET 
+        \`is_report_completed\` = ?, 
+        \`report_completed_at\` = ?
+      WHERE \`id\` = ?
+    `;
+
+    try {
+      const results = await sequelize.query(sql, {
+        replacements: [is_report_completed, report_completed_at, application_id],
+        type: QueryTypes.UPDATE,
+      });
+      callback(null, results);
+    } catch (error) {
+      callback(error);
+    }
+  }
 };
 
 module.exports = Customer;
