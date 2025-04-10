@@ -8,11 +8,11 @@ const hashPassword = (password) =>
   crypto.createHash("md5").update(password).digest("hex");
 
 function calculateDueDate(startDate, tatDays = 0, holidayDates, weekendsSet) {
-  // console.log("Starting calculation...");
-  // console.log("Start Date:", startDate.format("YYYY-MM-DD"));
-  // console.log("TAT Days:", tatDays);
-  // console.log("Holiday Dates:", holidayDates.map(date => date.format("YYYY-MM-DD")));
-  // console.log("Weekends Set:", weekendsSet);
+  console.log("Starting calculation...");
+  console.log("Start Date:", startDate.format("YYYY-MM-DD"));
+  console.log("TAT Days:", tatDays);
+  console.log("Holiday Dates:", holidayDates.map(date => date.format("YYYY-MM-DD")));
+  console.log("Weekends Set:", weekendsSet);
 
   // Track remaining TAT days to process
   let remainingDays = tatDays;
@@ -22,32 +22,32 @@ function calculateDueDate(startDate, tatDays = 0, holidayDates, weekendsSet) {
     startDate.clone().add(i + 1, "days")
   );
 
-  // console.log("Generated Potential Dates:", potentialDates.map(date => date.format("YYYY-MM-DD")));
+  console.log("Generated Potential Dates:", potentialDates.map(date => date.format("YYYY-MM-DD")));
 
   // Calculate the final due date
   let finalDueDate = potentialDates.find((date) => {
     const dayName = date.format("dddd").toLowerCase();
-    // console.log(`Checking date: ${date.format("YYYY-MM-DD")} (Day: ${dayName})`);
+    console.log(`Checking date: ${date.format("YYYY-MM-DD")} (Day: ${dayName})`);
 
     // Skip weekends
     if (weekendsSet.has(dayName)) {
-      // console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a weekend.`);
+      console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a weekend.`);
       return false;
     }
 
     // Skip holidays
     if (holidayDates.some((holiday) => holiday.isSame(date, "day"))) {
-      // console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a holiday.`);
+      console.log(`Skipping ${date.format("YYYY-MM-DD")} - It's a holiday.`);
       return false;
     }
 
     remainingDays--;
-    // console.log(`Remaining Days: ${remainingDays}`);
+    console.log(`Remaining Days: ${remainingDays}`);
 
     return remainingDays <= 0;
   });
 
-  // console.log("Final Due Date:", finalDueDate ? finalDueDate.format("YYYY-MM-DD") : "Not Found");
+  console.log("Final Due Date:", finalDueDate ? finalDueDate.format("YYYY-MM-DD") : "Not Found");
   return finalDueDate;
 }
 
