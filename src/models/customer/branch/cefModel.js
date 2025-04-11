@@ -399,7 +399,7 @@ const cef = {
           replacements: [candidate_application_id],
           type: QueryTypes.SELECT,
         });
-    
+
         // Clean up mainJson: trim strings and remove empty strings
         Object.keys(mainJson).forEach((key) => {
           if (typeof mainJson[key] === "string") {
@@ -407,21 +407,21 @@ const cef = {
             if (mainJson[key] === "") delete mainJson[key];
           }
         });
-    
+
         if (entryResults.length > 0) {
           // 2. Entry exists: Generate update query
           const updateFields = Object.keys(mainJson)
             .map((key) => `\`${key}\` = ?`)
             .join(", ");
-          
+
           const updateValues = [...Object.values(mainJson), candidate_application_id];
-          
+
           const updateSql = `UPDATE \`${db_table}\` SET ${updateFields} WHERE candidate_application_id = ?`;
           const updateResult = await sequelize.query(updateSql, {
             replacements: updateValues,
             type: QueryTypes.UPDATE,
           });
-    
+
           return callback(null, updateResult);
         } else {
           // 3. Entry doesn't exist: Insert new row
@@ -430,18 +430,18 @@ const cef = {
           mainJson.branch_id = branch_id;
           mainJson.customer_id = customer_id;
           mainJson.cef_id = cef_id;
-    
+
           const insertFields = Object.keys(mainJson);
           const insertPlaceholders = insertFields.map(() => "?").join(", ");
           const insertValues = insertFields.map((field) => mainJson[field] || null);
-    
+
           const insertSql = `INSERT INTO \`${db_table}\` (${insertFields.join(", ")}) VALUES (${insertPlaceholders})`;
-    
+
           const insertResult = await sequelize.query(insertSql, {
             replacements: insertValues,
             type: QueryTypes.INSERT,
           });
-    
+
           return callback(null, insertResult);
         }
       } catch (error) {
@@ -449,7 +449,7 @@ const cef = {
         return callback(error);
       }
     }
-    
+
   },
 
   updateSubmitStatus: async (data, callback) => {
@@ -756,78 +756,89 @@ const cef = {
         replacements: [candidate_application_id],
         type: QueryTypes.SELECT,
       });
-  
-      if (results.length === 0) return callback(null, []);
-  
+
+      if (results.length === 0) {
+        return callback(null, []);
+      }
+
+      // Fetch attachments from cef_applications
+      const cefSql =
+        "SELECT `signature`, `resume_file`, `govt_id`, `pan_card`, `aadhaar_card` FROM `cef_applications` WHERE `candidate_application_id` = ?";
+      const cefResults = await sequelize.query(cefSql, {
+        replacements: [candidate_application_id],
+        type: QueryTypes.SELECT,
+      });
+
+      let finalAttachments = [];
+
+      // If attachments exist in cef_applications, add them
+      if (cefResults.length > 0) {
+        for (const field in cefResults[0]) {
+          if (cefResults[0][field]) {
+            finalAttachments.push(cefResults[0][field]); // Push only non-null values
+          }
+        }
+      }
+
+      // Process services
       const services = results[0].services.split(",");
       const dbTableFileInputs = {};
-  
-      // Step 1: Get file input names per service
+
       for (const service of services) {
         const query = "SELECT `json` FROM `cef_service_forms` WHERE `service_id` = ?";
         const result = await sequelize.query(query, {
           replacements: [service],
           type: QueryTypes.SELECT,
         });
-  
+
         if (result.length > 0) {
           try {
-            const jsonData = JSON.parse(result[0].json);
+            const rawJson = result[0].json.replace(/\\"/g, '"').replace(/\\'/g, "'");
+            const jsonData = JSON.parse(rawJson);
             const dbTable = jsonData.db_table;
-  
+
             if (!dbTableFileInputs[dbTable]) {
               dbTableFileInputs[dbTable] = [];
             }
-  
-            jsonData.inputs.forEach((row) => {
-              if (row.type === "file") {
-                dbTableFileInputs[dbTable].push(row.name);
+
+            for (const row of jsonData.rows) {
+              for (const input of row.inputs) {
+                if (input.type === "file") {
+                  dbTableFileInputs[dbTable].push(input.name);
+                }
               }
-            });
-          } catch (err) {
-            console.error(`JSON parse error for service ${service}:`, err);
+            }
+          } catch (parseErr) {
+            console.error("Error parsing JSON for service:", service, parseErr);
           }
         }
       }
-  
-      // Step 2: Fetch host
-      const hostSql = `SELECT \`cloud_host\` FROM \`app_info\` WHERE \`status\` = 1 AND \`interface_type\` = ? ORDER BY \`updated_at\` DESC LIMIT 1`;
-      const hostResults = await sequelize.query(hostSql, {
-        replacements: ["backend"],
-        type: QueryTypes.SELECT,
-      });
-  
-      const host = hostResults.length > 0 ? hostResults[0].cloud_host : "www.example.com";
-  
-      // Step 3: Fetch attachments from each db table
-      const finalAttachments = [];
-  
+
+      // Fetch attachments from related tables
       for (const [dbTable, fileInputNames] of Object.entries(dbTableFileInputs)) {
-        const selectQuery = `SELECT ${fileInputNames.length > 0 ? fileInputNames.join(", ") : "*"} FROM cef_${dbTable} WHERE candidate_application_id = ?`;
-  
+        if (fileInputNames.length === 0) continue;
+
+        const selectQuery = `SELECT ${fileInputNames.join(", ")} FROM cef_${dbTable} WHERE candidate_application_id = ?`;
         const rows = await sequelize.query(selectQuery, {
           replacements: [candidate_application_id],
           type: QueryTypes.SELECT,
         });
-  
+
         for (const row of rows) {
-          const attachments = Object.values(row)
-            .filter((value) => value)
-            .join(",");
-  
-          attachments.split(",").forEach((attachment) => {
-            finalAttachments.push(`${attachment}`);
-          });
+          for (const value of Object.values(row)) {
+            if (value) {
+              finalAttachments.push(value);
+            }
+          }
         }
       }
-  
-      // Step 4: Callback with final result
+
       callback(null, finalAttachments.join(", "));
     } catch (error) {
-      console.error("Error in getAttachmentsByClientAppID:", error);
-      callback(error);
+      console.error("Error fetching attachments:", error);
+      callback(error, null);
     }
-  }
-  
+  },
+
 };
 module.exports = cef;

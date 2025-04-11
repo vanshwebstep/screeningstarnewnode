@@ -712,140 +712,201 @@ const sendNotificationEmails = (
   submitStatus,
   res
 ) => {
-  BranchCommon.getBranchandCustomerEmailsForNotification(
+  Candidate.isApplicationExist(
+    candidateAppId,
     branch_id,
-    async (err, emailData) => {
+    customer_id,
+    (err, currentCandidateApplication) => {
       if (err) {
-        console.error("Error fetching emails:", err);
+        console.error("Database error during application existence check:", err);
         return res.status(500).json({
           status: false,
-          message: "Failed to retrieve email addresses.",
+          message: err.message,
         });
       }
-      CEF.getAttachmentsByClientAppID(
+
+      if (!currentCandidateApplication) {
+        return res.status(404).json({
+          status: false,
+          message: "Application does not exist.",
+        });
+      }
+      CEF.getCEFApplicationById(
         candidateAppId,
-        async (err, attachments) => {
+        branch_id,
+        customer_id,
+        (err, currentCEFApplication) => {
           if (err) {
-            console.error("Database error:", err);
+            console.error("Database error during CEF application retrieval:", err);
             return res.status(500).json({
               status: false,
-              message: "Database error occurred",
+              message: "Failed to retrieve CEF Application. Please try again.",
             });
           }
-
-          App.appInfo("backend", async (err, appInfo) => {
-            if (err) {
-              console.error("Database error:", err);
-              return res.status(500).json({
-                status: false,
-                err,
-                message: err.message,
-              });
-            }
-
-            let imageHost = "www.example.in";
-
-            if (appInfo) {
-              imageHost = appInfo.cloud_host || "www.example.in";
-            }
-
-            const today = new Date();
-            const formattedDate = `${today.getFullYear()}-${String(
-              today.getMonth() + 1
-            ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-
-            // Generate the PDF
-            const pdfTargetDirectory = `uploads/customers/${client_unique_id}/candidate-applications/CD-${client_unique_id}-${candidateAppId}/background-reports`;
-            const candidateFormPdfTargetDirectory = `uploads/customers/${client_unique_id}/candidate-applications/CD-${client_unique_id}-${candidateAppId}/background-form-reports`;
-            const digitalConsentPdfTargetDirectory = `uploads/customers/${client_unique_id}/candidate-applications/CD-${client_unique_id}-${candidateAppId}digital-concent`;
-
-            const pdfFileName = `${name}_${formattedDate}.pdf`
-              .replace(/\s+/g, "-")
-              .toLowerCase();
-            const candidateFormPDFPath = await candidateFormPDF(
-              candidateAppId,
-              branch_id,
-              customer_id,
-              pdfFileName,
-              candidateFormPdfTargetDirectory
-            );
-
-            const pdfPath = await cdfDataPDF(
-              candidateAppId,
-              branch_id,
-              customer_id,
-              pdfFileName,
-              pdfTargetDirectory
-            );
-
-            const digitalConsentPdfPath = await candidateDigitalConsent(
-              name,
-              pdfFileName,
-              digitalConsentPdfTargetDirectory
-            );
-
-            let newAttachments = [];
-            if (pdfPath) newAttachments.push(`${imageHost}/${pdfPath}`);
-            if (digitalConsentPdfPath) newAttachments.push(`${imageHost}/${digitalConsentPdfPath}`);
-            if (candidateFormPDFPath) newAttachments.push(`${imageHost}/${candidateFormPDFPath}`);
-
-            if (newAttachments.length > 0) {
-              attachments += (attachments ? "," : "") + newAttachments.join(",");
-            }
-
-            const { branch, customer } = emailData;
-            const toArr = [{ name: branch.name, email: branch.email }];
-            const ccArr = JSON.parse(customer.emails).map((email) => ({
-              name: customer.name,
-              email: email.trim(),
-            }));
-
-            // Send application creation email
-            cefSubmitMail(
-              "Candidate Background Form",
-              "submit",
-              name,
-              customer_name,
-              attachments,
-              toArr || [],
-              ccArr || []
-            )
-              .then(() => {
-                CEF.updateSubmitStatus(
-                  { candidateAppId, status: submitStatus },
-                  (err, result) => {
-                    if (err) {
-                      console.error("Error updating submit status:", err);
-                      return res.status(500).json({
-                        status: false,
-                        message:
-                          "An error occurred while updating submit status. Please try again.",
-                      });
-                    }
-                    return res.status(201).json({
-                      status: true,
-                      message:
-                        "CEF Application submitted successfully and notifications sent.",
+          BranchCommon.getBranchandCustomerEmailsForNotification(
+            branch_id,
+            async (err, emailData) => {
+              if (err) {
+                console.error("Error fetching emails:", err);
+                return res.status(500).json({
+                  status: false,
+                  message: "Failed to retrieve email addresses.",
+                });
+              }
+              CEF.getAttachmentsByClientAppID(
+                candidateAppId,
+                async (err, attachments) => {
+                  if (err) {
+                    console.error("Database error:", err);
+                    return res.status(500).json({
+                      status: false,
+                      message: "Database error occurred",
                     });
                   }
-                );
-              })
-              .catch((emailError) => {
-                console.error(
-                  "Error sending application creation email:",
-                  emailError
-                );
-                return res.status(201).json({
-                  status: true,
-                  message:
-                    "CEF Application submitted successfully, but email failed to send.",
-                });
-              });
-          });
-        }
-      );
-    }
-  );
+
+                  App.appInfo("backend", async (err, appInfo) => {
+                    if (err) {
+                      console.error("Database error:", err);
+                      return res.status(500).json({
+                        status: false,
+                        err,
+                        message: err.message,
+                      });
+                    }
+
+                    let imageHost = "www.example.in";
+
+                    if (appInfo) {
+                      imageHost = appInfo.cloud_host || "www.example.in";
+                    }
+
+                    const today = new Date();
+                    const formattedDate = `${today.getFullYear()}-${String(
+                      today.getMonth() + 1
+                    ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+                    // Generate the PDF
+                    const pdfTargetDirectory = `uploads/customers/${client_unique_id}/candidate-applications/CD-${client_unique_id}-${candidateAppId}/background-reports`;
+                    const candidateFormPdfTargetDirectory = `uploads/customers/${client_unique_id}/candidate-applications/CD-${client_unique_id}-${candidateAppId}/background-form-reports`;
+                    const digitalConsentPdfTargetDirectory = `uploads/customers/${client_unique_id}/candidate-applications/CD-${client_unique_id}-${candidateAppId}digital-concent`;
+
+                    const pdfFileName = `${name}_${formattedDate}.pdf`
+                      .replace(/\s+/g, "-")
+                      .toLowerCase();
+                    const candidateFormPDFPath = await candidateFormPDF(
+                      candidateAppId,
+                      branch_id,
+                      customer_id,
+                      pdfFileName,
+                      candidateFormPdfTargetDirectory
+                    );
+
+                    const pdfPath = '';
+                    /*
+                    const pdfPath = await cdfDataPDF(
+                      candidateAppId,
+                      branch_id,
+                      customer_id,
+                      pdfFileName,
+                      pdfTargetDirectory
+                    );
+                    */
+
+                    const digitalConsentPdfPath = await candidateDigitalConsent(
+                      name,
+                      pdfFileName,
+                      digitalConsentPdfTargetDirectory
+                    );
+
+                    let newAttachments = [];
+                    if (pdfPath) newAttachments.push(`${imageHost}/${pdfPath}`);
+                    if (digitalConsentPdfPath) newAttachments.push(`${imageHost}/${digitalConsentPdfPath}`);
+                    if (candidateFormPDFPath) newAttachments.push(`${imageHost}/${candidateFormPDFPath}`);
+
+                    if (newAttachments.length > 0) {
+                      attachments += (attachments ? "," : "") + newAttachments.join(",");
+                    }
+
+                    Admin.filterAdmins({ status: "active", role: "admin_user" }, (err, adminResult) => {
+                      if (err) {
+                        console.error("Database error:", err);
+                        return res.status(500).json({
+                          status: false,
+                          message: "Error retrieving admin details.",
+                          token: newToken,
+                        });
+                      }
+                      const { branch, customer } = emailData;
+
+                      // Prepare recipient and CC lists
+                      const toArr = [{ name: branch.name, email: branch.email }];
+                      const candidateArr = [{ name: currentCandidateApplication.name, email: currentCandidateApplication.email }];
+
+                      const emailList = JSON.parse(customer.emails);
+                      const ccArr1 = emailList.map(email => ({ name: customer.name, email }));
+
+                      const mergedEmails = [
+                        ...ccArr1,
+                        ...adminResult.map(admin => ({ name: admin.name, email: admin.email }))
+                      ];
+
+                      const uniqueEmails = [
+                        ...new Map(mergedEmails.map(item => [item.email, item])).values()
+                      ];
+
+                      const ccArr = [
+                        ...new Map([...ccArr1, ...uniqueEmails].map(item => [item.email, item])).values()
+                      ];
+
+                      // Send application creation email
+                      cefSubmitMail(
+                        "Candidate Background Form",
+                        "submit",
+                        name,
+                        customer_name,
+                        attachments,
+                        toArr || [],
+                        ccArr || []
+                      )
+                        .then(() => {
+                          CEF.updateSubmitStatus(
+                            { candidateAppId, status: submitStatus },
+                            (err, result) => {
+                              if (err) {
+                                console.error("Error updating submit status:", err);
+                                return res.status(500).json({
+                                  status: false,
+                                  message:
+                                    "An error occurred while updating submit status. Please try again.",
+                                });
+                              }
+                              return res.status(201).json({
+                                status: true,
+                                message:
+                                  "CEF Application submitted successfully and notifications sent.",
+                              });
+                            }
+                          );
+                        })
+                        .catch((emailError) => {
+                          console.error(
+                            "Error sending application creation email:",
+                            emailError
+                          );
+                          return res.status(201).json({
+                            status: true,
+                            message:
+                              "CEF Application submitted successfully, but email failed to send.",
+                          });
+                        });
+                    });
+                  });
+                }
+              );
+            }
+          );
+        });
+    });
 };
 
 exports.upload = async (req, res) => {
