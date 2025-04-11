@@ -217,7 +217,7 @@ exports.isApplicationExist = (req, res) => {
 };
 
 exports.unsubmittedApplications = (req, res) => {
-  console.log("Starting filledOrUnfilledServices function...");
+  // console.log("Starting filledOrUnfilledServices function...");
   CEF.unsubmittedApplications((err, applications) => {
     if (err) {
       console.error("Database error:", err);
@@ -376,7 +376,7 @@ exports.unsubmittedApplications = (req, res) => {
                         ccArr || []
                       )
                         .then(() => {
-                          console.log("Reminder email sent.");
+                          // console.log("Reminder email sent.");
 
                           CEF.updateReminderDetails(
                             { candidateAppId: application.candidate_application_id },
@@ -638,8 +638,8 @@ exports.submit = (req, res) => {
                     // Process all annexure promises
                     Promise.all(annexurePromises)
                       .then(() => {
-                        console.log(`send_mail - `, send_mail);
-                        console.log(`submitStatus - `, submitStatus);
+                        // console.log(`send_mail - `, send_mail);
+                        // console.log(`submitStatus - `, submitStatus);
                         if (parseInt(send_mail) === 1 && submitStatus == 1) {
                           sendNotificationEmails(
                             application_id,
@@ -668,10 +668,13 @@ exports.submit = (req, res) => {
                         });
                       });
                   } else {
+                    // console.log(`send_mail - `, send_mail);
+                    // console.log(`submitStatus - `, submitStatus);
+
                     CEF.updateSubmitStatus(
                       {
                         candidateAppId: application_id,
-                        status: submitStatus,
+                        status: 0,
                       },
                       (err, result) => {
                         if (err) {
@@ -682,11 +685,25 @@ exports.submit = (req, res) => {
                               "An error occurred while updating submit status. Please try again.",
                           });
                         }
-                        // No annexures to handle, finalize submission
-                        return res.status(200).json({
-                          status: true,
-                          message: "CEF Application submitted successfully.",
-                        });
+                        if (parseInt(send_mail) === 1 && submitStatus == 1) {
+                          sendNotificationEmails(
+                            application_id,
+                            cefResult.insertId,
+                            currentCandidateApplication.name,
+                            branch_id,
+                            customer_id,
+                            currentCustomer.client_unique_id,
+                            currentCustomer.name,
+                            submitStatus,
+                            res
+                          );
+                        } else {
+                          return res.status(200).json({
+                            status: true,
+                            cef_id: cefResult.insertId,
+                            message: "CEF Application submitted successfully.",
+                          });
+                        }
                       }
                     );
                   }
@@ -712,6 +729,7 @@ const sendNotificationEmails = (
   submitStatus,
   res
 ) => {
+  // console.log(`Step 1: Check if application exists`);
   Candidate.isApplicationExist(
     candidateAppId,
     branch_id,
@@ -724,6 +742,7 @@ const sendNotificationEmails = (
           message: err.message,
         });
       }
+      // console.log(`Step 2: Check if application exists - `, currentCandidateApplication);
 
       if (!currentCandidateApplication) {
         return res.status(404).json({
@@ -743,6 +762,7 @@ const sendNotificationEmails = (
               message: "Failed to retrieve CEF Application. Please try again.",
             });
           }
+          // console.log(`Step 3: Check if CEF application exists - `, currentCEFApplication);
           BranchCommon.getBranchandCustomerEmailsForNotification(
             branch_id,
             async (err, emailData) => {
@@ -764,6 +784,8 @@ const sendNotificationEmails = (
                     });
                   }
 
+                  // console.log(`Step 4: Get attachments - `, attachments);
+
                   App.appInfo("backend", async (err, appInfo) => {
                     if (err) {
                       console.error("Database error:", err);
@@ -779,6 +801,7 @@ const sendNotificationEmails = (
                     if (appInfo) {
                       imageHost = appInfo.cloud_host || "www.example.in";
                     }
+                    // console.log(`Step 5: App info - `, appInfo);
 
                     const today = new Date();
                     const formattedDate = `${today.getFullYear()}-${String(
@@ -800,7 +823,7 @@ const sendNotificationEmails = (
                       pdfFileName,
                       candidateFormPdfTargetDirectory
                     );
-
+                    // console.log("candidateFormPDFPath - ", candidateFormPDFPath);
                     const pdfPath = '';
                     /*
                     const pdfPath = await cdfDataPDF(
@@ -818,6 +841,7 @@ const sendNotificationEmails = (
                       digitalConsentPdfTargetDirectory
                     );
 
+                    // console.log("step 5.1: Generate PDF - ", pdfPath);
                     let newAttachments = [];
                     if (pdfPath) newAttachments.push(`${imageHost}/${pdfPath}`);
                     if (digitalConsentPdfPath) newAttachments.push(`${imageHost}/${digitalConsentPdfPath}`);
@@ -827,6 +851,7 @@ const sendNotificationEmails = (
                       attachments += (attachments ? "," : "") + newAttachments.join(",");
                     }
 
+                    // console.log("step 6: New attachments - ", newAttachments);
                     Admin.filterAdmins({ status: "active", role: "admin_user" }, (err, adminResult) => {
                       if (err) {
                         console.error("Database error:", err);
@@ -836,6 +861,8 @@ const sendNotificationEmails = (
                           token: newToken,
                         });
                       }
+
+                      // console.log("step 7: Filter admins - ", adminResult);
                       const { branch, customer } = emailData;
 
                       // Prepare recipient and CC lists
@@ -858,6 +885,7 @@ const sendNotificationEmails = (
                         ...new Map([...ccArr1, ...uniqueEmails].map(item => [item.email, item])).values()
                       ];
 
+                      // console.log("step 8: Merged emails - ", mergedEmails);
                       // Send application creation email
                       cefSubmitMail(
                         "Candidate Background Form",

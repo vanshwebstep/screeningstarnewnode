@@ -21,8 +21,9 @@ const cef = {
 
     // Helper function to check completion
     const checkCompletion = () => {
+      console.log("Completed Queries:", completedQueries, "Total Services:", services.length);
       if (completedQueries === services.length) {
-
+        console.log("All queries completed. Returning data.", serviceData);
         callback(null, serviceData);
       }
     };
@@ -72,7 +73,7 @@ const cef = {
           checkCompletion();
         }
       } else {
-        console.warn(`No JSON found for service: ${service}`);
+        console.warn(`No JSON found for service 1: ${service}`);
         completedQueries++;
         checkCompletion();
       }
@@ -553,7 +554,7 @@ const cef = {
       });
 
       if (result.length === 0) {
-        console.warn(`No JSON found for service: ${service}`);
+        console.warn(`No JSON found for service 2: ${service}`);
         completedQueries++;
         return checkCompletion();
       }
