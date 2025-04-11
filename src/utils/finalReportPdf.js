@@ -591,25 +591,26 @@ module.exports = {
                           },
                           {
                             content:
-                              service.annexureData[
-                              Object.keys(service.annexureData).find((key) =>
-                                key.endsWith("info_source")
-                              )
-                              ] || "N/A",
-                            styles: { fontStyle: "bold" }, // Bold content for the cell
-                          },
+                              service.annexureData && typeof service.annexureData === 'object'
+                                ? service.annexureData[
+                                    Object.keys(service.annexureData).find((key) =>
+                                      key.endsWith("info_source")
+                                    )
+                                  ] || "N/A"
+                                : "N/A",
+                            styles: { fontStyle: "bold" },
+                          },                          
                           {
-                            content: service.annexureData.created_at
-                              ? new Date(
-                                service.annexureData.created_at
-                              ).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                              : "N/A", // Format date as "12 Jan 2024" or "N/A" if missing
-                            styles: { fontStyle: "bold" }, // Bold content for the cell
-                          },
+                            content:
+                              service.annexureData && service.annexureData.created_at
+                                ? new Date(service.annexureData.created_at).toLocaleDateString("en-GB", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : "N/A",
+                            styles: { fontStyle: "bold" },
+                          },                          
                           {
                             content: formatStatus(statusContent),
                             styles: {
@@ -890,6 +891,11 @@ module.exports = {
 
                       let yPosition = 20; // Reset yPosition to the top margin
 
+                      if (!service.reportFormJson || !service.reportFormJson.json) {
+                        console.error("reportFormJson or reportFormJson.json does not exist.");
+                        continue;
+                      }
+                      
                       const reportFormJson = JSON.parse(
                         service.reportFormJson.json
                       );
