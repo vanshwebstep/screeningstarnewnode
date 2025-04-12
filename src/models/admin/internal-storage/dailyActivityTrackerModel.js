@@ -1,6 +1,46 @@
 const { sequelize } = require("../../../config/db");
 const { QueryTypes } = require("sequelize");
 const DailyActivity = {
+
+  checkIfBuisnessDevelopmentExist: async (
+    BuisnessDevelopmentNames,
+    callback
+  ) => {
+    if (!Array.isArray(BuisnessDevelopmentNames) || BuisnessDevelopmentNames.length === 0) {
+      return callback({ status: false, message: "No Buisness Development names provided." }, null)
+    }
+
+    // Step 1: Remove duplicates and trim whitespace
+    const uniqueNames = [...new Set(BuisnessDevelopmentNames.map(name => name.trim()))];
+
+    // Step 2: Build and execute query
+    const checkSql = `
+ SELECT \`bd_expert_name\` 
+ FROM \`daily_activities\` 
+ WHERE \`bd_expert_name\` IN (?)
+`;
+    const existingResults = await sequelize.query(checkSql, {
+      replacements: [uniqueNames],
+      type: QueryTypes.SELECT
+    });
+
+
+    // Step 3: Extract existing names
+    const existingNames = existingResults.map(u => u.bd_expert_name);
+
+    if (existingNames.length > 0) {
+      return callback({
+        status: false,
+        alreadyExists: existingNames,
+        message: `Buisness Developments already exist: ${existingNames.join(", ")}`
+      }, null);
+    }
+
+    return callback(null, {
+      status: true,
+      message: "All Buisness Developments are unique."
+    });
+  },
   create: async (
     bd_expert_name,
     date,

@@ -4,6 +4,7 @@ const dailyActivityTrackerController = require("../../../controllers/admin/inter
 
 // Authentication routes
 router.post("/create", dailyActivityTrackerController.create);
+router.post("/bulk/create", dailyActivityTrackerController.bulkCreate);
 router.get("/list", dailyActivityTrackerController.list);
 router.put("/update", dailyActivityTrackerController.update);
 router.delete("/delete", dailyActivityTrackerController.delete);

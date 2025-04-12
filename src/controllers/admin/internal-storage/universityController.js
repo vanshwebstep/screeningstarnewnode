@@ -61,6 +61,9 @@ exports.create = (req, res) => {
             if (!result.status) {
                 return res.status(401).json({ status: false, message: result.message });
             }
+
+            const newToken = result.newToken;
+
             University.create(
                 university_name,
                 university_address,
@@ -88,7 +91,7 @@ exports.create = (req, res) => {
                             () => { }
                         );
                         console.error("Database error:", err);
-                        return res.status(500).json({ status: false, message: err.message });
+                        return res.status(500).json({ status: false, message: err.message, token: newToken, });
                     }
                     Common.adminActivityLog(
                         ipAddress,
@@ -106,9 +109,167 @@ exports.create = (req, res) => {
                         status: true,
                         message: "University created successfully",
                         service: result,
+                        token: newToken,
                     });
                 }
             );
+        });
+    });
+};
+
+// Controller to bulkCreate a new service
+exports.bulkCreate = (req, res) => {
+    const { ipAddress, ipType } = getClientIpAddress(req);
+    const { data, admin_id, _token } = req.body;
+
+    const requiredFields = {
+        admin_id: "Admin ID",
+        _token: "Token",
+    };
+
+    const missingFields = Object.keys(requiredFields).filter(field =>
+        !req.body[field] || (typeof req.body[field] === 'string' && req.body[field].trim() === "")
+    );
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            status: false,
+            message: `Missing required fields: ${missingFields.map(field => requiredFields[field]).join(", ")}`,
+        });
+    }
+
+    const action = "client_overview";
+
+    Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
+        if (!result.status) {
+            return res.status(403).json({ status: false, message: result.message });
+        }
+
+        Common.isAdminTokenValid(_token, admin_id, (err, result) => {
+            if (err) {
+                console.error("Token validation error:", err);
+                return res.status(500).json(err);
+            }
+
+            if (!result.status) {
+                return res.status(401).json({ status: false, message: result.message });
+            }
+
+            const newToken = result.newToken;
+
+            new Promise((resolve, reject) => {
+                if (!Array.isArray(data) || data.length === 0) {
+                    return reject("No data provided.");
+                }
+
+                const cleanedData = data.filter(entry => {
+                    return Object.values(entry).some(value =>
+                        typeof value === 'string' ? value.trim() !== "" : value !== undefined && value !== null
+                    );
+                });
+
+                if (cleanedData.length === 0) {
+                    return reject("All entries are empty or invalid.");
+                }
+
+                resolve(cleanedData);
+
+            }).then(cleanedData => {
+                // ✅ Extract university names to check for duplicates
+                const universityNames = cleanedData.map(entry => entry.university_name);
+
+                // ✅ Call checkIfUniversitiesExist
+                University.checkIfUniversitiesExist(universityNames, (error, checkResult) => {
+                    if (error || !checkResult.status) {
+                        return res.status(400).json({
+                            status: false,
+                            message: error.message || "Some universities already exist.",
+                            alreadyExists: error.alreadyExists || [],
+                            token: newToken
+                        });
+                    }
+
+                    // ✅ Proceed to insert after uniqueness check
+                    const insertPromises = cleanedData.map(entry => {
+                        return new Promise((resolveInsert, rejectInsert) => {
+                            University.create(
+                                entry.university_name,
+                                entry.university_address,
+                                entry.contact_name,
+                                entry.designation,
+                                entry.mobile_number,
+                                entry.email_id,
+                                entry.scope_of_services,
+                                entry.pricing,
+                                entry.turnaround_time,
+                                entry.standard_process,
+                                entry.verification_link,
+                                entry.remark,
+                                (err, result) => {
+                                    if (err) {
+                                        Common.adminActivityLog(
+                                            ipAddress,
+                                            ipType,
+                                            admin_id,
+                                            "Internal Storage/University",
+                                            "Create",
+                                            "0",
+                                            null,
+                                            err,
+                                            () => { }
+                                        );
+                                        return rejectInsert(err);
+                                    }
+
+                                    Common.adminActivityLog(
+                                        ipAddress,
+                                        ipType,
+                                        admin_id,
+                                        "Internal Storage/University",
+                                        "Create",
+                                        "1",
+                                        `{id: ${result.insertId}}`,
+                                        null,
+                                        () => { }
+                                    );
+
+                                    resolveInsert({
+                                        message: "University created successfully",
+                                        entry: entry,
+                                        id: result.insertId,
+                                    });
+                                }
+                            );
+                        });
+                    });
+
+                    Promise.all(insertPromises)
+                        .then(results => {
+                            return res.status(200).json({
+                                status: true,
+                                message: "Universities created successfully",
+                                results: results,
+                                token: newToken,
+                            });
+                        })
+                        .catch(insertErr => {
+                            console.error("Insertion error:", insertErr);
+                            return res.status(400).json({
+                                status: false,
+                                message: insertErr.message || "Failed to insert universities.",
+                                token: newToken,
+                            });
+                        });
+                });
+
+            }).catch(error => {
+                console.error("Validation/cleaning error:", error);
+                return res.status(400).json({
+                    status: false,
+                    message: typeof error === 'string' ? error : error.message || "Unknown error",
+                    token: newToken,
+                });
+            });
         });
     });
 };

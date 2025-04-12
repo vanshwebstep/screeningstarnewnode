@@ -4,6 +4,7 @@ const universityController = require("../../../controllers/admin/internal-storag
 
 // Authentication routes
 router.post("/create", universityController.create);
+router.post("/bulk/create", universityController.bulkCreate);
 router.get("/list", universityController.list);
 router.put("/update", universityController.update);
 router.delete("/delete", universityController.delete);

@@ -94,7 +94,7 @@ exports.create = (req, res) => {
                             ipAddress,
                             ipType,
                             admin_id,
-                            "Internal Storage/Vendor",
+                            "Internal Storage/Buisness Development Activity",
                             "Create",
                             "0",
                             null,
@@ -108,7 +108,7 @@ exports.create = (req, res) => {
                         ipAddress,
                         ipType,
                         admin_id,
-                        "Internal Storage/Vendor",
+                        "Internal Storage/Buisness Development Activity",
                         "Create",
                         "1",
                         `{id: ${result.insertId}}`,
@@ -123,6 +123,170 @@ exports.create = (req, res) => {
                     });
                 }
             );
+        });
+    });
+};
+
+// Controller to bulkCreate a new service
+exports.bulkCreate = (req, res) => {
+    const { ipAddress, ipType } = getClientIpAddress(req);
+    const { data, admin_id, _token } = req.body;
+
+    const requiredFields = {
+        admin_id: "Admin ID",
+        _token: "Token",
+    };
+
+    const missingFields = Object.keys(requiredFields).filter(field =>
+        !req.body[field] || (typeof req.body[field] === 'string' && req.body[field].trim() === "")
+    );
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            status: false,
+            message: `Missing required fields: ${missingFields.map(field => requiredFields[field]).join(", ")}`,
+        });
+    }
+
+    const action = "client_overview";
+
+    Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
+        if (!result.status) {
+            return res.status(403).json({ status: false, message: result.message });
+        }
+
+        Common.isAdminTokenValid(_token, admin_id, (err, result) => {
+            if (err) {
+                console.error("Token validation error:", err);
+                return res.status(500).json(err);
+            }
+
+            if (!result.status) {
+                return res.status(401).json({ status: false, message: result.message });
+            }
+
+            const newToken = result.newToken;
+
+            new Promise((resolve, reject) => {
+                if (!Array.isArray(data) || data.length === 0) {
+                    return reject("No data provided.");
+                }
+
+                const cleanedData = data.filter(entry => {
+                    return Object.values(entry).some(value =>
+                        typeof value === 'string' ? value.trim() !== "" : value !== undefined && value !== null
+                    );
+                });
+
+                if (cleanedData.length === 0) {
+                    return reject("All entries are empty or invalid.");
+                }
+
+                resolve(cleanedData);
+
+            }).then(cleanedData => {
+                // ✅ Extract Buisness Development Names to check for duplicates
+                const BuisnessDevelopmentNames = cleanedData.map(entry => entry.bd_expert_name);
+
+                // ✅ Call checkIfBuisnessDevelopmentExist
+                DailyActivity.checkIfBuisnessDevelopmentExist(BuisnessDevelopmentNames, (error, checkResult) => {
+                    if (error || !checkResult.status) {
+                        return res.status(400).json({
+                            status: false,
+                            message: error.message || "Some Buisness Developments already exist.",
+                            alreadyExists: error.alreadyExists || [],
+                            token: newToken
+                        });
+                    }
+
+                    // ✅ Proceed to insert after uniqueness check
+                    const insertPromises = cleanedData.map(entry => {
+                        return new Promise((resolveInsert, rejectInsert) => {
+                            DailyActivity.create(
+                                entry.bd_expert_name,
+                                entry.date,
+                                entry.client_organization_name,
+                                entry.company_size,
+                                entry.spoc_name,
+                                entry.spoc_designation,
+                                entry.contact_number,
+                                entry.email,
+                                entry.is_using_any_bgv_vendor,
+                                entry.vendor_name,
+                                entry.is_interested_in_using_our_services,
+                                entry.reason_for_not_using_our_services,
+                                entry.reason_for_using_our_services,
+                                entry.callback_asked_at,
+                                entry.is_prospect,
+                                entry.comments,
+                                entry.followup_date,
+                                entry.followup_comments,
+                                entry.remarks,
+                                (err, result) => {
+                                    if (err) {
+                                        Common.adminActivityLog(
+                                            ipAddress,
+                                            ipType,
+                                            admin_id,
+                                            "Internal Storage/Buisness Development Activity",
+                                            "Create",
+                                            "0",
+                                            null,
+                                            err,
+                                            () => { }
+                                        );
+                                        return rejectInsert(err);
+                                    }
+
+                                    Common.adminActivityLog(
+                                        ipAddress,
+                                        ipType,
+                                        admin_id,
+                                        "Internal Storage/Buisness Development Activity",
+                                        "Create",
+                                        "1",
+                                        `{id: ${result.insertId}}`,
+                                        null,
+                                        () => { }
+                                    );
+
+                                    resolveInsert({
+                                        message: "Buisness Development created successfully",
+                                        entry: entry,
+                                        id: result.insertId,
+                                    });
+                                }
+                            );
+                        });
+                    });
+
+                    Promise.all(insertPromises)
+                        .then(results => {
+                            return res.status(200).json({
+                                status: true,
+                                message: "Buisness Developments created successfully",
+                                results: results,
+                                token: newToken,
+                            });
+                        })
+                        .catch(insertErr => {
+                            console.error("Insertion error:", insertErr);
+                            return res.status(400).json({
+                                status: false,
+                                message: insertErr.message || "Failed to insert Buisness Development.",
+                                token: newToken,
+                            });
+                        });
+                });
+
+            }).catch(error => {
+                console.error("Validation/cleaning error:", error);
+                return res.status(400).json({
+                    status: false,
+                    message: typeof error === 'string' ? error : error.message || "Unknown error",
+                    token: newToken,
+                });
+            });
         });
     });
 };
@@ -312,7 +476,7 @@ exports.update = (req, res) => {
                                 ipAddress,
                                 ipType,
                                 admin_id,
-                                "Internal Storage/Vendor",
+                                "Internal Storage/Buisness Development Activity",
                                 "Update",
                                 "0",
                                 JSON.stringify({ id, ...changes }),
@@ -328,7 +492,7 @@ exports.update = (req, res) => {
                             ipAddress,
                             ipType,
                             admin_id,
-                            "Internal Storage/Vendor",
+                            "Internal Storage/Buisness Development Activity",
                             "Update",
                             "1",
                             JSON.stringify({ id, ...changes }),
@@ -403,7 +567,7 @@ exports.delete = (req, res) => {
                             ipAddress,
                             ipType,
                             admin_id,
-                            "Internal Storage/Vendor",
+                            "Internal Storage/Buisness Development Activity",
                             "Delete",
                             "0",
                             JSON.stringify({ id, ...currentVendor }),
@@ -419,7 +583,7 @@ exports.delete = (req, res) => {
                         ipAddress,
                         ipType,
                         admin_id,
-                        "Internal Storage/Vendor",
+                        "Internal Storage/Buisness Development Activity",
                         "Delete",
                         "1",
                         JSON.stringify(currentVendor),
