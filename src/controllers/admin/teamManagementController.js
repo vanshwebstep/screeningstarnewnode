@@ -372,6 +372,7 @@ exports.generateReport = (req, res) => {
     customer_id,
     application_id,
     statuses,
+    component_status,
     send_mail,
   } = req.body;
 
@@ -384,6 +385,14 @@ exports.generateReport = (req, res) => {
     application_id,
     statuses,
   };
+
+  // Step 2: Normalize component_status to 0 or 1
+  const componentStatusNum = (
+    component_status === true ||
+    component_status === 'true' ||
+    component_status === 1 ||
+    component_status === '1'
+  ) ? 1 : 0;
   const missingFields = Object.keys(requiredFields)
     .filter((field) => !requiredFields[field] || requiredFields[field] === "")
     .map((field) => field.replace(/_/g, " "));
@@ -546,16 +555,33 @@ exports.generateReport = (req, res) => {
 
             // Step 8: Respond after processing all statuses
             Promise.all(updatePromises).then((results) => {
-              res.status(200).json({
-                status: true,
-                message: "Statuses processed successfully.",
-                updated_services: results.filter((r) => r.status === "updated"),
-                skipped_service_ids: skippedIds,
-                failed_updates: results.filter(
-                  (r) => r.status === "update_failed"
-                ),
-                token: newToken,
-              });
+
+              TeamManagement.updateComponentStatus(
+                application_id,
+                componentStatusNum,
+                (err, updateResult) => {
+                  if (err) {
+                    console.error("Error updating component status:", err);
+                    return res.status(500).json({
+                      status: false,
+                      message: "Failed to update component status.",
+                      token: newToken,
+                    });
+                  }
+
+                  res.status(200).json({
+                    status: true,
+                    message: "Statuses processed successfully.",
+                    updated_services: results.filter((r) => r.status === "updated"),
+                    skipped_service_ids: skippedIds,
+                    failed_updates: results.filter(
+                      (r) => r.status === "update_failed"
+                    ),
+                    token: newToken,
+                  });
+                }
+              );
+
             });
           });
         });
