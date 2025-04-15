@@ -643,43 +643,45 @@ const Admin = {
   },
 
   findById: async (id, callback) => {
-    const sql = `
-                SELECT 
-                  admin.\`id\`, 
-                  admin.\`emp_id\`, 
-                  admin.\`name\`, 
-                  admin.\`profile_picture\`, 
-                  admin.\`date_of_joining\`, 
-                  admin.\`designation\`, 
-                  admin.\`role\`, 
-                  admin.\`email\`, 
-                  admin.\`mobile\`, 
-                  admin.\`status\`, 
-                  admin.\`login_token\`, 
-                  admin.\`token_expiry\`, 
-                  log.\`check_in_status\`, 
-                  log.\`check_in_time\`, 
-                  log.\`check_out_status\`, 
-                  log.\`check_out_time\`
-                FROM \`admins\` admin
-                LEFT JOIN \`admin_login_logs\` log 
-                  ON admin.\`id\` = log.\`admin_id\`
-                WHERE admin.\`id\` = ? 
-                  AND DATE(log.\`created_at\`) = CURDATE() 
-                  AND log.\`admin_id\` = ? 
-                  AND log.\`action\` = 'login' 
-                ORDER BY log.\`created_at\` ASC 
-                LIMIT 1;`;
-    const results = await sequelize.query(sql, {
-      replacements: [id, id], // Positional replacements using ?
-      type: QueryTypes.SELECT,
-    });
+    try {
+      const sql = `
+        SELECT 
+          admin.\`id\`, 
+          admin.\`emp_id\`, 
+          admin.\`name\`, 
+          admin.\`profile_picture\`, 
+          admin.\`date_of_joining\`, 
+          admin.\`designation\`, 
+          admin.\`role\`, 
+          admin.\`email\`, 
+          admin.\`mobile\`, 
+          admin.\`status\`, 
+          admin.\`login_token\`, 
+          admin.\`token_expiry\`,
+          cio.\`status\` AS \`cio_status\`, 
+          cio.\`created_at\` AS \`cio_created_at\`
+        FROM \`admins\` admin
+        LEFT JOIN \`check_in_outs\` cio 
+          ON admin.\`id\` = cio.\`admin_id\`
+          AND DATE(cio.\`created_at\`) = CURDATE()
+        WHERE admin.\`id\` = ?
+        LIMIT 1;
+      `;
 
-    if (results.length === 0) {
-      return callback({ message: "Admin not found" }, null);
+      const results = await sequelize.query(sql, {
+        replacements: [id],
+        type: QueryTypes.SELECT,
+      });
+
+      if (results.length === 0) {
+        return callback({ message: "Admin not found" }, null);
+      }
+
+      callback(null, results[0]);
+    } catch (error) {
+      console.error("Error in findById:", error);
+      callback(error, null);
     }
-
-    callback(null, results[0]);
   },
 
   fetchAllowedServiceIds: async (id, callback) => {
