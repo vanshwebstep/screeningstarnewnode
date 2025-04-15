@@ -1,5 +1,6 @@
 const Vendor = require("../../../models/admin/internal-storage/vendorModel");
 const Common = require("../../../models/admin/commonModel");
+const Service = require("../../../models/admin/serviceModel");
 const { getClientIpAddress } = require("../../../utils/ipAddress");
 
 // Controller to create a new service
@@ -312,22 +313,41 @@ exports.list = (req, res) => {
 
             const newToken = result.newToken;
 
-            Vendor.list((err, result) => {
-                if (err) {
-                    console.error("Database error:", err);
-                    return res
-                        .status(500)
-                        .json({ status: false, message: err.message, token: newToken });
-                }
+            const dataPromises = [
+                new Promise((resolve) =>
+                    Vendor.list((err, result) => {
+                        if (err) return resolve([]);
+                        resolve(result);
+                    })
+                ),
+                new Promise((resolve) =>
+                    Service.list((err, result) => {
+                        if (err) return resolve([]);
+                        resolve(result);
+                    })
+                )
+            ];
 
-                res.json({
-                    status: true,
-                    message: "Vendors fetched successfully",
-                    services: result,
-                    totalResults: result.length,
-                    token: newToken,
-                });
-            });
+            Promise.all(dataPromises).then(
+                ([
+                    vendors,
+                    services
+                ]) => {
+                    res.json({
+                        status: true,
+                        message: "Vendors fetched successfully",
+                        data: {
+                            vendors,
+                            services,
+                        },
+                        totalResults: {
+                            admins: vendors.length,
+                            services: services.length
+                        },
+                        token: newToken,
+                    });
+                }
+            );
         });
     });
 };
