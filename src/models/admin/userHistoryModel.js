@@ -3,43 +3,85 @@ const { QueryTypes } = require("sequelize"); const moment = require("moment"); /
 
 const tatDelay = {
   index: async (callback) => {
-    // SQL query to retrieve applications, customers, branches, tat_days, and admin details
-    const SQL = `
-                SELECT 
-                    logs.admin_id,
-                    admins.name AS admin_name,
-                    admins.profile_picture,
-                    admins.email AS admin_email,
-                    admins.mobile AS admin_mobile,
-                    admins.emp_id,
-                    -- First login time (check-in)
-                    MIN(CASE 
-                        WHEN logs.check_in_status = 1 AND logs.check_in_time IS NOT NULL 
-                        THEN logs.check_in_time 
-                        END) AS first_login_time,
-                    -- Last logout time (check-out)
-                    MAX(CASE 
-                        WHEN logs.check_out_status = 1 AND logs.check_out_time IS NOT NULL 
-                        THEN logs.check_out_time 
-                        END) AS last_logout_time,
-                    -- First login time (check-in)
-                    MIN(logs.created_at) AS created_at
-                FROM admin_login_logs AS logs
-                INNER JOIN admins ON logs.admin_id = admins.id
-                WHERE logs.action IN ('login')
-                GROUP BY logs.admin_id, DATE(logs.created_at)
-                ORDER BY logs.admin_id, DATE(logs.created_at) DESC;
-    `;
-    const applicationResults = await sequelize.query(SQL, {
-      type: QueryTypes.SELECT,
-    });
+    try {
+      // Step 1: Fetch check-in/out records along with first login time per admin
+      const sql = `
+        SELECT 
+          cio.admin_id,
+          a.name AS admin_name,
+          a.profile_picture,
+          a.email AS admin_email,
+          a.mobile AS admin_mobile,
+          a.emp_id,
+          cio.status,
+          cio.created_at,
+          -- First login time (check-in)
+          (
+            SELECT MIN(logs.created_at)
+            FROM logs
+            WHERE logs.admin_id = cio.admin_id AND logs.action = 'login' AND DATE(logs.created_at) = CURDATE()
+          ) AS first_login_time
+        FROM check_in_outs AS cio
+        INNER JOIN admins a ON cio.admin_id = a.id
+        WHERE DATE(cio.created_at) = CURDATE()
+        ORDER BY cio.admin_id, cio.created_at ASC;
+      `;
 
-    if (applicationResults.length === 0) {
-      return callback(null, { message: "No records found" });
+      const records = await sequelize.query(sql, {
+        type: QueryTypes.SELECT,
+      });
+
+      if (records.length === 0) {
+        return callback(null, { message: "No records found" });
+      }
+
+      // Step 2: Group and structure data per admin
+      const grouped = {};
+
+      for (const record of records) {
+        const adminId = record.admin_id;
+
+        if (!grouped[adminId]) {
+          grouped[adminId] = {
+            admin_id: adminId,
+            admin_name: record.admin_name,
+            profile_picture: record.profile_picture,
+            admin_email: record.admin_email,
+            admin_mobile: record.admin_mobile,
+            emp_id: record.emp_id,
+            first_login_time: record.first_login_time,
+            first_check_in_time: null,
+            last_check_out_time: null,
+            check_in_outs: [],
+          };
+        }
+
+        const isCheckIn = record.status === 'check-in';
+        const isCheckOut = record.status === 'check-out';
+
+        // Save first check-in
+        if (isCheckIn && !grouped[adminId].first_check_in_time) {
+          grouped[adminId].first_check_in_time = record.created_at;
+        }
+
+        // Update last check-out
+        if (isCheckOut) {
+          grouped[adminId].last_check_out_time = record.created_at;
+        }
+
+        // Push to check-in/out history
+        grouped[adminId].check_in_outs.push({
+          status: record.status,
+          time: record.created_at,
+        });
+      }
+
+      const result = Object.values(grouped);
+      return callback(null, result);
+    } catch (error) {
+      console.error("Error in index:", error);
+      return callback(error, null);
     }
-    // Return the processed data
-    return callback(null, applicationResults);
-
   },
 
   activityList: async (logDate, adminId, callback) => {
