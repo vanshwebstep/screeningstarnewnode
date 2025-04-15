@@ -5,6 +5,7 @@ const personalManagerController = require("../../controllers/admin/personalManag
 // Authentication routes
 router.post("/create", personalManagerController.create);
 router.get("/list", personalManagerController.list);
+router.get("/attendance-list", personalManagerController.attendanceIndex);
 router.get("/my-list", personalManagerController.myList);
 router.post("/upload", personalManagerController.upload);
 router.put("/update", personalManagerController.update);
