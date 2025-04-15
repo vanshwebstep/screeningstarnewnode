@@ -738,12 +738,12 @@ const Admin = {
         if (!lastEntry || lastEntry.status === 'check-out') {
           // Insert new check-in record
           const insertSql = `
-            INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`check_in_time\`, \`created_at\`, \`action\`)
-            VALUES (?, 'check-in', ?, ?, 'login');
+            INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
+            VALUES (?, 'check-in', ?, ?);
           `;
 
           await sequelize.query(insertSql, {
-            replacements: [adminId, checkInTime, createdAtTime],
+            replacements: [adminId, checkInTime],
             type: QueryTypes.INSERT,
           });
 
@@ -756,16 +756,14 @@ const Admin = {
           return callback({ message: "Please check-in first." }, null);
         }
 
-        // Update the last entry to mark check-out
-        const updateSql = `
-          UPDATE \`check_in_outs\`
-          SET \`status\` = 'check-out', \`check_out_time\` = ?
-          WHERE \`id\` = ?;
-        `;
+        const insertSql = `
+            INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
+            VALUES (?, 'check-out', ?, ?);
+          `;
 
-        await sequelize.query(updateSql, {
-          replacements: [checkInTime, lastEntry.id],
-          type: QueryTypes.UPDATE,
+        await sequelize.query(insertSql, {
+          replacements: [adminId, checkInTime],
+          type: QueryTypes.INSERT,
         });
 
         return callback(null, { message: "Checked out successfully." });
