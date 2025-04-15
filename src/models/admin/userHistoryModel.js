@@ -18,7 +18,7 @@ const tatDelay = {
           -- First login time (check-in)
           (
             SELECT MIN(logs.created_at)
-            FROM logs
+            FROM admin_login_logs AS logs
             WHERE logs.admin_id = cio.admin_id AND logs.action = 'login' AND DATE(logs.created_at) = CURDATE()
           ) AS first_login_time
         FROM check_in_outs AS cio
