@@ -1,5 +1,6 @@
 const University = require("../../../models/admin/internal-storage/universityModel");
 const Common = require("../../../models/admin/commonModel");
+const Service = require("../../../models/admin/serviceModel");
 const { getClientIpAddress } = require("../../../utils/ipAddress");
 
 // Controller to create a new service
@@ -307,22 +308,41 @@ exports.list = (req, res) => {
 
             const newToken = result.newToken;
 
-            University.list((err, result) => {
-                if (err) {
-                    console.error("Database error:", err);
-                    return res
-                        .status(500)
-                        .json({ status: false, message: err.message, token: newToken });
-                }
+            const dataPromises = [
+                new Promise((resolve) =>
+                    University.list((err, result) => {
+                        if (err) return resolve([]);
+                        resolve(result);
+                    })
+                ),
+                new Promise((resolve) =>
+                    Service.list((err, result) => {
+                        if (err) return resolve([]);
+                        resolve(result);
+                    })
+                )
+            ];
 
-                res.json({
-                    status: true,
-                    message: "Universities fetched successfully",
-                    services: result,
-                    totalResults: result.length,
-                    token: newToken,
-                });
-            });
+            Promise.all(dataPromises).then(
+                ([
+                    universities,
+                    services
+                ]) => {
+                    res.json({
+                        status: true,
+                        message: "Universities fetched successfully",
+                        data: {
+                            universities,
+                            services,
+                        },
+                        totalResults: {
+                            admins: universities.length,
+                            services: services.length
+                        },
+                        token: newToken,
+                    });
+                }
+            );
         });
     });
 };

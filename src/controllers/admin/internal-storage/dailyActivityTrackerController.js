@@ -1,5 +1,6 @@
 const DailyActivity = require("../../../models/admin/internal-storage/dailyActivityTrackerModel");
 const Common = require("../../../models/admin/commonModel");
+const Service = require("../../../models/admin/serviceModel");
 const { getClientIpAddress } = require("../../../utils/ipAddress");
 
 // Controller to create a new service
@@ -324,22 +325,41 @@ exports.list = (req, res) => {
 
             const newToken = result.newToken;
 
-            DailyActivity.list((err, result) => {
-                if (err) {
-                    console.error("Database error:", err);
-                    return res
-                        .status(500)
-                        .json({ status: false, message: err.message, token: newToken });
-                }
+            const dataPromises = [
+                new Promise((resolve) =>
+                    DailyActivity.list((err, result) => {
+                        if (err) return resolve([]);
+                        resolve(result);
+                    })
+                ),
+                new Promise((resolve) =>
+                    Service.list((err, result) => {
+                        if (err) return resolve([]);
+                        resolve(result);
+                    })
+                )
+            ];
 
-                res.json({
-                    status: true,
-                    message: "Universities fetched successfully",
-                    services: result,
-                    totalResults: result.length,
-                    token: newToken,
-                });
-            });
+            Promise.all(dataPromises).then(
+                ([
+                    activies,
+                    services
+                ]) => {
+                    res.json({
+                        status: true,
+                        message: "Universities fetched successfully",
+                        data: {
+                            activies,
+                            services,
+                        },
+                        totalResults: {
+                            admins: activies.length,
+                            services: services.length
+                        },
+                        token: newToken,
+                    });
+                }
+            );
         });
     });
 };

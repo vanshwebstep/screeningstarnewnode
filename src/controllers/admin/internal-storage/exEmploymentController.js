@@ -1,5 +1,6 @@
 const ExEmployment = require("../../../models/admin/internal-storage/exEmploymentModel");
 const Common = require("../../../models/admin/commonModel");
+const Service = require("../../../models/admin/serviceModel");
 const { getClientIpAddress } = require("../../../utils/ipAddress");
 
 // Controller to create a new service
@@ -312,22 +313,41 @@ exports.list = (req, res) => {
 
             const newToken = result.newToken;
 
-            ExEmployment.list((err, result) => {
-                if (err) {
-                    console.error("Database error:", err);
-                    return res
-                        .status(500)
-                        .json({ status: false, message: err.message, token: newToken });
-                }
+            const dataPromises = [
+                new Promise((resolve) =>
+                    ExEmployment.list((err, result) => {
+                        if (err) return resolve([]);
+                        resolve(result);
+                    })
+                ),
+                new Promise((resolve) =>
+                    Service.list((err, result) => {
+                        if (err) return resolve([]);
+                        resolve(result);
+                    })
+                )
+            ];
 
-                res.json({
-                    status: true,
-                    message: "Universities fetched successfully",
-                    services: result,
-                    totalResults: result.length,
-                    token: newToken,
-                });
-            });
+            Promise.all(dataPromises).then(
+                ([
+                    organizations,
+                    services
+                ]) => {
+                    res.json({
+                        status: true,
+                        message: "Organizations fetched successfully",
+                        data: {
+                            organizations,
+                            services,
+                        },
+                        totalResults: {
+                            admins: organizations.length,
+                            services: services.length
+                        },
+                        token: newToken,
+                    });
+                }
+            );
         });
     });
 };
