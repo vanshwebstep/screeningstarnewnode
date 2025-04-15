@@ -719,7 +719,7 @@ const Admin = {
     const { checkInStatus, checkInTime, adminId } = data;
 
     try {
-      // Get the last record for the admin, ordered by created_at DESC
+      // Get the last record for the admin on the same day
       const lastEntrySql = `
         SELECT * FROM \`check_in_outs\`
         WHERE \`admin_id\` = ? AND DATE(\`created_at\`) = ?
@@ -732,14 +732,14 @@ const Admin = {
         type: QueryTypes.SELECT,
       });
 
-      const createdAtTime = new Date(checkInTime); // ensure proper Date object
+      const createdAtTime = new Date(checkInTime); // Ensure it's a proper Date object
 
       if (checkInStatus === 'check-in') {
         if (!lastEntry || lastEntry.status === 'check-out') {
           // Insert new check-in record
           const insertSql = `
             INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
-            VALUES (?, 'check-in', ?, ?);
+            VALUES (?, 'check-in', ?);
           `;
 
           await sequelize.query(insertSql, {
@@ -751,15 +751,17 @@ const Admin = {
         } else {
           return callback({ message: "Already checked in." }, null);
         }
+
       } else if (checkInStatus === 'check-out') {
         if (!lastEntry || lastEntry.status !== 'check-in') {
           return callback({ message: "Please check-in first." }, null);
         }
 
+        // Insert new check-out record
         const insertSql = `
-            INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
-            VALUES (?, 'check-out', ?, ?);
-          `;
+          INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
+          VALUES (?, 'check-out', ?);
+        `;
 
         await sequelize.query(insertSql, {
           replacements: [adminId, checkInTime],
@@ -767,6 +769,7 @@ const Admin = {
         });
 
         return callback(null, { message: "Checked out successfully." });
+
       } else {
         return callback({ message: "Invalid checkInStatus." }, null);
       }
