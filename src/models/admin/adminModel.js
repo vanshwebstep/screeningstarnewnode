@@ -718,82 +718,67 @@ const Admin = {
   updateCheckInStatus: async (data, callback) => {
     const { checkInStatus, checkInTime, adminId } = data;
 
-    let sqlSelect;
-    let updateSql;
-    if (checkInStatus === 'check-in') {
-      sqlSelect = `
-            SELECT * FROM \`admin_login_logs\`
-            WHERE DATE(\`created_at\`) = ? AND \`admin_id\` = ? AND \`action\` = 'login' 
-            ORDER BY \`created_at\` ASC
-            LIMIT 1;
-        `;
-      updateSql = `
-            UPDATE \`admin_login_logs\`
-            SET \`check_in_status\` = 1, \`check_in_time\` = ?
-            WHERE \`id\` = ?;
-        `;
-    } else if (checkInStatus === 'check-out') {
-      sqlSelect = `
-            SELECT * FROM \`admin_login_logs\`
-            WHERE DATE(\`created_at\`) = ? AND \`admin_id\` = ? AND \`action\` = 'login'
-            ORDER BY \`created_at\` ASC
-            LIMIT 1;
-        `;
-      updateSql = `
-            UPDATE \`admin_login_logs\`
-            SET \`check_out_status\` = 1, \`check_out_time\` = ?
-            WHERE \`id\` = ?;
-        `;
-    } else {
-      return callback({ message: "Invalid checkInStatus" }, null);
-    }
-
     try {
-      // Ensure checkInTime is a string with the format YYYY-MM-DD (if it's a Date object, convert it)
-      const formattedCheckInTime = new Date(checkInTime).toISOString().split('T')[0]; // Extracts the date part
+      // Get the last record for the admin, ordered by created_at DESC
+      const lastEntrySql = `
+        SELECT * FROM \`check_in_outs\`
+        WHERE \`admin_id\` = ? WHERE DATE(\`created_at\`) = ? = ?
+        ORDER BY \`created_at\` DESC
+        LIMIT 1;
+      `;
 
-      console.log('Formatted Check-in Time:', formattedCheckInTime); // Debug log to check the formatted date
-      console.log('Admin ID:', adminId); // Debug log to check the adminId
-
-      // Execute the query to get results
-      const results = await sequelize.query(sqlSelect, {
-        replacements: [formattedCheckInTime, adminId], // Pass the formatted checkInTime to match the date part
+      const [lastEntry] = await sequelize.query(lastEntrySql, {
+        replacements: [adminId, checkInTime],
         type: QueryTypes.SELECT,
       });
 
-      // Check if results are found
-      if (results.length === 0) {
-        console.log('No results found for the given date and adminId.');
-        return callback({ message: "No Login Log Found. Please login first." }, null);
+      const createdAtTime = new Date(checkInTime); // ensure proper Date object
+
+      if (checkInStatus === 'check-in') {
+        if (!lastEntry || lastEntry.status === 'check-out') {
+          // Insert new check-in record
+          const insertSql = `
+            INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`check_in_time\`, \`created_at\`, \`action\`)
+            VALUES (?, 'check-in', ?, ?, 'login');
+          `;
+
+          await sequelize.query(insertSql, {
+            replacements: [adminId, checkInTime, createdAtTime],
+            type: QueryTypes.INSERT,
+          });
+
+          return callback(null, { message: "Checked in successfully." });
+        } else {
+          return callback({ message: "Already checked in." }, null);
+        }
+      } else if (checkInStatus === 'check-out') {
+        if (!lastEntry || lastEntry.status !== 'check-in') {
+          return callback({ message: "Please check-in first." }, null);
+        }
+
+        // Update the last entry to mark check-out
+        const updateSql = `
+          UPDATE \`check_in_outs\`
+          SET \`status\` = 'check-out', \`check_out_time\` = ?
+          WHERE \`id\` = ?;
+        `;
+
+        await sequelize.query(updateSql, {
+          replacements: [checkInTime, lastEntry.id],
+          type: QueryTypes.UPDATE,
+        });
+
+        return callback(null, { message: "Checked out successfully." });
+      } else {
+        return callback({ message: "Invalid checkInStatus." }, null);
       }
-
-      // Check if already checked in or checked out based on the status
-      const existingLog = results[0];
-      if (checkInStatus === 'check-in' && existingLog.check_in_status === 1) {
-        console.log('Admin already checked in.');
-        return callback({ message: "Admin already checked in." }, null);
-      } else if (checkInStatus === 'check-out' && existingLog.check_out_status === 1) {
-        console.log('Admin already checked out.');
-        return callback({ message: "Admin already checked out." }, null);
-      }
-
-      console.log(`Results found:`, results.length);
-
-      // Execute the update query
-      await sequelize.query(updateSql, {
-        replacements: [checkInTime, existingLog.id], // Update the first record found
-        type: QueryTypes.UPDATE,
-      });
-
-      // Successful update
-      callback(null, { message: "Check-in status updated successfully." });
 
     } catch (error) {
-      // Catch any SQL or Sequelize-related errors
-      console.error('Error during admin check-in:', error);
-      callback(error, null);
+      console.error("Error in updateCheckInStatus:", error);
+      return callback(error, null);
     }
   }
+
 };
 
 module.exports = Admin;
