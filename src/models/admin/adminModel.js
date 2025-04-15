@@ -722,7 +722,7 @@ const Admin = {
       // Get the last record for the admin, ordered by created_at DESC
       const lastEntrySql = `
         SELECT * FROM \`check_in_outs\`
-        WHERE \`admin_id\` = ? WHERE DATE(\`created_at\`) = ? = ?
+        WHERE \`admin_id\` = ? WHERE DATE(\`created_at\`) = ?
         ORDER BY \`created_at\` DESC
         LIMIT 1;
       `;
