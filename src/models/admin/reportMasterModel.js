@@ -84,9 +84,11 @@ const ReportMaster = {
 
         for (const serviceId of serviceIds) {
           console.log("Fetching report data for service ID:", serviceId);
-            const reportFormResults = await sequelize.query("SELECT json FROM report_forms WHERE service_id = ?",
-              { replacements: [serviceId], 
-                type: QueryTypes.SELECT,} );
+          const reportFormResults = await sequelize.query("SELECT json FROM report_forms WHERE service_id = ?",
+            {
+              replacements: [serviceId],
+              type: QueryTypes.SELECT,
+            });
 
           if (reportFormResults.length > 0) {
             const parsedData = JSON.parse(reportFormResults[0].json);
@@ -194,13 +196,13 @@ const ReportMaster = {
       WHERE 
         ca.is_deleted != 1
         AND cust.is_deleted != 1
-        AND cmt.component_status = 1`;    console.log("SQL query prepared.");
+        AND cmt.component_status = 1`; console.log("SQL query prepared.");
 
 
       const results = await sequelize.query(sql, {
         type: QueryTypes.SELECT,
       });
-  
+
       const groupedResults = [];
 
       for (const row of results) {
@@ -247,7 +249,7 @@ const ReportMaster = {
             replacements: [serviceId], // Positional replacements using ?
             type: QueryTypes.SELECT,
           });
-          
+
           if (reportFormResults.length > 0) {
             const parsedData = JSON.parse(reportFormResults[0].json);
             const dbTable = parsedData.db_table.replace(/-/g, "_");
@@ -255,7 +257,7 @@ const ReportMaster = {
             console.log("Resolved DB table:", dbTable);
 
             const statusResults = await sequelize.query(`SHOW TABLES LIKE ?`, {
-              replacements: [dbTable], 
+              replacements: [dbTable],
               type: QueryTypes.SELECT,
             });
 
@@ -283,36 +285,34 @@ const ReportMaster = {
           }
         }
 
-        // Add application if all statuses are valid
-        if (Object.keys(statuses).length === serviceIds.length) {
-          branch.applications.push({
-            application_id: row.application_id,
-            application_name: row.application_name,
-            client_application_id: row.client_application_id,
-            overall_status: row.overall_status,
-            report_date: row.report_date,
-            report_generate_by: row.report_generate_by,
-            report_generator_name: row.report_generator_name,
-            qc_date: row.qc_date,
-            qc_done_by: row.qc_done_by,
-            qc_done_by_name: row.qc_done_by_name,
-            is_verify: row.is_verify,
-            application_created_at: row.application_created_at,
-            services_status: statuses,
-          });
-          console.log("Application added:", row.application_name);
-        }
+        // ✅ Always push the application after processing all services (no if condition)
+        branch.applications.push({
+          application_id: row.application_id,
+          application_name: row.application_name,
+          client_application_id: row.client_application_id,
+          overall_status: row.overall_status,
+          report_date: row.report_date,
+          report_generate_by: row.report_generate_by,
+          report_generator_name: row.report_generator_name,
+          qc_date: row.qc_date,
+          qc_done_by: row.qc_done_by,
+          qc_done_by_name: row.qc_done_by_name,
+          is_verify: row.is_verify,
+          application_created_at: row.application_created_at,
+          services_status: statuses,
+        });
+        console.log("Application added:", row.application_name);
       }
 
       // Clean grouped results
       const cleanGroupedResults = groupedResults.map((customer) => {
 
-        
-          customer.branches = customer.branches.filter(
-            (branch) => branch.applications.length > 0
-          );
-          return customer;
-        })
+
+        customer.branches = customer.branches.filter(
+          (branch) => branch.applications.length > 0
+        );
+        return customer;
+      })
         .filter((customer) => customer.branches.length > 0);
 
       console.log("Final grouped results prepared.");
