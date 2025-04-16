@@ -287,7 +287,7 @@ const cef = {
 
 
   createOrUpdateAnnexure: async (
-    raw_cef_id,
+    cef_id,
     candidate_application_id,
     branch_id,
     customer_id,
@@ -295,15 +295,23 @@ const cef = {
     mainJson,
     callback
   ) => {
+    const removeKeys = [
+      'created_at', 'updated_at', 'id',
+      'cef_id', 'candidate_application_id',
+      'branch_id', 'customer_id'
+    ];
+
+    removeKeys.forEach(key => delete mainJson[key]);
     const fields = Object.keys(mainJson).map((field) => field.toLowerCase());
 
+    // 1. Check if the table exists
     const checkTableSql = `
             SELECT COUNT(*) AS count 
             FROM information_schema.tables 
             WHERE table_schema = ? AND table_name = ?`;
 
     const tableResults = await sequelize.query(checkTableSql, {
-      replacements: [process.env.DB_NAME, db_table], // Positional replacements using ?
+      replacements: [process.env.DB_NAME || "goldquest", db_table],
       type: QueryTypes.SELECT,
     });
 
@@ -328,29 +336,20 @@ const cef = {
                         CONSTRAINT \`fk_${db_table}_customer_id\` FOREIGN KEY (\`customer_id\`) REFERENCES \`customers\` (\`id\`) ON DELETE CASCADE,
                         CONSTRAINT \`fk_${db_table}_cef_id\` FOREIGN KEY (\`cef_id\`) REFERENCES \`cmt_applications\` (\`id\`) ON DELETE CASCADE
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+
       await sequelize.query(createTableSql, {
-        type: QueryTypes.CREATE,
+        type: QueryTypes.SELECT,
       });
       proceedToCheckColumns();
-
     } else {
       proceedToCheckColumns();
     }
 
     async function proceedToCheckColumns() {
       const checkColumnsSql = `SHOW COLUMNS FROM \`${db_table}\``;
-      const cefIDByCandidateID = `SELECT id from cef_applications where candidate_application_id = ?`;
-
       const results = await sequelize.query(checkColumnsSql, {
         type: QueryTypes.SELECT,
       });
-
-      const cefIDResult = await sequelize.query(cefIDByCandidateID, {
-        replacements: [candidate_application_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-
-      cef_id = cefIDResult[0].id || null;
 
       const existingColumns = results.map((row) => row.Field);
       const missingColumns = fields.filter(
@@ -365,13 +364,9 @@ const cef = {
 
         // Run all ALTER statements in sequence
         const alterPromises = alterQueries.map(
-          (query) =>
-            new Promise(async (resolve, reject) => {
-              await sequelize.query(query, {
-                type: QueryTypes.RAW,
-              });
-              resolve();
-
+          async (query) =>
+            await sequelize.query(query, {
+              type: QueryTypes.SELECT,
             })
         );
 
@@ -382,75 +377,61 @@ const cef = {
               "Error executing ALTER statements:",
               alterErr
             );
-
             callback(alterErr, null);
           });
       } else {
         checkAndUpdateEntry();
       }
 
-
     }
 
     async function checkAndUpdateEntry() {
-      try {
-        // 1. Check if entry exists by candidate_application_id
-        const checkEntrySql = `SELECT * FROM \`${db_table}\` WHERE candidate_application_id = ?`;
-        const entryResults = await sequelize.query(checkEntrySql, {
-          replacements: [candidate_application_id],
-          type: QueryTypes.SELECT,
+      // 5. Check if entry exists by candidate_application_id
+      const checkEntrySql = `SELECT * FROM \`${db_table}\` WHERE candidate_application_id = ?`;
+      const entryResults = await sequelize.query(checkEntrySql, {
+        replacements: [candidate_application_id],
+        type: QueryTypes.SELECT,
+      });
+
+      if (entryResults.length > 0) {
+        // Use named replacements
+        const setKeys = Object.keys(mainJson);
+        const setClause = setKeys.map((key) => `\`${key}\` = :${key}`).join(', ');
+
+        const updateSql = `UPDATE \`${db_table}\` SET ${setClause} WHERE candidate_application_id = :candidate_application_id`;
+
+        const updateResult = await sequelize.query(updateSql, {
+          replacements: {
+            ...mainJson,
+            candidate_application_id,
+          },
+          type: QueryTypes.UPDATE,
         });
 
-        // Clean up mainJson: trim strings and remove empty strings
-        Object.keys(mainJson).forEach((key) => {
-          if (typeof mainJson[key] === "string") {
-            mainJson[key] = mainJson[key].trim();
-            if (mainJson[key] === "") delete mainJson[key];
-          }
+        callback(null, updateResult);
+      } else {
+        const replacements = {
+          ...mainJson,
+          candidate_application_id,
+          branch_id,
+          customer_id,
+          cef_id,
+        };
+
+        const keys = Object.keys(replacements);
+        const values = Object.values(replacements);
+
+        const insertSql = `INSERT INTO \`${db_table}\` (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`;
+
+        const insertResult = await sequelize.query(insertSql, {
+          replacements: values,
+          type: QueryTypes.INSERT,
         });
 
-        if (entryResults.length > 0) {
-          // 2. Entry exists: Generate update query
-          const updateFields = Object.keys(mainJson)
-            .map((key) => `\`${key}\` = ?`)
-            .join(", ");
-
-          const updateValues = [...Object.values(mainJson), candidate_application_id];
-
-          const updateSql = `UPDATE \`${db_table}\` SET ${updateFields} WHERE candidate_application_id = ?`;
-          const updateResult = await sequelize.query(updateSql, {
-            replacements: updateValues,
-            type: QueryTypes.UPDATE,
-          });
-
-          return callback(null, updateResult);
-        } else {
-          // 3. Entry doesn't exist: Insert new row
-          // Ensure these fields exist in mainJson
-          mainJson.candidate_application_id = candidate_application_id;
-          mainJson.branch_id = branch_id;
-          mainJson.customer_id = customer_id;
-          mainJson.cef_id = cef_id;
-
-          const insertFields = Object.keys(mainJson);
-          const insertPlaceholders = insertFields.map(() => "?").join(", ");
-          const insertValues = insertFields.map((field) => mainJson[field] || null);
-
-          const insertSql = `INSERT INTO \`${db_table}\` (${insertFields.join(", ")}) VALUES (${insertPlaceholders})`;
-
-          const insertResult = await sequelize.query(insertSql, {
-            replacements: insertValues,
-            type: QueryTypes.INSERT,
-          });
-
-          return callback(null, insertResult);
-        }
-      } catch (error) {
-        console.error("Database operation failed:", error);
-        return callback(error);
+        const insertId = insertResult[0];
+        callback(null, { insertId });
       }
     }
-
   },
 
   updateSubmitStatus: async (data, callback) => {
