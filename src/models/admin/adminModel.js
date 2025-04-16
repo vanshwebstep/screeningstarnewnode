@@ -727,7 +727,7 @@ const Admin = {
       const lastEntrySql = `
         SELECT * FROM \`check_in_outs\`
         WHERE \`admin_id\` = ? AND DATE(\`created_at\`) = CURDATE()
-        ORDER BY \`created_at\` DESC
+        ORDER BY \`id\` DESC
         LIMIT 1;
       `;
 
