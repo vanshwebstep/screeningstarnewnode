@@ -310,7 +310,7 @@ exports.bulkCreate = (req, res) => {
                                     vendor_name: entry.vendor_name,
                                     case_aging: entry.case_aging,
                                     remarks: entry.remarks,
-                                    admin_id: entry.admin_id,
+                                    admin_id: admin_id,
                                 },
                                 (err, result) => {
                                     if (err) {
