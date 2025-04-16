@@ -734,6 +734,8 @@ const Admin = {
         type: QueryTypes.SELECT,
       });
 
+      console.log("lastEntry - ", lastEntry);
+
       const createdAtTime = new Date(checkInTime); // Ensure it's a proper Date object
 
       if (checkInStatus === 'check-in') {
