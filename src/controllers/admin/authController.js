@@ -959,7 +959,7 @@ exports.checkIn = (req, res) => {
 
     const newToken = result.newToken;
     Admin.updateCheckInStatus(
-      { checkInStatus: `check-in`, checkInTime: new Date(), adminId: admin_id },
+      { checkInStatus: `check-in`, adminId: admin_id },
       (err, result) => {
         if (err) {
           console.error("Database error during admin check in:", err);
@@ -1022,7 +1022,7 @@ exports.checkOut = (req, res) => {
 
     const newToken = result.newToken;
     Admin.updateCheckInStatus(
-      { checkInStatus: `check-out`, checkInTime: new Date(), adminId: admin_id },
+      { checkInStatus: `check-out`, adminId: admin_id },
       (err, result) => {
         if (err) {
           console.error("Database error during admin check out:", err);

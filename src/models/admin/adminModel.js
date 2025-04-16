@@ -609,8 +609,6 @@ const Admin = {
     }
 
     callback(null, results);
-
-
   },
 
   // Clear login token and token expiry
@@ -718,36 +716,34 @@ const Admin = {
   },
 
   updateCheckInStatus: async (data, callback) => {
-    const { checkInStatus, checkInTime, adminId } = data;
+    const { checkInStatus, adminId } = data;
 
     try {
       // Get the last record for the admin on the same day
       const lastEntrySql = `
         SELECT * FROM \`check_in_outs\`
-        WHERE \`admin_id\` = ? AND DATE(\`created_at\`) = ?
+        WHERE \`admin_id\` = ? AND DATE(\`created_at\`) = CURDATE()
         ORDER BY \`created_at\` DESC
         LIMIT 1;
       `;
 
       const [lastEntry] = await sequelize.query(lastEntrySql, {
-        replacements: [adminId, checkInTime],
+        replacements: [adminId],
         type: QueryTypes.SELECT,
       });
 
       console.log("lastEntry - ", lastEntry);
-
-      const createdAtTime = new Date(checkInTime); // Ensure it's a proper Date object
 
       if (checkInStatus === 'check-in') {
         if (!lastEntry || lastEntry.status === 'check-out') {
           // Insert new check-in record
           const insertSql = `
             INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
-            VALUES (?, 'check-in', ?);
+            VALUES (?, 'check-in', CURDATE());
           `;
 
           await sequelize.query(insertSql, {
-            replacements: [adminId, checkInTime],
+            replacements: [adminId],
             type: QueryTypes.INSERT,
           });
 
@@ -764,11 +760,11 @@ const Admin = {
         // Insert new check-out record
         const insertSql = `
           INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
-          VALUES (?, 'check-out', ?);
+          VALUES (?, 'check-out', CURDATE());
         `;
 
         await sequelize.query(insertSql, {
-          replacements: [adminId, checkInTime],
+          replacements: [adminId],
           type: QueryTypes.INSERT,
         });
 
