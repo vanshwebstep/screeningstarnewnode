@@ -1,5 +1,6 @@
 const Admin = require("../../models/admin/adminModel");
 const CaseAllocation = require("../../models/admin/caseAllocationModel");
+const ClientApplication = require("../../models/customer/branch/clientApplicationModel");
 
 const Common = require("../../models/admin/commonModel");
 const { getClientIpAddress } = require("../../utils/ipAddress");
@@ -204,6 +205,176 @@ exports.create = (req, res) => {
                     });
                 }
             );
+        });
+    });
+};
+
+// Controller to bulkCreate a new service
+exports.bulkCreate = (req, res) => {
+    const { ipAddress, ipType } = getClientIpAddress(req);
+    const { data, admin_id, _token } = req.body;
+
+    const requiredFields = {
+        admin_id: "Admin ID",
+        _token: "Token",
+    };
+
+    const missingFields = Object.keys(requiredFields).filter(field =>
+        !req.body[field] || (typeof req.body[field] === 'string' && req.body[field].trim() === "")
+    );
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            status: false,
+            message: `Missing required fields: ${missingFields.map(field => requiredFields[field]).join(", ")}`,
+        });
+    }
+
+    const action = "case_allocation";
+
+    Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
+        if (!result.status) {
+            return res.status(403).json({ status: false, message: result.message });
+        }
+
+        Common.isAdminTokenValid(_token, admin_id, (err, result) => {
+            if (err) {
+                console.error("Token validation error:", err);
+                return res.status(500).json(err);
+            }
+
+            if (!result.status) {
+                return res.status(401).json({ status: false, message: result.message });
+            }
+
+            const newToken = result.newToken;
+
+            new Promise((resolve, reject) => {
+                if (!Array.isArray(data) || data.length === 0) {
+                    return reject("No data provided.");
+                }
+
+                const cleanedData = data.filter(entry => {
+                    return Object.values(entry).some(value =>
+                        typeof value === 'string' ? value.trim() !== "" : value !== undefined && value !== null
+                    );
+                });
+
+                if (cleanedData.length === 0) {
+                    return reject("All entries are empty or invalid.");
+                }
+
+                resolve(cleanedData);
+
+            }).then(cleanedData => {
+                // ✅ Extract Buisness Development Names to check for duplicates
+                const applicationReffIds = cleanedData.map(entry => entry.application_id);
+
+                // ✅ Call checkIfBuisnessDevelopmentExist
+                ClientApplication.checkIfApplicationExist(applicationReffIds, (error, checkResult) => {
+                    if (error || !checkResult.status) {
+                        return res.status(400).json({
+                            status: false,
+                            message: error.message || "Some Buisness Developments already exist.",
+                            alreadyExists: error.alreadyExists || [],
+                            token: newToken
+                        });
+                    }
+
+                    const validReffIds = checkResult.validReffIds;
+
+                    let cleanedDataWithValidReffIds = cleanedData.filter(entry => validReffIds.includes(entry.application_id));
+
+                    // ✅ Proceed to insert after uniqueness check
+                    const insertPromises = cleanedDataWithValidReffIds.map(entry => {
+                        return new Promise((resolveInsert, rejectInsert) => {
+                            CaseAllocation.create(
+                                entry.application_id,
+                                entry.service_ids,
+                                entry.employee_id,
+                                entry.name,
+                                entry.month_year,
+                                entry.created_at,
+                                entry.dob,
+                                entry.gender,
+                                entry.contact_number,
+                                entry.contact_number2,
+                                entry.father_name,
+                                entry.spouse_name,
+                                entry.permanent_address,
+                                entry.deadline_date,
+                                entry.report_date,
+                                entry.delay_reason,
+                                entry.color_code,
+                                entry.vendor_name,
+                                entry.case_aging,
+                                entry.remarks,
+                                entry.admin_id,
+                                (err, result) => {
+                                    if (err) {
+                                        Common.adminActivityLog(
+                                            ipAddress,
+                                            ipType,
+                                            admin_id,
+                                            "Case Allocation",
+                                            "Create",
+                                            "0",
+                                            null,
+                                            err,
+                                            () => { }
+                                        );
+                                        return rejectInsert(err);
+                                    }
+
+                                    Common.adminActivityLog(
+                                        ipAddress,
+                                        ipType,
+                                        admin_id,
+                                        "Case Allocation",
+                                        "Create",
+                                        "1",
+                                        `{id: ${result.insertId}}`,
+                                        null,
+                                        () => { }
+                                    );
+
+                                    resolveInsert({
+                                        message: "Case Allowcation imported successfully",
+                                        entry: entry,
+                                        id: result.insertId,
+                                    });
+                                }
+                            );
+                        });
+                    });
+
+                    Promise.all(insertPromises)
+                        .then(results => {
+                            return res.status(200).json({
+                                status: true,
+                                message: "Case Allowcation imported successfully",
+                                results: results,
+                                token: newToken,
+                            });
+                        })
+                        .catch(insertErr => {
+                            console.error("Insertion error:", insertErr);
+                            return res.status(400).json({
+                                status: false,
+                                message: insertErr.message || "Failed to insert Case Allowcation.",
+                                token: newToken,
+                            });
+                        });
+                });
+
+            }).catch(error => {
+                console.error("Validation/cleaning error:", error);
+                return res.status(400).json({
+                    status: false,
+                    message: typeof error === 'string' ? error : error.message || "Unknown error",
+                    token: newToken,
+                });
+            });
         });
     });
 };

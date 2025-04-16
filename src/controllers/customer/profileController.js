@@ -227,26 +227,14 @@ exports.create = (req, res) => {
     scopeOfServices,
     client_standard,
     agreement_period,
-    esc_manager_name,
-    esc_manager_email,
-    esc_manager_mobile,
-    esc_manager_desgn,
     client_spoc_name,
     client_spoc_email,
     client_spoc_mobile,
     client_spoc_desgn,
-    billing_spoc_name,
-    billing_spoc_email,
-    billing_spoc_mobile,
-    billing_spoc_desgn,
     billing_escalation_name,
     billing_escalation_email,
     billing_escalation_mobile,
     billing_escalation_desgn,
-    authorized_detail_name,
-    authorized_detail_email,
-    authorized_detail_mobile,
-    authorized_detail_desgn
   };
 
   let additional_login_int = 0;

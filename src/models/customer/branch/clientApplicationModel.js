@@ -304,6 +304,56 @@ const clientApplication = {
     callback(null, count > 0);
   },
 
+  checkIfApplicationExist: async (applicationReffIds, callback) => {
+    // Validate input: Check if array is valid and non-empty
+    if (!Array.isArray(applicationReffIds) || applicationReffIds.length === 0) {
+      return callback({ status: false, message: "No Application reff id provided." }, null);
+    }
+
+    // Clean input: Remove duplicates, trim whitespace, and ensure valid string values
+    const cleanedReffIds = [
+      ...new Set(
+        applicationReffIds
+          .map(refId => (typeof refId === 'string' ? refId.trim() : '')) // Ensure valid string values
+          .filter(refId => refId !== '') // Filter out empty or invalid values
+      ),
+    ];
+
+    // If no valid reference IDs after cleanup, return error
+    if (cleanedReffIds.length === 0) {
+      return callback({ status: false, message: "No valid Organization Names after cleanup." }, null);
+    }
+
+    // Step 1: Execute query to find applications with matching reference IDs
+    const query = `
+      SELECT \`id\`, \`name\`
+      FROM \`client_applications\`
+      WHERE \`application_id\` IN (?)
+    `;
+    const queryResults = await sequelize.query(query, {
+      replacements: [cleanedReffIds],
+      type: QueryTypes.SELECT
+    });
+
+    // Step 2: Extract existing applications and their corresponding reference IDs
+    const existingApplications = queryResults.map(result => result.name);
+
+    // Filter the reference IDs that exist in the database
+    const foundReffIds = cleanedReffIds.filter(refId => existingApplications.includes(refId));
+
+    // If no valid reference IDs exist (all were "waste"), return an error
+    if (foundReffIds.length === 0) {
+      return callback({ status: false, message: "All provided reference IDs are invalid or do not exist." }, null);
+    }
+
+    // Return only the valid reference IDs that exist
+    return callback(null, {
+      status: true,
+      message: "Existing Application reff id found.",
+      validReffIds: foundReffIds // Return only the reference IDs that exist
+    });
+  },
+
   getClientApplicationById: async (id, callback) => {
 
     const sql = "SELECT * FROM `client_applications` WHERE id = ?";

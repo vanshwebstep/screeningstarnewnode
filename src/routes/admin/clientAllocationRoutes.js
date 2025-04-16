@@ -5,5 +5,6 @@ const clientAllocationController = require("../../controllers/admin/clientAlloca
 // Authentication routes
 router.get("/applications", clientAllocationController.applications);
 router.post("/create", clientAllocationController.create);
+router.post("/bulk/create", clientAllocationController.bulkCcreate);
 router.get("/list", clientAllocationController.list);
 module.exports = router;
