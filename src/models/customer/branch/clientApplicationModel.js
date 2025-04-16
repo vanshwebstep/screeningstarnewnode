@@ -326,12 +326,13 @@ const clientApplication = {
 
     // Step 1: Execute query to find applications with matching reference IDs
     const query = `
-      SELECT \`application_id\`
-      FROM \`client_applications\`
-      WHERE \`application_id\` IN (?)
-    `;
+    SELECT \`application_id\`
+    FROM \`client_applications\`
+    WHERE \`application_id\` IN (:refIds)
+  `;
+
     const queryResults = await sequelize.query(query, {
-      replacements: [cleanedReffIds],
+      replacements: { refIds: cleanedReffIds },
       type: QueryTypes.SELECT
     });
 
