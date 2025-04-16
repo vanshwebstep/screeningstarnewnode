@@ -659,9 +659,13 @@ const Admin = {
           cio.\`status\` AS \`cio_status\`, 
           cio.\`created_at\` AS \`cio_created_at\`
         FROM \`admins\` admin
-        LEFT JOIN \`check_in_outs\` cio 
-          ON admin.\`id\` = cio.\`admin_id\`
-          AND DATE(cio.\`created_at\`) = CURDATE()
+        LEFT JOIN (
+          SELECT *
+          FROM \`check_in_outs\`
+          WHERE DATE(\`created_at\`) = CURDATE()
+          ORDER BY \`id\` DESC
+          LIMIT 1
+        ) cio ON admin.\`id\` = cio.\`admin_id\`
         WHERE admin.\`id\` = ?
         LIMIT 1;
       `;
