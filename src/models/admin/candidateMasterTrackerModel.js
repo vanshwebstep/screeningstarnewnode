@@ -423,7 +423,7 @@ const Customer = {
           // Fetch CEF details
           if (candidateApp.cef_submitted === 1) {
             const checkCefSql = `
-                          SELECT signature, resume_file, govt_id, pan_card_image, aadhar_card_image, passport_photo
+                          SELECT signature, resume_file, govt_id, aadhar_card_image, passport_photo
                           FROM \`cef_applications\`
                           WHERE \`candidate_application_id\` = ?`;
 
@@ -441,7 +441,6 @@ const Customer = {
                     signature: "Signature",
                     resume_file: "Resume File",
                     govt_id: "Govt ID",
-                    pan_card_image: "Pan Card Image",
                     aadhar_card_image: "Aadhar Card Image",
                     passport_photo: "Passport Photo",
                   }).forEach(([key, label]) => {
@@ -725,7 +724,7 @@ const Customer = {
           // Fetch CEF details
           if (candidateApp.cef_submitted === 1) {
             const checkCefSql = `
-                          SELECT signature, resume_file, govt_id, pan_card_image, aadhar_card_image, passport_photo
+                          SELECT signature, resume_file, govt_id, aadhar_card_image, passport_photo
                           FROM \`cef_applications\`
                           WHERE \`candidate_application_id\` = ?`;
 
@@ -743,7 +742,6 @@ const Customer = {
                     signature: "Signature",
                     resume_file: "Resume File",
                     govt_id: "Govt ID",
-                    pan_card_image: "Pan Card Image",
                     aadhar_card_image: "Aadhar Card Image",
                     passport_photo: "Passport Photo",
                   }).forEach(([key, label]) => {
