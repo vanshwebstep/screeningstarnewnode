@@ -236,7 +236,7 @@ const PersonalManager = {
     },
 
     myList: async (admin_id, callback) => {
-        const sql = `SELECT PM.*, PMA.name AS admin_name FROM \`personal_managers\` PM INNER JOIN \`admins\` PMA ON PM.admin_id = PMA.id WHERE PM.admin_id = ?`;
+        const sql = `SELECT PM.*, PMA.name AS admin_name FROM \`personal_managers\` PM INNER JOIN \`admins\` PMA ON PM.admin_id = PMA.id WHERE PM.admin_id = ? ORDER BY PM.\`id\` DESC`;
         const results = await sequelize.query(sql, {
             replacements: [admin_id], // Positional replacements using ?
             type: QueryTypes.SELECT,
