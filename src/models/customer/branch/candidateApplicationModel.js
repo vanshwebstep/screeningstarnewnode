@@ -194,10 +194,10 @@ const candidateApplication = {
     `;
 
     const values = [
-      name,
-      employee_id,
-      mobile_number,
-      email,
+      name || "",
+      employee_id || "",
+      mobile_number || "",
+      email || "",
       services,
       package,
       candidate_application_id,
