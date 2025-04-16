@@ -386,6 +386,13 @@ const cef = {
     }
 
     async function checkAndUpdateEntry() {
+      // Function to remove keys with undefined, null, or empty values
+      const cleanObject = (obj) => {
+        return Object.fromEntries(
+          Object.entries(obj).filter(([key, value]) => value !== undefined && value !== null && value !== '')
+        );
+      };
+
       // 5. Check if entry exists by candidate_application_id
       const checkEntrySql = `SELECT * FROM \`${db_table}\` WHERE candidate_application_id = ?`;
       const entryResults = await sequelize.query(checkEntrySql, {
@@ -396,13 +403,17 @@ const cef = {
       if (entryResults.length > 0) {
         // Use named replacements
         const setKeys = Object.keys(mainJson);
-        const setClause = setKeys.map((key) => `\`${key}\` = :${key}`).join(', ');
+        const cleanedMainJson = cleanObject(mainJson); // Clean the mainJson before using it
+
+        const setClause = Object.keys(cleanedMainJson)
+          .map((key) => `\`${key}\` = :${key}`)
+          .join(', ');
 
         const updateSql = `UPDATE \`${db_table}\` SET ${setClause} WHERE candidate_application_id = :candidate_application_id`;
 
         const updateResult = await sequelize.query(updateSql, {
           replacements: {
-            ...mainJson,
+            ...cleanedMainJson,
             candidate_application_id,
           },
           type: QueryTypes.UPDATE,
@@ -418,8 +429,10 @@ const cef = {
           cef_id,
         };
 
-        const keys = Object.keys(replacements);
-        const values = Object.values(replacements);
+        const cleanedReplacements = cleanObject(replacements); // Clean replacements object
+
+        const keys = Object.keys(cleanedReplacements);
+        const values = Object.values(cleanedReplacements);
 
         const insertSql = `INSERT INTO \`${db_table}\` (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`;
 
@@ -432,6 +445,7 @@ const cef = {
         callback(null, { insertId });
       }
     }
+
   },
 
   updateSubmitStatus: async (data, callback) => {
