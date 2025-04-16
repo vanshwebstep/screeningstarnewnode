@@ -10,8 +10,14 @@ const Organization = {
       return callback({ status: false, message: "No Organization Names names provided." }, null)
     }
 
-    // Step 1: Remove duplicates and trim whitespace
-    const uniqueNames = [...new Set(organizationNames.map(name => name.trim()))];
+    // Step 1: Remove duplicates, trim whitespace, and ensure valid string values
+    const uniqueNames = [
+      ...new Set(
+        organizationNames
+          .map(name => (typeof name === 'string' ? name.trim() : '')) // Check if the value is a string before calling trim
+          .filter(name => name !== '') // Filter out any invalid or empty strings
+      ),
+    ];
 
     // Step 2: Build and execute query
     const checkSql = `

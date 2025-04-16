@@ -9,8 +9,14 @@ const University = {
       return callback({ status: false, message: "No university names provided." }, null)
     }
 
-    // Step 1: Remove duplicates and trim whitespace
-    const uniqueNames = [...new Set(universityNames.map(name => name.trim()))];
+    // Step 1: Remove duplicates, trim whitespace, and ensure valid string values
+    const uniqueNames = [
+      ...new Set(
+        universityNames
+          .map(name => (typeof name === 'string' ? name.trim() : '')) // Check if the value is a string before calling trim
+          .filter(name => name !== '') // Filter out any invalid or empty strings
+      ),
+    ];
 
     // Step 2: Build and execute query
     const checkSql = `
