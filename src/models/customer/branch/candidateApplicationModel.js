@@ -46,10 +46,10 @@ const candidateApplication = {
 
     let values = [
       branch_id,
-      name,
-      employee_id,
-      mobile_number,
-      email,
+      name || "",
+      employee_id || "",
+      mobile_number || "",
+      email || "",
       services || "",
       package || "",
       customer_id,
