@@ -326,7 +326,7 @@ const clientApplication = {
 
     // Step 1: Execute query to find applications with matching reference IDs
     const query = `
-      SELECT \`id\`, \`name\`
+      SELECT \`application_id\`
       FROM \`client_applications\`
       WHERE \`application_id\` IN (?)
     `;
@@ -336,7 +336,7 @@ const clientApplication = {
     });
 
     // Step 2: Extract existing applications and their corresponding reference IDs
-    const existingApplications = queryResults.map(result => result.name);
+    const existingApplications = queryResults.map(result => result.application_id);
 
     // Filter the reference IDs that exist in the database
     const foundReffIds = cleanedReffIds.filter(refId => existingApplications.includes(refId));
