@@ -812,9 +812,26 @@ const cef = {
 
       // Fetch attachments from related tables
       for (const [dbTable, fileInputNames] of Object.entries(dbTableFileInputs)) {
-        if (fileInputNames.length === 0) continue;
+        if (fileInputNames.length === 0) {
+          console.log(`Skipping table ${dbTable} as fileInputNames is empty 1.`);
+          continue;
+        }
 
-        const selectQuery = `SELECT ${fileInputNames.join(", ")} FROM cef_${dbTable} WHERE candidate_application_id = ?`;
+        // Fetch existing columns in the table
+        const describeQuery = `DESCRIBE cef_${dbTable}`;
+        const existingColumns = await sequelize.query(describeQuery, {
+          type: QueryTypes.SELECT,
+        });
+
+        const columnNames = existingColumns.map((col) => col.Field);
+        const validColumns = fileInputNames.filter((col) => columnNames.includes(col));
+
+        if (validColumns.length === 0) {
+          console.log(`Skipping table ${dbTable} as no valid columns exist.`);
+          continue;
+        }
+
+        const selectQuery = `SELECT ${validColumns.join(", ")} FROM cef_${dbTable} WHERE candidate_application_id = ?`;
         const rows = await sequelize.query(selectQuery, {
           replacements: [candidate_application_id],
           type: QueryTypes.SELECT,
