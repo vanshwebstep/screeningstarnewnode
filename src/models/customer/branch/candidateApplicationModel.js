@@ -3,19 +3,19 @@ const { sequelize } = require("../../../config/db");
 
 const candidateApplication = {
   // Method to check if an email has been used before
-  isEmailUsedBefore:async (email, branch_id, callback) => {
-      const emailCheckSql = `
+  isEmailUsedBefore: async (email, branch_id, callback) => {
+    const emailCheckSql = `
         SELECT COUNT(*) as count
         FROM \`candidate_applications\`
         WHERE \`email\` = ? AND \`branch_id\` = ?
       `;
-      const emailCheckResults = await sequelize.query(emailCheckSql, {
-        replacements: [email, branch_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-   
-          const emailExists = emailCheckResults[0].count > 0;
-          return callback(null, emailExists);
+    const emailCheckResults = await sequelize.query(emailCheckSql, {
+      replacements: [email, branch_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+
+    const emailExists = emailCheckResults[0].count > 0;
+    return callback(null, emailExists);
   },
 
   // Method to create a new candidate application
@@ -68,82 +68,84 @@ const candidateApplication = {
       type: QueryTypes.INSERT,
     });
     const insertId = results[0];
-        callback(null, {insertId});
+    callback(null, { insertId });
   },
 
   list: async (branch_id, callback) => {
     const sql =
       "SELECT * FROM `candidate_applications` WHERE `branch_id` = ? ORDER BY created_at DESC";
 
-      const results = await sequelize.query(sql, {
-        replacements: [branch_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
+    const results = await sequelize.query(sql, {
+      replacements: [branch_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
 
-        const finalResults = [];
-        const servicePromises = results.map((application) => {
-          return new Promise(async(resolve, reject) => {
-            // Extract service IDs
-            const servicesIds = application.services
-              ? application.services.split(",")
-              : [];
+    const finalResults = [];
+    const servicePromises = results.map((application) => {
+      return new Promise(async (resolve, reject) => {
+        // Extract service IDs
+        const servicesIds = application.services
+          ? application.services.split(",")
+          : [];
 
-            if (servicesIds.length === 0) {
-              finalResults.push({ ...application, serviceNames: [] }); // No services to fetch
-              return resolve(); // Resolve for applications with no services
-            }
+        if (servicesIds.length === 0) {
+          finalResults.push({ ...application, serviceNames: [] }); // No services to fetch
+          return resolve(); // Resolve for applications with no services
+        }
 
-            // Query for service titles
-            const servicesQuery =
-              "SELECT title FROM `services` WHERE id IN (?)";
+        // Query for service titles
+        const servicesQuery =
+          "SELECT title FROM `services` WHERE id IN (?)";
 
-              const servicesResults = await sequelize.query(servicesQuery, {
-                replacements: [servicesIds], // Positional replacements using ?
-                type: QueryTypes.SELECT,
-              });
-           
-                const servicesTitles = servicesResults.map(
-                  (service) => service.title
-                );
-
-                // Push the application with the corresponding service titles
-                finalResults.push({
-                  ...application,
-                  serviceNames: servicesTitles, // Add services titles to the result
-                });
-                resolve();
-            
-          });
+        const servicesResults = await sequelize.query(servicesQuery, {
+          replacements: [servicesIds], // Positional replacements using ?
+          type: QueryTypes.SELECT,
         });
 
-        Promise.all(servicePromises)
-          .then(() => {
-            callback(null,finalResults);
-          })
-          .catch((err) => {
-            callback(err, null);
-          });
-    
-   
+        const servicesTitles = servicesResults.map(
+          (service) => service.title
+        );
+
+        // Push the application with the corresponding service titles
+        finalResults.push({
+          ...application,
+          serviceNames: servicesTitles, // Add services titles to the result
+        });
+        resolve();
+
+      });
+    });
+
+    Promise.all(servicePromises)
+      .then(() => {
+        callback(null, finalResults);
+      })
+      .catch((err) => {
+        callback(err, null);
+      });
+
+
   },
 
-  checkUniqueEmpId:async (candidateUniqueEmpId, callback) => {
-   
+  checkUniqueEmpId: async (candidateUniqueEmpId, callback) => {
+    if (!candidateUniqueEmpId) {
+      return callback(null, false);
+    }
     const sql = `
       SELECT COUNT(*) AS count
       FROM \`candidate_applications\`
       WHERE \`employee_id\` = ?
     `;
-      const results = await sequelize.query(sql, {
-        replacements: [candidateUniqueEmpId], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
+    const results = await sequelize.query(sql, {
+      replacements: [candidateUniqueEmpId], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
 
-        const count = results[0].count;
-        callback(null, count > 0);
+    const count = results[0].count;
+    callback(null, count > 0);
   },
 
-  checkUniqueEmpIdByCandidateApplicationID:async (
+  checkUniqueEmpIdByCandidateApplicationID: async (
     application_id,
     candidateUniqueEmpId,
     callback
@@ -157,25 +159,25 @@ const candidateApplication = {
       WHERE \`employee_id\` = ? AND id = ?
     `;
 
-      const results = await sequelize.query(sql, {
-        replacements: [candidateUniqueEmpId, application_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-          const count = results[0].count;
-          callback(null, count > 0);
+    const results = await sequelize.query(sql, {
+      replacements: [candidateUniqueEmpId, application_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    const count = results[0].count;
+    callback(null, count > 0);
   },
 
-  getCandidateApplicationById:async (id, callback) => {
+  getCandidateApplicationById: async (id, callback) => {
     const sql = "SELECT * FROM `candidate_applications` WHERE id = ?";
-      const results = await sequelize.query(sql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        
-        callback(null, results[0]);
+    const results = await sequelize.query(sql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+
+    callback(null, results[0]);
   },
 
-  update:async (data, candidate_application_id, callback) => {
+  update: async (data, candidate_application_id, callback) => {
     const { name, employee_id, mobile_number, email, services, package } = data;
 
     const sql = `
@@ -201,27 +203,27 @@ const candidateApplication = {
       candidate_application_id,
     ];
 
-      const results = await sequelize.query(sql, {
-        replacements: values, // Positional replacements using ?
-        type: QueryTypes.UPDATE,
-      });
+    const results = await sequelize.query(sql, {
+      replacements: values, // Positional replacements using ?
+      type: QueryTypes.UPDATE,
+    });
 
-        callback(null, results);
-      
-   
+    callback(null, results);
+
+
   },
 
-  delete:async  (id, callback) => {
+  delete: async (id, callback) => {
     const sql = "DELETE FROM `candidate_applications` WHERE `id` = ?";
 
-      const results = await sequelize.query(sql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.DELETE,
-      });
-        callback(null, results);  
+    const results = await sequelize.query(sql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.DELETE,
+    });
+    callback(null, results);
   },
 
-  isApplicationExist: async(app_id, branch_id, customer_id, callback) => {
+  isApplicationExist: async (app_id, branch_id, customer_id, callback) => {
     const sql = `
         SELECT *
         FROM candidate_applications 
@@ -230,42 +232,42 @@ const candidateApplication = {
         AND customer_id = ? 
         AND is_submitted = 0
     `;
-      const results = await sequelize.query(sql, {
-        replacements: [app_id, branch_id, customer_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        if (results.length === 0) {
-          return callback(null, { status: false, message: "Application not found" });
-        }
+    const results = await sequelize.query(sql, {
+      replacements: [app_id, branch_id, customer_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length === 0) {
+      return callback(null, { status: false, message: "Application not found" });
+    }
 
-        const application = results[0];
+    const application = results[0];
 
-        if (application.reminder_sent === 3) {
-          const lastReminderDate = new Date(
-            Math.max(
-              new Date(application.cef_last_reminder_sent_at).getTime(),
-              new Date(application.dav_last_reminder_sent_at).getTime()
-            )
-          );
+    if (application.reminder_sent === 3) {
+      const lastReminderDate = new Date(
+        Math.max(
+          new Date(application.cef_last_reminder_sent_at).getTime(),
+          new Date(application.dav_last_reminder_sent_at).getTime()
+        )
+      );
 
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-          const expirationDate = new Date(today);
-          expirationDate.setDate(today.getDate() - 1);
+      const expirationDate = new Date(today);
+      expirationDate.setDate(today.getDate() - 1);
 
-          if (lastReminderDate <= expirationDate) {
-            const updateSQL = `UPDATE candidate_applications SET status = 2 WHERE id = ?`;
-             await sequelize.query(updateSQL, {
-              replacements: [app_id], // Positional replacements using ?
-              type: QueryTypes.SELECT,
-            });          
-            return;
-          }
-        }
-        return callback(null, { status: true, message: "Application exists", data: application });
-    
-  
+      if (lastReminderDate <= expirationDate) {
+        const updateSQL = `UPDATE candidate_applications SET status = 2 WHERE id = ?`;
+        await sequelize.query(updateSQL, {
+          replacements: [app_id], // Positional replacements using ?
+          type: QueryTypes.SELECT,
+        });
+        return;
+      }
+    }
+    return callback(null, { status: true, message: "Application exists", data: application });
+
+
   }
 };
 
