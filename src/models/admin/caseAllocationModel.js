@@ -62,7 +62,6 @@ const clientApplication = {
             : new Promise((resolve, reject) => {
                 sequelize
                     .query(createTableSql, {
-                        replacements: [username, username], // Positional replacements using ?
                         type: QueryTypes.SELECT,
                     })
                     .then(() => resolve())
@@ -88,7 +87,6 @@ const clientApplication = {
                                     `;
                         return new Promise(async (resolve, reject) => {
                             await sequelize.query(alterTableSql, {
-                                replacements: [username, username], // Positional replacements using ?
                                 type: QueryTypes.RAW,
                             });
                             resolve();
