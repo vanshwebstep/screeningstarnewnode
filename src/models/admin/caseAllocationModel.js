@@ -30,9 +30,10 @@ const clientApplication = {
                 ([key, value]) => value !== undefined && value !== null && value !== ''
             )
         );
+
+        console.log(`filteredInformation - `, filteredInformation);
         const columns = Object.keys(filteredInformation);
         const values = Object.values(filteredInformation);
-
 
         const checkTableSql = `
                 SELECT COUNT(*) AS tableCount
