@@ -25,6 +25,7 @@ exports.create = (req, res) => {
         remarks,
         admin_id,
         _token,
+        photo,
     } = req.body;
 
     let missingFields = [];
@@ -43,6 +44,7 @@ exports.create = (req, res) => {
         });
     }
 
+    const photoUrl = photo ? photo : null;
     /*
     const action = "personal_manager";
     Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
@@ -76,6 +78,7 @@ exports.create = (req, res) => {
                 purpose_of_leave,
                 remarks,
                 admin_id,
+                photo: photoUrl,
             },
             (err, result) => {
                 if (err) {
