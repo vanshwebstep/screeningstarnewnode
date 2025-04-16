@@ -743,7 +743,7 @@ const Admin = {
           // Insert new check-in record
           const insertSql = `
             INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
-            VALUES (?, 'check-in', CURDATE());
+            VALUES (?, 'check-in', NOW());
           `;
 
           await sequelize.query(insertSql, {
@@ -764,7 +764,7 @@ const Admin = {
         // Insert new check-out record
         const insertSql = `
           INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
-          VALUES (?, 'check-out', CURDATE());
+          VALUES (?, 'check-out', NOW());
         `;
 
         await sequelize.query(insertSql, {
