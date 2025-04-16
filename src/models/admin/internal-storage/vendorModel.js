@@ -18,6 +18,12 @@ const Vendor = {
           .filter(name => name !== '') // Filter out any invalid or empty strings
       ),
     ];
+
+    // Check if the uniqueNames array is still empty after cleanup
+    if (uniqueNames.length === 0) {
+      return callback({ status: false, message: "No valid Organization Names after cleanup." }, null);
+    }
+
     // Step 2: Build and execute query
     const checkSql = `
  SELECT \`vendor_name\` 

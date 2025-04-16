@@ -1,7 +1,6 @@
 const { sequelize } = require("../../../config/db");
 const { QueryTypes } = require("sequelize");
 const Organization = {
-
   checkIfExEmploymentsExist: async (
     organizationNames,
     callback
@@ -18,6 +17,11 @@ const Organization = {
           .filter(name => name !== '') // Filter out any invalid or empty strings
       ),
     ];
+
+    // Check if the uniqueNames array is still empty after cleanup
+    if (uniqueNames.length === 0) {
+      return callback({ status: false, message: "No valid Organization Names after cleanup." }, null);
+    }
 
     // Step 2: Build and execute query
     const checkSql = `

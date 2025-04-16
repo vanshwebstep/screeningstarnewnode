@@ -18,6 +18,11 @@ const University = {
       ),
     ];
 
+    // Check if the uniqueNames array is still empty after cleanup
+    if (uniqueNames.length === 0) {
+      return callback({ status: false, message: "No valid Organization Names after cleanup." }, null);
+    }
+
     // Step 2: Build and execute query
     const checkSql = `
  SELECT \`university_name\` 
