@@ -228,7 +228,7 @@ const PersonalManager = {
     },
 
     list: async (callback) => {
-        const sql = `SELECT PM.*, PMA.name AS admin_name FROM \`personal_managers\` PM INNER JOIN \`admins\` PMA ON PM.admin_id = PMA.id`;
+        const sql = `SELECT PM.*, PMA.name AS admin_name FROM \`personal_managers\` PM INNER JOIN \`admins\` PMA ON PM.admin_id = PMA.id ORDER BY PM.\`id\` DESC`;
         const results = await sequelize.query(sql, {
             type: QueryTypes.SELECT,
         });
