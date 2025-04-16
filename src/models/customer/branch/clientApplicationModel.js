@@ -335,9 +335,14 @@ const clientApplication = {
       type: QueryTypes.SELECT
     });
 
+    console.log("queryResults - ", queryResults);
+
     // Step 2: Extract existing applications and their corresponding reference IDs
     const existingApplications = queryResults.map(result => result.application_id);
 
+    console.log("existingApplications - ", existingApplications);
+
+    console.log("cleanedReffIds - ", cleanedReffIds);
     // Filter the reference IDs that exist in the database
     const foundReffIds = cleanedReffIds.filter(refId => existingApplications.includes(refId));
 
