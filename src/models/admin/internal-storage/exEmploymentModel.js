@@ -6,7 +6,7 @@ const Organization = {
     callback
   ) => {
     if (!Array.isArray(organizationNames) || organizationNames.length === 0) {
-      return callback({ status: false, message: "No Organization Names names provided." }, null)
+      return callback({ status: false, message: "No Organization Names provided." }, null)
     }
 
     // Step 1: Remove duplicates, trim whitespace, and ensure valid string values
@@ -20,7 +20,7 @@ const Organization = {
 
     // Check if the uniqueNames array is still empty after cleanup
     if (uniqueNames.length === 0) {
-      return callback({ status: false, message: "No valid Organization Names after cleanup." }, null);
+      return callback({ status: false, message: "No Organization Names after cleanup." }, null);
     }
 
     // Step 2: Build and execute query

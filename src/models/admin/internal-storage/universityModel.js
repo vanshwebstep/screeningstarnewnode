@@ -6,7 +6,7 @@ const University = {
     callback
   ) => {
     if (!Array.isArray(universityNames) || universityNames.length === 0) {
-      return callback({ status: false, message: "No university names provided." }, null)
+      return callback({ status: false, message: "No University Names provided." }, null)
     }
 
     // Step 1: Remove duplicates, trim whitespace, and ensure valid string values
@@ -20,7 +20,7 @@ const University = {
 
     // Check if the uniqueNames array is still empty after cleanup
     if (uniqueNames.length === 0) {
-      return callback({ status: false, message: "No valid Organization Names after cleanup." }, null);
+      return callback({ status: false, message: "No University Names after cleanup." }, null);
     }
 
     // Step 2: Build and execute query
