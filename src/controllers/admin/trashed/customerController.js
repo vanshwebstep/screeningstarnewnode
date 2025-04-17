@@ -17,7 +17,7 @@ exports.list = (req, res) => {
         });
     }
 
-    const action = "client_overview";
+    const action = "trash";
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             return res.status(403).json({
@@ -77,7 +77,7 @@ exports.restore = (req, res) => {
         });
     }
 
-    const action = "client_overview";
+    const action = "trash";
     // Check admin authorization
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
@@ -194,7 +194,7 @@ exports.delete = (req, res) => {
         });
     }
 
-    const action = "client_overview";
+    const action = "trash";
     // Check admin authorization
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {

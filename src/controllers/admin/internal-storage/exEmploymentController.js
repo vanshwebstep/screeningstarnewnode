@@ -46,7 +46,7 @@ exports.create = (req, res) => {
         });
     }
 
-    const action = "client_overview";
+    const action = "internal_storage";
     Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             // Check the status returned by the authorization function
@@ -141,7 +141,7 @@ exports.bulkCreate = (req, res) => {
         });
     }
 
-    const action = "client_overview";
+    const action = "internal_storage";
 
     Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
@@ -293,7 +293,7 @@ exports.list = (req, res) => {
             message: `Missing required fields: ${missingFields.join(", ")}`,
         });
     }
-    const action = "client_overview";
+    const action = "internal_storage";
     Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             return res.status(403).json({
@@ -396,7 +396,7 @@ exports.update = (req, res) => {
         });
     }
 
-    const action = "client_overview";
+    const action = "internal_storage";
     Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             // Check the status returned by the authorization function
@@ -525,7 +525,7 @@ exports.delete = (req, res) => {
             message: `Missing required fields: ${missingFields.join(", ")}`,
         });
     }
-    const action = "client_overview";
+    const action = "internal_storage";
     Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             // Check the status returned by the authorization function

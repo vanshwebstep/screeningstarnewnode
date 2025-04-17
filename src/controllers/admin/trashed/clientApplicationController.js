@@ -23,7 +23,7 @@ exports.list = (req, res) => {
         });
     }
 
-    const action = "admin_manager";
+    const action = "trash";
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (authResult) => {
         if (!authResult.status) {
             return res.status(403).json({
@@ -108,7 +108,7 @@ exports.filterOptions = (req, res) => {
         });
     }
 
-    const action = "admin_manager";
+    const action = "trash";
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             return res.status(403).json({
@@ -196,7 +196,7 @@ exports.filterOptionsForBranch = (req, res) => {
         });
     }
 
-    const action = "admin_manager";
+    const action = "trash";
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             return res.status(403).json({
@@ -266,7 +266,7 @@ exports.listByCustomerId = (req, res) => {
         });
     }
 
-    const action = "admin_manager";
+    const action = "trash";
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             return res.status(403).json({
@@ -380,7 +380,7 @@ exports.applicationListByBranch = (req, res) => {
         });
     }
 
-    const action = "admin_manager";
+    const action = "trash";
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             return res.status(403).json({
@@ -518,7 +518,7 @@ exports.applicationDelete = (req, res) => {
     }
 
     // Check branch authorization
-    const action = "admin_manager";
+    const action = "trash";
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             return res.status(403).json({
@@ -633,7 +633,7 @@ exports.applicationRestore = (req, res) => {
     }
 
     // Check branch authorization
-    const action = "admin_manager";
+    const action = "trash";
     AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
             return res.status(403).json({
