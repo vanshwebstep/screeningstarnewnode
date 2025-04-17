@@ -578,36 +578,38 @@ module.exports = {
                                                                     }
                                                                 }
 
-                                                                // Set font size for the title
-                                                                doc.setFontSize(20);  // Sets the font size to 20
-                                                                doc.setFont("helvetica", "bold");  // Sets the font to Helvetica and makes it bold
-                                                                // Calculate the width of the text
-                                                                const title = 'Background Verification Form';
-                                                                const titleWidth = doc.getStringUnitWidth(title) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-                                                                const xPosition = (doc.internal.pageSize.width - titleWidth) / 2;
-                                                                // Calculate the x-coordinate for centering
-
-
-                                                                // Add the text in the center of the page
-                                                                doc.text(title, xPosition, customBgv === 1 ? yPosition + 20 : yPosition + 10);
-
-                                                                // Move yPosition down for the next content
-                                                                yPosition += 20; // Adjust spacing as needed
-
-                                                                // Add Company Name
-                                                                doc.setFontSize(10);
-                                                                doc.setFont("helvetica", "normal");
-                                                                // Set the left position for "Company name"
-                                                                doc.text(`Company name: ${companyName}`, 10, yPosition + 10);
-
-                                                                // Set the right position for "Purpose of Application"
-                                                                const pageWidth = doc.internal.pageSize.width; // Get the page width
-                                                                const marginRight = 10; // Right margin
-                                                                const purposeXPosition = pageWidth - marginRight - doc.getTextWidth(`Purpose of Application: ${purpose || 'NIL'}`);
-
-                                                                doc.text(`Purpose of Application: ${purpose || 'NIL'}`, purposeXPosition, yPosition + 10);
-
-                                                                yPosition += 20; // Move yPosition down for the next section
+                                                                doc.autoTable({
+                                                                    startY: yPosition,
+                                                                    head: [
+                                                                        [
+                                                                            {
+                                                                                content: 'Background Verification Form',
+                                                                                styles: {
+                                                                                    halign: 'left',
+                                                                                    fontSize: 12,
+                                                                                    fontStyle: 'bold',
+                                                                                    fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                }
+                                                                            }
+                                                                        ],
+                                                                    ],
+                                                                    body: [
+                                                                        
+                                                                        [
+                                                                            { content: `Company name: ${companyName}`, styles: { fontStyle: 'bold', } },
+                                                                        ], 
+                                                                        [
+                                                                            { content: `Purpose of Application: ${purpose || 'NIL'}`, styles: { fontStyle: 'bold', } },
+                                                                        ],
+                                                                    ],
+                                                                    theme: 'grid',
+                                                                    margin: { top: 10 },
+                                                                    styles: {
+                                                                        cellPadding:2,
+                                                                        fontSize: 10,
+                                                                    }
+                                                                });
+                                                                yPosition += 40; 
 
                                                                 const imageWidth = doc.internal.pageSize.width - 10; // 20px padding for margins
                                                                 const imageHeight = 80; // Fixed height of 500px for the image
@@ -663,7 +665,7 @@ module.exports = {
                                                                 if (purpose === 'NORMAL BGV(EMPLOYMENT)') {
                                                                     yPosition += imageHeight + 10;
                                                                 }
-                                                                yPosition += 5;
+                                                                yPosition += 10;
                                                                 if (cefData && cefData.govt_id) {
                                                                     // Split the comma-separated string into an array of image URLs
                                                                     const govtIdUrls = cefData.govt_id.split(',').map(url => url.trim());
@@ -839,77 +841,78 @@ module.exports = {
 
 
 
+                                                                const body = [
+                                                                    // Row 1: Headers
+                                                                    [
+                                                                        {
+                                                                            content: "Name of the Candidate (As per Government\nIdentity proof)",
+                                                                            colSpan: 1,
+                                                                            styles: { fontStyle: 'bold' }
+                                                                          }, 
+                                                                      { content: cefData.full_name || "N/A" },
+                                                                      { content: "Pancard Number", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.pan_card_number || "N/A" },
+                                                                    ],
+                                                                    // Row 2: Data for row 1
+                                                                    [
+                                                                      { content: "Aadhar Number", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.aadhar_card_number || "N/A" },
+                                                                      { content: "Father's Name", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.father_name || "N/A" },
+                                                                    ],
+                                                                    // Row 3: Second header row
+                                                                    [
+                                                                      { content: "Date of Birth(dd/mm/yy)", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.dob || "N/A" },
+                                                                      { content: "Husband's Name", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.husband_name || "N/A" },
+                                                                    ],
+                                                                    // Row 5: Third header row
+                                                                    [
+                                                                      { content: "Gender", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.gender || "N/A" },
+                                                                      { content: "Mobile Number", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.mb_no || "N/A" },
+                                                                    ],
+                                                                    // Row 6: Data for row 5
+                                                                    [
+                                                                      { content: "Nationality", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.nationality || "N/A" },
+                                                                      { content: "Marital Status", styles: { fontStyle: 'bold' } },
+                                                                      { content: cefData.marital_status || "N/A" },
+                                                                    ]
+                                                                  ];
+                                                                  
 
-                                                                const tableData = [
-                                                                    { title: "Full Name", value: cefData.full_name || "N/A" },
-                                                                    { title: "Former Name / Maiden Name", value: cefData.former_name || "N/A" },
-                                                                    { title: "Mobile Number", value: cefData.mb_no || "N/A" },
-                                                                    { title: "Father's Name", value: cefData.father_name || "N/A" },
-                                                                    { title: "Spouse's Name", value: cefData.husband_name || "N/A" },
-                                                                    { title: "Date of Birth", value: cefData.dob || "N/A" },
-                                                                    { title: "Gender", value: cefData.gender || "N/A" },
-                                                                    // Add conditional fields based on customBgv and nationality
+                                                                // Header row
+                                                                const head = [
+                                                                    [
+                                                                        {
+                                                                            content: "Personal Information",
+                                                                            colSpan: 4,
+                                                                            styles: { halign: "left", fontSize: 12, fontStyle: "bold", fillColor: [197, 217, 241] ,textColor: [80, 80, 80] }
+                                                                        }
+                                                                    ]
                                                                 ];
 
-                                                                // Conditionally add fields
-                                                                if (customBgv === 1 && nationality === "Indian") {
-                                                                    tableData.push(
-                                                                        { title: "Name as per Aadhar", value: cefData.aadhar_card_name || "N/A" },
-                                                                        { title: "Name as per Pan Card", value: cefData.pan_card_name || "N/A" }
-                                                                    );
-                                                                }
-
-                                                                if (nationality === "Other") {
-                                                                    tableData.push(
-                                                                        { title: "Passport No", value: cefData.passport_no || "N/A" },
-                                                                        { title: "Driving License / Resident Card / ID No", value: cefData.dme_no || "N/A" },
-                                                                        { title: "Tax No", value: cefData.tax_no || "N/A" }
-                                                                    );
-                                                                }
-                                                                if (customBgv == 0 && nationality === "Other") {
-                                                                    tableData.push(
-                                                                        { title: "Social Security Number", value: cefData.ssn_number || "N/A" },
-                                                                    );
-                                                                }
-
-                                                                tableData.push(
-                                                                    { title: "Aadhar Card Number", value: cefData.aadhar_card_number || "N/A" },
-                                                                    { title: "Pan Card Number", value: cefData.pan_card_number || "N/A" },
-                                                                    { title: "Nationality", value: cefData.nationality || "N/A" },
-                                                                    { title: "Marital Status", value: cefData.marital_status || "N/A" }
-                                                                );
-
-
-
+                                                                // Generate PDF page
                                                                 doc.addPage();
                                                                 yPosition = 20;
 
-
                                                                 doc.autoTable({
-                                                                    startY: yPosition + 5, // Start the table just below the last added entry
-                                                                    head: [[{ content: 'Personal Information', colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true } }],
-                                                                    ],
-                                                                    body: tableData.map(row => {
-                                                                        return [row.title, row.value];
-                                                                    }),
+                                                                    startY: yPosition + 5,
+                                                                    head: head,
+                                                                    body: body,
                                                                     theme: 'grid',
                                                                     margin: { top: 10 },
                                                                     styles: {
-                                                                        cellPadding: 3,        // Padding around text for a cleaner look
-                                                                        fontSize: 10,          // Font size for better readability
-                                                                        halign: 'left',        // Align text to the left for better structure
-                                                                        valign: 'middle',      // Align vertically to the middle of the cells
-                                                                        lineWidth: 0.2,        // Increase line width for better visibility
-                                                                        font: 'helvetica'      // Use Helvetica for better font rendering
+                                                                        cellPadding: 2,
+                                                                        fontSize: 10,
+                                                                        halign: 'left',
+                                                                        valign: 'middle',
+                                                                        font: 'helvetica',
+                                                                        lineWidth: 0.2
                                                                     },
-                                                                    headStyles: {
-                                                                        textColor: 255,        // White text for header for contrast
-                                                                        fontStyle: 'bold',     // Make header text bold
-                                                                    },
-                                                                    columnStyles: {
-                                                                        0: { cellWidth: 'auto' },  // Auto width for the first column (Field)
-                                                                        1: { cellWidth: 'auto' }   // The second column (Value) should adjust width automatically
-                                                                    }
                                                                 });
 
 
@@ -950,7 +953,7 @@ module.exports = {
 
                                                                             doc.setFont("helvetica", "normal");
                                                                             doc.setFontSize(10);
-                                                                            doc.setTextColor(255, 0, 0);
+                                                                                doc.setTextColor(255, 0, 0);
                                                                             doc.text(buttonText, centerX, yPosition + 20);
 
                                                                             // Create clickable link to open the file
@@ -1014,21 +1017,54 @@ module.exports = {
                                                                 // Table for Permanent Address
                                                                 doc.autoTable({
                                                                     startY: yPosition,
-                                                                    head: [[{ content: 'Permanent Address', colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true } }],
+                                                                    head: [
+                                                                        [
+                                                                            {
+                                                                                content: 'Permanent Address',
+                                                                                colSpan: 4,
+                                                                                styles: {
+                                                                                    halign: 'left',
+                                                                                    fontSize: 12,
+                                                                                    fontStyle: 'bold',
+                                                                                    fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                }
+                                                                            }
+                                                                        ],
                                                                     ],
                                                                     body: [
-                                                                        ['Permanent Address', cefData.permanent_address || 'N/A'],
-                                                                        ['Pin Code', cefData.permanent_pin_code || 'N/A'],
-                                                                        ['Mobile Number', cefData.permanent_address_landline_number || 'N/A'],
-                                                                        ['Current State', cefData.permanent_address_state || 'N/A'],
-                                                                        ['Current Landmark', cefData.permanent_prominent_landmark || 'N/A'],
-                                                                        ['Current Address Stay No.', cefData.permanent_address_stay_to || 'N/A'],
-                                                                        ['Nearest Police Station', cefData.permanent_address_nearest_police_station || 'N/A']
+                                                                        [
+                                                                            { content: 'Permanent Address', styles: { fontStyle: 'bold', } },
+                                                                            cefData.permanent_address || 'N/A',
+                                                                            { content: 'Pin Code', styles: { fontStyle: 'bold', } },
+                                                                            cefData.permanent_pin_code || 'N/A',
+                                                                            
+                                                                        ],
+                                                                        [
+                                                                            { content: 'Mobile Number', styles: { fontStyle: 'bold', } },
+                                                                            cefData.permanent_address_landline_number || 'N/A',
+                                                                            { content: 'Current State', styles: { fontStyle: 'bold', } },
+                                                                            cefData.permanent_address_state || 'N/A'
+                                                                        ],
+                                                                        [
+                                                                            { content: 'Current Landmark', styles: { fontStyle: 'bold', } },
+                                                                            cefData.permanent_prominent_landmark || 'N/A',
+                                                                            { content: 'Current Address Stay No.', styles: { fontStyle: 'bold', } },
+                                                                            cefData.permanent_address_stay_to || 'N/A',
+
+                                                                        ],
+                                                                        [
+                                                                            { content: 'Nearest Police Station', styles: { fontStyle: 'bold', } },  
+                                                                            cefData.permanent_address_nearest_police_station || 'N/A'
+                                                                        ]
                                                                     ],
                                                                     theme: 'grid',
                                                                     margin: { top: 10 },
-                                                                    styles: { fontSize: 10, cellPadding: 3 }
+                                                                    styles: {
+                                                                        fontSize: 10,
+                                                                        cellPadding: 2
+                                                                    }
                                                                 });
+
 
                                                                 // Update yPosition after the permanent address table
                                                                 yPosition = doc.autoTable.previous.finalY + 20; // Add a small margin after the table
@@ -1038,21 +1074,55 @@ module.exports = {
                                                                     // Table for Current Address if not same as Permanent Address
                                                                     doc.autoTable({
                                                                         startY: yPosition,
-                                                                        head: [[{ content: 'Current Address', colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true } }],
+                                                                        head: [
+                                                                            [
+                                                                                {
+                                                                                    content: 'Current Address',
+                                                                                    colSpan: 4,
+                                                                                    styles: {
+                                                                                        halign: 'left',
+                                                                                        fontSize: 12,
+                                                                                        fontStyle: 'bold',
+                                                                                        fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                    }
+                                                                                }
+                                                                            ]
                                                                         ],
                                                                         body: [
-                                                                            ['Current Address', cefData.current_address || 'N/A'],
-                                                                            ['Pin Code', cefData.current_address_pin_code || 'N/A'],
-                                                                            ['Mobile Number', cefData.current_address_landline_number || 'N/A'],
-                                                                            ['Current State', cefData.current_address_state || 'N/A'],
-                                                                            ['Current Landmark', cefData.current_prominent_landmark || 'N/A'],
-                                                                            ['Current Address Stay No.', cefData.current_address_stay_to || 'N/A'],
-                                                                            ['Nearest Police Station', cefData.current_address_nearest_police_station || 'N/A']
+                                                                            [
+                                                                                { content: 'Current Address', styles: { fontStyle: 'bold' } },
+                                                                                cefData.current_address || 'N/A',
+                                                                                { content: 'Pin Code', styles: { fontStyle: 'bold' } },
+                                                                                cefData.current_address_pin_code || 'N/A',
+                                                                              
+                                                                            ],
+                                                                            [
+                                                                                { content: 'Mobile Number', styles: { fontStyle: 'bold' } },
+                                                                                cefData.current_address_landline_number || 'N/A',
+                                                                                { content: 'Current State', styles: { fontStyle: 'bold' } },
+                                                                                cefData.current_address_state || 'N/A'
+                                                                            ],
+                                                                            [
+                                                                                { content: 'Current Landmark', styles: { fontStyle: 'bold' } },
+                                                                                cefData.current_prominent_landmark || 'N/A',
+                                                                                { content: 'Current Address Stay No.', styles: { fontStyle: 'bold' } },
+                                                                                cefData.current_address_stay_to || 'N/A',
+                                                                                ''
+                                                                            ],
+                                                                            [
+                                                                                { content: 'Nearest Police Station', styles: { fontStyle: 'bold' } },
+                                                                                cefData.current_address_nearest_police_station || 'N/A',
+                                                                                ''
+                                                                            ]
                                                                         ],
                                                                         theme: 'grid',
                                                                         margin: { top: 10 },
-                                                                        styles: { fontSize: 10, cellPadding: 3 }
+                                                                        styles: {
+                                                                            fontSize: 10,
+                                                                            cellPadding: 2
+                                                                        }
                                                                     });
+
 
                                                                     // Update yPosition after the current address table
                                                                     yPosition = doc.autoTable.previous.finalY + 10; // Add a small margin after the table
@@ -1101,20 +1171,54 @@ module.exports = {
                                                                                     yPosition += 10;
                                                                                     doc.autoTable({
                                                                                         startY: yPosition,
-                                                                                        head: [[{ content: 'PHD', colSpan: 2, styles: { halign: 'center', fontSize: 12, bold: true } }],
+                                                                                        head: [
+                                                                                            [
+                                                                                                {
+                                                                                                    content: 'PHD',
+                                                                                                    colSpan: 2,
+                                                                                                    styles: {
+                                                                                                        halign: 'left',
+                                                                                                        fontSize: 12,
+                                                                                                        fontStyle: 'bold',
+                                                                                                        fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                                    }
+                                                                                                }
+                                                                                            ]
                                                                                         ],
                                                                                         body: [
-                                                                                            ['Institute Name', annexureData?.gap_validation?.education_fields?.phd_1?.phd_institute_name_gap || 'N/A'],
-                                                                                            ['School Name', annexureData?.gap_validation?.education_fields?.phd_1?.phd_school_name_gap || 'N/A'],
-                                                                                            ['Start Date', annexureData?.gap_validation?.education_fields?.phd_1?.phd_start_date_gap || 'N/A'],
-                                                                                            ['End Date', annexureData?.gap_validation?.education_fields?.phd_1?.phd_end_date_gap || 'N/A'],
-                                                                                            ['Specialization', annexureData?.gap_validation?.education_fields?.phd_1?.phd_specialization_gap || 'N/A'],
-                                                                                            ["Gap Status", renderGapMessageNew(gaps?.gapPostGradToPhd) || 'N/A']
+                                                                                            [
+                                                                                                { content: 'Institute Name', styles: { fontStyle: 'bold' } },
+                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_institute_name_gap || 'N/A'
+                                                                                            ],
+                                                                                            [
+                                                                                                { content: 'School Name', styles: { fontStyle: 'bold' } },
+                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_school_name_gap || 'N/A'
+                                                                                            ],
+                                                                                            [
+                                                                                                { content: 'Start Date', styles: { fontStyle: 'bold' } },
+                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_start_date_gap || 'N/A'
+                                                                                            ],
+                                                                                            [
+                                                                                                { content: 'End Date', styles: { fontStyle: 'bold' } },
+                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_end_date_gap || 'N/A'
+                                                                                            ],
+                                                                                            [
+                                                                                                { content: 'Specialization', styles: { fontStyle: 'bold' } },
+                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_specialization_gap || 'N/A'
+                                                                                            ],
+                                                                                            [
+                                                                                                { content: 'Gap Status', styles: { fontStyle: 'bold' } },
+                                                                                                renderGapMessageNew(gaps?.gapPostGradToPhd) || 'N/A'
+                                                                                            ]
                                                                                         ],
                                                                                         theme: 'grid',
                                                                                         margin: { top: 10 },
-                                                                                        styles: { fontSize: 10, cellPadding: 3 }
+                                                                                        styles: {
+                                                                                            fontSize: 10,
+                                                                                            cellPadding: 2
+                                                                                        }
                                                                                     });
+
 
                                                                                     let index = 1;
                                                                                     let phdSections = [];
@@ -1158,7 +1262,7 @@ module.exports = {
                                                                                             startY: doc.autoTable.previous.finalY + 20, // Start below the title
                                                                                             theme: 'grid',
                                                                                             styles: {
-                                                                                                cellPadding: 4,
+                                                                                                cellPadding: 2,
                                                                                                 fontSize: 10
                                                                                             }
                                                                                         });
@@ -1189,7 +1293,7 @@ module.exports = {
                                                                                         startY: yPosition + 5,
                                                                                         theme: 'grid',
                                                                                         styles: {
-                                                                                            cellPadding: 4,
+                                                                                            cellPadding: 2,
                                                                                             fontSize: 10
                                                                                         }
                                                                                     });
@@ -1234,7 +1338,7 @@ module.exports = {
                                                                                             startY: doc.autoTable.previous.finalY + 20, // Start below the title
                                                                                             theme: 'grid',
                                                                                             styles: {
-                                                                                                cellPadding: 4,
+                                                                                                cellPadding: 2,
                                                                                                 fontSize: 10
                                                                                             }
                                                                                         });
@@ -1264,7 +1368,7 @@ module.exports = {
                                                                                         startY: doc.autoTable.previous.finalY + 10,
                                                                                         theme: 'grid',
                                                                                         styles: {
-                                                                                            cellPadding: 4,
+                                                                                            cellPadding: 2,
                                                                                             fontSize: 10
                                                                                         }
                                                                                     });
@@ -1307,7 +1411,7 @@ module.exports = {
                                                                                             startY: doc.autoTable.previous.finalY + 30, // Start below the title
                                                                                             theme: 'grid',
                                                                                             styles: {
-                                                                                                cellPadding: 4,
+                                                                                                cellPadding: 2,
                                                                                                 fontSize: 10
                                                                                             }
                                                                                         });
@@ -1333,7 +1437,7 @@ module.exports = {
                                                                                         startY: doc.autoTable.previous.finalY + 30,
                                                                                         theme: 'grid',
                                                                                         styles: {
-                                                                                            cellPadding: 4,
+                                                                                            cellPadding: 2,
                                                                                             fontSize: 10
                                                                                         }
                                                                                     });
@@ -1375,7 +1479,7 @@ module.exports = {
                                                                                             startY: doc.autoTable.previous.finalY + 20, // Start below the title
                                                                                             theme: 'grid',
                                                                                             styles: {
-                                                                                                cellPadding: 4,
+                                                                                                cellPadding: 2,
                                                                                                 fontSize: 10
                                                                                             }
                                                                                         });
@@ -1410,7 +1514,7 @@ module.exports = {
                                                                                         startY: yPosition,
                                                                                         theme: 'grid',
                                                                                         styles: {
-                                                                                            cellPadding: 4,
+                                                                                            cellPadding: 2,
                                                                                             fontSize: 10
                                                                                         }
                                                                                     });
@@ -1453,7 +1557,7 @@ module.exports = {
                                                                                             startY: doc.autoTable.previous.finalY + 20, // Start below the title
                                                                                             theme: 'grid',
                                                                                             styles: {
-                                                                                                cellPadding: 4,
+                                                                                                cellPadding: 2,
                                                                                                 fontSize: 10
                                                                                             }
                                                                                         });
@@ -1479,7 +1583,7 @@ module.exports = {
                                                                                     startY: doc.autoTable.previous.finalY + 10,
                                                                                     theme: 'grid',
                                                                                     styles: {
-                                                                                        cellPadding: 4,
+                                                                                        cellPadding: 2,
                                                                                         fontSize: 10
                                                                                     }
                                                                                 });
@@ -1503,7 +1607,7 @@ module.exports = {
                                                                                             startY: yPosition,
                                                                                             theme: 'grid',
                                                                                             styles: {
-                                                                                                cellPadding: 4,
+                                                                                                cellPadding: 2,
                                                                                                 fontSize: 10
                                                                                             }
                                                                                         });
@@ -1547,33 +1651,79 @@ module.exports = {
                                                                             }
                                                                             else {
                                                                                 service.rows.forEach((row, rowIndex) => {
+                                                                                    // First: check if any has_not_done checkbox is checked
+                                                                                    let skipRow = false;
+                                                                                
+                                                                                    for (const input of row.inputs) {
+                                                                                        if (input.type === 'checkbox' && input.name?.startsWith('has_not_done')) {
+                                                                                            const rawValue = annexureData[service.db_table]?.[input.name];
+                                                                                            const isChecked = ["1", 1, true, "true"].includes(rawValue ?? false);
+                                                                                            if (isChecked) {
+                                                                                                skipRow = true;
+                                                                                                break; // no need to check more
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                
+                                                                                    if (skipRow) return; // Skip this row entirely
+                                                                                
+                                                                                    // Continue with normal input processing
                                                                                     row.inputs.forEach((input) => {
                                                                                         const isCheckbox = input.type === 'checkbox';
-                                                                                        const isDoneCheckbox = isCheckbox && (input.name.startsWith('done_or_not') || input.name.startsWith('has_not_done'));
-                                                                                        const isChecked = ["1", 1, true, "true"].includes(annexureData[service.db_table]?.[input.name] ?? false);
-
-                                                                                        // Handle logic for checkbox checked state
-                                                                                        if (isDoneCheckbox && isChecked) {
-                                                                                            // Hide all rows except the one with the checked checkbox
-                                                                                        }
+                                                                                        const isDoneCheckbox = isCheckbox && input.name?.startsWith('done_or_not');
+                                                                                        const rawValue = annexureData[service.db_table]?.[input.name];
+                                                                                        const isChecked = ["1", 1, true, "true"].includes(rawValue ?? false);
+                                                                                
+                                                                                        if (isDoneCheckbox && !isChecked) return; // Skip done_or_not if not checked
                                                                                         if (input.type === 'file') return; // Skip file inputs
-
-                                                                                        const inputValue = annexureData[service.db_table]?.[input.name] || "NIL";
-                                                                                        tableData.push([input.label, inputValue]);
+                                                                                
+                                                                                        let inputValue;
+                                                                                        if (rawValue === 1 || rawValue === "1") {
+                                                                                            inputValue = "TRUE";
+                                                                                        } else if (rawValue === 0 || rawValue === "0") {
+                                                                                            inputValue = "FALSE";
+                                                                                        } else if (rawValue === null || rawValue === undefined || rawValue === "") {
+                                                                                            inputValue = "N/A";
+                                                                                        } else {
+                                                                                            inputValue = rawValue;
+                                                                                        }
+                                                                                
+                                                                                        tableData.push([
+                                                                                            { content: input.label, styles: { fontStyle: 'bold' } },
+                                                                                            inputValue
+                                                                                        ]);
                                                                                     });
                                                                                 });
+                                                                                
+                                                                                
 
                                                                                 // Add service heading
                                                                                 doc.setFontSize(16);
                                                                                 yPosition += 10;
+
                                                                                 doc.autoTable({
                                                                                     startY: yPosition,
-                                                                                    head: [[{ content: service.heading, colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true } }],
+                                                                                    head: [
+                                                                                        [
+                                                                                            {
+                                                                                                content: service.heading,
+                                                                                                colSpan: 2,
+                                                                                                styles: {
+                                                                                                    halign: 'left',
+                                                                                                    fontSize: 12,
+                                                                                                    fontStyle: 'bold',
+                                                                                                    fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                                }
+                                                                                            }
+                                                                                        ]
                                                                                     ],
-                                                                                    body: tableData,
+                                                                                    body: tableData || 'N/A',
                                                                                     theme: 'grid',
-                                                                                    margin: { horizontal: 10 },
-                                                                                    styles: { fontSize: 10 },
+                                                                                    margin: { top: 10, horizontal: 10 },
+                                                                                    styles: {
+                                                                                        fontSize: 10,
+                                                                                        cellPadding: 2
+                                                                                    }
                                                                                 });
 
                                                                                 yPosition = doc.lastAutoTable.finalY + 10; // Update yPosition after table
@@ -1587,7 +1737,7 @@ module.exports = {
                                                                                 if (fileInputs.length > 0) {
                                                                                     const filePromises = fileInputs.map(async (inputName) => {
                                                                                         const annexureFilesStr = annexureData[service.db_table]?.[inputName];
-                                                                                        let annexureDataImageHeight = 220;
+                                                                                        let annexureDataImageHeight = 180; // Reduced image height
 
                                                                                         if (annexureFilesStr) {
                                                                                             const fileUrls = annexureFilesStr.split(",").map(url => url.trim());
@@ -1600,13 +1750,11 @@ module.exports = {
                                                                                                 return;
                                                                                             }
 
-                                                                                            // Filter out non-image URLs (pdf, xls, etc.)
                                                                                             const imageUrlsToProcess = fileUrls.filter(url => {
                                                                                                 const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
                                                                                                 return validImageExtensions.some(ext => url.toLowerCase().endsWith(ext));
                                                                                             });
 
-                                                                                            // Filter out URLs that are not images
                                                                                             const nonImageUrlsToProcess = fileUrls.filter(url => {
                                                                                                 const validNonImageExtensions = ['pdf', 'xls', 'xlsx'];
                                                                                                 return validNonImageExtensions.some(ext => url.toLowerCase().endsWith(ext));
@@ -1623,10 +1771,28 @@ module.exports = {
                                                                                                         yPosition = 20;
 
                                                                                                         try {
-                                                                                                            const imageWidth = doc.internal.pageSize.width - 10;
-                                                                                                            // Adjust height if needed based on image dimensions or conditions
-                                                                                                            doc.addImage(image.base64, image.type, 5, yPosition + 20, imageWidth, annexureDataImageHeight);
-                                                                                                            yPosition += (annexureDataImageHeight + 30);
+                                                                                                            const pageWidth = doc.internal.pageSize.width;
+                                                                                                            const padding = 8;
+                                                                                                            const borderX = 10;
+                                                                                                            const borderY = yPosition + 20;
+                                                                                                            const borderWidth = pageWidth - 20;
+                                                                                                            const borderHeight = annexureDataImageHeight;
+
+                                                                                                            // Image position inside border box with padding
+                                                                                                            const imageX = borderX + padding;
+                                                                                                            const imageY = borderY + padding;
+                                                                                                            const imageWidth = borderWidth - padding * 2;
+                                                                                                            const imageHeight = borderHeight - padding * 2;
+
+                                                                                                            // Add image
+                                                                                                            doc.addImage(image.base64, image.type, imageX, imageY, imageWidth, imageHeight);
+
+                                                                                                            // Add border
+                                                                                                            doc.setDrawColor(0); // black
+                                                                                                            doc.setLineWidth(0.5);
+                                                                                                            doc.rect(borderX, borderY, borderWidth, borderHeight); // x, y, width, height
+
+                                                                                                            yPosition += (borderHeight + 30);
                                                                                                         } catch (error) {
                                                                                                             // console.error(`Error adding image:`, error);
                                                                                                         }
@@ -1634,20 +1800,18 @@ module.exports = {
                                                                                                 }
                                                                                             }
 
-                                                                                            // Handle non-image files (PDF, XLS, etc.)
+                                                                                            // Handle non-image files
                                                                                             const pageHeight = doc.internal.pageSize.height;
-                                                                                            const margin = 10; // margin from top and bottom
-                                                                                            let lineHeight = 10; // space between lines
+                                                                                            const margin = 10;
+                                                                                            let lineHeight = 10;
 
                                                                                             if (nonImageUrlsToProcess.length > 0) {
                                                                                                 nonImageUrlsToProcess.forEach(url => {
-                                                                                                    // Calculate available space on the current page
                                                                                                     if (yPosition + lineHeight > pageHeight - margin) {
-                                                                                                        doc.addPage(); // Add a new page if there's not enough space
-                                                                                                        yPosition = margin; // Reset yPosition after adding a new page
+                                                                                                        doc.addPage();
+                                                                                                        yPosition = margin;
                                                                                                     }
 
-                                                                                                    // Add a button to open the file in a new tab
                                                                                                     doc.setFont("helvetica", "normal");
                                                                                                     doc.setFontSize(10);
                                                                                                     doc.setTextColor(255, 0, 0);
@@ -1655,20 +1819,18 @@ module.exports = {
                                                                                                     const textWidth = doc.getTextWidth(buttonText);
                                                                                                     const centerX = (doc.internal.pageSize.width - textWidth) / 2;
 
-                                                                                                    // Add the text at the center and create the link
                                                                                                     doc.text(buttonText, centerX, yPosition + 10);
                                                                                                     doc.link(centerX, yPosition + 10, textWidth, 10, { url: url });
 
-                                                                                                    // Adjust yPosition for the next line
-                                                                                                    yPosition += lineHeight + 2; // Adjust for button space
+                                                                                                    yPosition += lineHeight + 2;
                                                                                                 });
                                                                                             }
-
                                                                                         }
                                                                                     });
 
                                                                                     await Promise.all(filePromises);
                                                                                 }
+
 
 
                                                                             }
@@ -1679,7 +1841,7 @@ module.exports = {
                                                                     doc.addPage();
                                                                     let newYPosition = 20
                                                                     doc.autoTable({
-                                                                        head: [[{ content: 'Declaration and Authorization', colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true } }],
+                                                                        head: [[{ content: 'Declaration and Authorization', colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true,fillColor: [197, 217, 241],textColor: [80, 80, 80] } }],
                                                                         ], // Table headers
                                                                         body: [
                                                                             [
@@ -1778,9 +1940,12 @@ module.exports = {
                                                                         head: [columns],
                                                                         headStyles: {
                                                                             lineWidth: 0.3,
+                                                                            fillColor: [197, 217, 241],
+                                                                            textColor: [80, 80, 80]
+
                                                                         },
                                                                         body: rows,
-                                                                        styles: { fontSize: 10, cellPadding: 4 },
+                                                                        styles: { fontSize: 10, cellPadding: 2 },
                                                                         theme: "grid",
                                                                         columnStyles: {
                                                                             0: { halign: "center", minCellWidth: 60 },
@@ -1802,15 +1967,15 @@ module.exports = {
 
                                                                     // Save PDF
                                                                     // console.log(`pdfFileName - `, pdfFileName);
-                                                                    // doc.save(`123.pdf`);
+                                                                    doc.save(`123.pdf`);
 
                                                                     // console.log(`targetDirectory - `, targetDirectory);
-                                                                    const pdfPathCloud = await savePdf(
-                                                                        doc,
-                                                                        pdfFileName,
-                                                                        targetDirectory
-                                                                    );
-                                                                    resolve(pdfPathCloud);
+                                                                    // const pdfPathCloud = await savePdf(
+                                                                    //     doc,
+                                                                    //     pdfFileName,
+                                                                    //     targetDirectory
+                                                                    // );
+                                                                    resolve(`123.pdf`);
                                                                     // console.log("PDF generation completed successfully.");
                                                                 })();
                                                             } catch (error) {
