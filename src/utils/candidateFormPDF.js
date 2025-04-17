@@ -588,16 +588,16 @@ module.exports = {
                                                                                     halign: 'left',
                                                                                     fontSize: 12,
                                                                                     fontStyle: 'bold',
-                                                                                    fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                    fillColor: [197, 217, 241], textColor: [80, 80, 80]
                                                                                 }
                                                                             }
                                                                         ],
                                                                     ],
                                                                     body: [
-                                                                        
+
                                                                         [
                                                                             { content: `Company name: ${companyName}`, styles: { fontStyle: 'bold', } },
-                                                                        ], 
+                                                                        ],
                                                                         [
                                                                             { content: `Purpose of Application: ${purpose || 'NIL'}`, styles: { fontStyle: 'bold', } },
                                                                         ],
@@ -605,11 +605,11 @@ module.exports = {
                                                                     theme: 'grid',
                                                                     margin: { top: 10 },
                                                                     styles: {
-                                                                        cellPadding:2,
+                                                                        cellPadding: 2,
                                                                         fontSize: 10,
                                                                     }
                                                                 });
-                                                                yPosition += 40; 
+                                                                yPosition += 40;
 
                                                                 const imageWidth = doc.internal.pageSize.width - 10; // 20px padding for margins
                                                                 const imageHeight = 80; // Fixed height of 500px for the image
@@ -848,41 +848,41 @@ module.exports = {
                                                                             content: "Name of the Candidate (As per Government\nIdentity proof)",
                                                                             colSpan: 1,
                                                                             styles: { fontStyle: 'bold' }
-                                                                          }, 
-                                                                      { content: cefData.full_name || "N/A" },
-                                                                      { content: "Pancard Number", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.pan_card_number || "N/A" },
+                                                                        },
+                                                                        { content: cefData.full_name || "N/A" },
+                                                                        { content: "Pancard Number", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.pan_card_number || "N/A" },
                                                                     ],
                                                                     // Row 2: Data for row 1
                                                                     [
-                                                                      { content: "Aadhar Number", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.aadhar_card_number || "N/A" },
-                                                                      { content: "Father's Name", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.father_name || "N/A" },
+                                                                        { content: "Aadhar Number", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.aadhar_card_number || "N/A" },
+                                                                        { content: "Father's Name", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.father_name || "N/A" },
                                                                     ],
                                                                     // Row 3: Second header row
                                                                     [
-                                                                      { content: "Date of Birth(dd/mm/yy)", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.dob || "N/A" },
-                                                                      { content: "Husband's Name", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.husband_name || "N/A" },
+                                                                        { content: "Date of Birth(dd/mm/yy)", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.dob || "N/A" },
+                                                                        { content: "Husband's Name", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.husband_name || "N/A" },
                                                                     ],
                                                                     // Row 5: Third header row
                                                                     [
-                                                                      { content: "Gender", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.gender || "N/A" },
-                                                                      { content: "Mobile Number", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.mb_no || "N/A" },
+                                                                        { content: "Gender", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.gender || "N/A" },
+                                                                        { content: "Mobile Number", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.mb_no || "N/A" },
                                                                     ],
                                                                     // Row 6: Data for row 5
                                                                     [
-                                                                      { content: "Nationality", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.nationality || "N/A" },
-                                                                      { content: "Marital Status", styles: { fontStyle: 'bold' } },
-                                                                      { content: cefData.marital_status || "N/A" },
+                                                                        { content: "Nationality", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.nationality || "N/A" },
+                                                                        { content: "Marital Status", styles: { fontStyle: 'bold' } },
+                                                                        { content: cefData.marital_status || "N/A" },
                                                                     ]
-                                                                  ];
-                                                                  
+                                                                ];
+
 
                                                                 // Header row
                                                                 const head = [
@@ -890,7 +890,7 @@ module.exports = {
                                                                         {
                                                                             content: "Personal Information",
                                                                             colSpan: 4,
-                                                                            styles: { halign: "left", fontSize: 12, fontStyle: "bold", fillColor: [197, 217, 241] ,textColor: [80, 80, 80] }
+                                                                            styles: { halign: "left", fontSize: 12, fontStyle: "bold", fillColor: [197, 217, 241], textColor: [80, 80, 80] }
                                                                         }
                                                                     ]
                                                                 ];
@@ -953,7 +953,7 @@ module.exports = {
 
                                                                             doc.setFont("helvetica", "normal");
                                                                             doc.setFontSize(10);
-                                                                                doc.setTextColor(255, 0, 0);
+                                                                            doc.setTextColor(255, 0, 0);
                                                                             doc.text(buttonText, centerX, yPosition + 20);
 
                                                                             // Create clickable link to open the file
@@ -1026,7 +1026,7 @@ module.exports = {
                                                                                     halign: 'left',
                                                                                     fontSize: 12,
                                                                                     fontStyle: 'bold',
-                                                                                    fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                    fillColor: [197, 217, 241], textColor: [80, 80, 80]
                                                                                 }
                                                                             }
                                                                         ],
@@ -1037,7 +1037,7 @@ module.exports = {
                                                                             cefData.permanent_address || 'N/A',
                                                                             { content: 'Pin Code', styles: { fontStyle: 'bold', } },
                                                                             cefData.permanent_pin_code || 'N/A',
-                                                                            
+
                                                                         ],
                                                                         [
                                                                             { content: 'Mobile Number', styles: { fontStyle: 'bold', } },
@@ -1053,7 +1053,7 @@ module.exports = {
 
                                                                         ],
                                                                         [
-                                                                            { content: 'Nearest Police Station', styles: { fontStyle: 'bold', } },  
+                                                                            { content: 'Nearest Police Station', styles: { fontStyle: 'bold', } },
                                                                             cefData.permanent_address_nearest_police_station || 'N/A'
                                                                         ]
                                                                     ],
@@ -1083,7 +1083,7 @@ module.exports = {
                                                                                         halign: 'left',
                                                                                         fontSize: 12,
                                                                                         fontStyle: 'bold',
-                                                                                        fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                        fillColor: [197, 217, 241], textColor: [80, 80, 80]
                                                                                     }
                                                                                 }
                                                                             ]
@@ -1094,7 +1094,7 @@ module.exports = {
                                                                                 cefData.current_address || 'N/A',
                                                                                 { content: 'Pin Code', styles: { fontStyle: 'bold' } },
                                                                                 cefData.current_address_pin_code || 'N/A',
-                                                                              
+
                                                                             ],
                                                                             [
                                                                                 { content: 'Mobile Number', styles: { fontStyle: 'bold' } },
@@ -1180,7 +1180,7 @@ module.exports = {
                                                                                                         halign: 'left',
                                                                                                         fontSize: 12,
                                                                                                         fontStyle: 'bold',
-                                                                                                        fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                                        fillColor: [197, 217, 241], textColor: [80, 80, 80]
                                                                                                     }
                                                                                                 }
                                                                                             ]
@@ -1653,7 +1653,7 @@ module.exports = {
                                                                                 service.rows.forEach((row, rowIndex) => {
                                                                                     // First: check if any has_not_done checkbox is checked
                                                                                     let skipRow = false;
-                                                                                
+
                                                                                     for (const input of row.inputs) {
                                                                                         if (input.type === 'checkbox' && input.name?.startsWith('has_not_done')) {
                                                                                             const rawValue = annexureData[service.db_table]?.[input.name];
@@ -1664,19 +1664,19 @@ module.exports = {
                                                                                             }
                                                                                         }
                                                                                     }
-                                                                                
+
                                                                                     if (skipRow) return; // Skip this row entirely
-                                                                                
+
                                                                                     // Continue with normal input processing
                                                                                     row.inputs.forEach((input) => {
                                                                                         const isCheckbox = input.type === 'checkbox';
                                                                                         const isDoneCheckbox = isCheckbox && input.name?.startsWith('done_or_not');
                                                                                         const rawValue = annexureData[service.db_table]?.[input.name];
                                                                                         const isChecked = ["1", 1, true, "true"].includes(rawValue ?? false);
-                                                                                
+
                                                                                         if (isDoneCheckbox && !isChecked) return; // Skip done_or_not if not checked
                                                                                         if (input.type === 'file') return; // Skip file inputs
-                                                                                
+
                                                                                         let inputValue;
                                                                                         if (rawValue === 1 || rawValue === "1") {
                                                                                             inputValue = "TRUE";
@@ -1687,15 +1687,15 @@ module.exports = {
                                                                                         } else {
                                                                                             inputValue = rawValue;
                                                                                         }
-                                                                                
+
                                                                                         tableData.push([
                                                                                             { content: input.label, styles: { fontStyle: 'bold' } },
                                                                                             inputValue
                                                                                         ]);
                                                                                     });
                                                                                 });
-                                                                                
-                                                                                
+
+
 
                                                                                 // Add service heading
                                                                                 doc.setFontSize(16);
@@ -1712,7 +1712,7 @@ module.exports = {
                                                                                                     halign: 'left',
                                                                                                     fontSize: 12,
                                                                                                     fontStyle: 'bold',
-                                                                                                    fillColor: [197, 217, 241],textColor: [80, 80, 80]
+                                                                                                    fillColor: [197, 217, 241], textColor: [80, 80, 80]
                                                                                                 }
                                                                                             }
                                                                                         ]
@@ -1841,7 +1841,7 @@ module.exports = {
                                                                     doc.addPage();
                                                                     let newYPosition = 20
                                                                     doc.autoTable({
-                                                                        head: [[{ content: 'Declaration and Authorization', colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true,fillColor: [197, 217, 241],textColor: [80, 80, 80] } }],
+                                                                        head: [[{ content: 'Declaration and Authorization', colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true, fillColor: [197, 217, 241], textColor: [80, 80, 80] } }],
                                                                         ], // Table headers
                                                                         body: [
                                                                             [
