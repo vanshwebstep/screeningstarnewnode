@@ -662,7 +662,7 @@ const Admin = {
         LEFT JOIN (
           SELECT *
           FROM \`check_in_outs\`
-          WHERE DATE(\`created_at\`) = CURDATE()
+          WHERE DATE(\`created_at\`) = CURDATE() AND \`admin_id\` = ?
           ORDER BY \`id\` DESC
           LIMIT 1
         ) cio ON admin.\`id\` = cio.\`admin_id\`
@@ -671,7 +671,7 @@ const Admin = {
       `;
 
       const results = await sequelize.query(sql, {
-        replacements: [id],
+        replacements: [id, id],
         type: QueryTypes.SELECT,
       });
 
