@@ -194,18 +194,18 @@ exports.bulkCreate = (req, res) => {
                     const insertPromises = cleanedData.map(entry => {
                         return new Promise((resolveInsert, rejectInsert) => {
                             University.create(
-                                entry.university_name,
-                                entry.university_address,
-                                entry.contact_name,
-                                entry.designation,
-                                entry.mobile_number,
-                                entry.email_id,
-                                entry.scope_of_services,
-                                entry.pricing,
-                                entry.turnaround_time,
-                                entry.standard_process,
-                                entry.verification_link,
-                                entry.remark,
+                                entry.university_name || "",
+                                entry.university_address || "",
+                                entry.contact_name || "",
+                                entry.designation || "",
+                                entry.mobile_number || "",
+                                entry.email_id || "",
+                                entry.scope_of_services || "",
+                                entry.pricing || "",
+                                entry.turnaround_time || "",
+                                entry.standard_process || "",
+                                entry.verification_link || "",
+                                entry.remark || "",
                                 (err, result) => {
                                     if (err) {
                                         Common.adminActivityLog(

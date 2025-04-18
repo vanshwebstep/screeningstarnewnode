@@ -196,21 +196,21 @@ exports.bulkCreate = (req, res) => {
                     const insertPromises = cleanedData.map(entry => {
                         return new Promise((resolveInsert, rejectInsert) => {
                             ExEmployment.create(
-                                entry.organization_name,
-                                entry.location,
-                                entry.verifier_name,
-                                entry.designation,
-                                entry.mobile_number,
-                                entry.email_id,
-                                entry.centralized_email_id,
-                                entry.scope_of_services,
-                                entry.verification_name,
-                                entry.pricing,
-                                entry.turnaround_time,
-                                entry.organization_status,
-                                entry.industry,
-                                entry.standard_process,
-                                entry.remark,
+                                entry.organization_name || "",
+                                entry.location || "",
+                                entry.verifier_name || "",
+                                entry.designation || "",
+                                entry.mobile_number || "",
+                                entry.email_id || "",
+                                entry.centralized_email_id || "",
+                                entry.scope_of_services || "",
+                                entry.verification_name || "",
+                                entry.pricing || "",
+                                entry.turnaround_time || "",
+                                entry.organization_status || "",
+                                entry.industry || "",
+                                entry.standard_process || "",
+                                entry.remark || "",
                                 (err, result) => {
                                     if (err) {
                                         Common.adminActivityLog(

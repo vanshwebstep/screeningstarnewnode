@@ -196,21 +196,21 @@ exports.bulkCreate = (req, res) => {
                     const insertPromises = cleanedData.map(entry => {
                         return new Promise((resolveInsert, rejectInsert) => {
                             Vendor.create(
-                                entry.vendor_name,
-                                entry.registered_address,
-                                entry.authorized_person_name,
-                                entry.authorized_person_designation,
-                                entry.mobile_number,
-                                entry.email_id,
-                                entry.spoc_name,
-                                entry.spoc_designation,
-                                entry.service_presence,
-                                entry.scope_of_services,
-                                entry.pricing,
-                                entry.turnaround_time,
-                                entry.standard_process,
-                                entry.vendor_status,
-                                entry.remarks,
+                                entry.vendor_name || "",
+                                entry.registered_address || "",
+                                entry.authorized_person_name || "",
+                                entry.authorized_person_designation || "",
+                                entry.mobile_number || "",
+                                entry.email_id || "",
+                                entry.spoc_name || "",
+                                entry.spoc_designation || "",
+                                entry.service_presence || "",
+                                entry.scope_of_services || "",
+                                entry.pricing || "",
+                                entry.turnaround_time || "",
+                                entry.standard_process || "",
+                                entry.vendor_status || "",
+                                entry.remarks || "",
                                 (err, result) => {
                                     if (err) {
                                         Common.adminActivityLog(
