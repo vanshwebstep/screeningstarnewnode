@@ -719,6 +719,7 @@ const Admin = {
     return callback(null, { finalServiceIds: [] });
   },
 
+  /*
   updateCheckInStatus: async (data, callback) => {
     const { checkInStatus, adminId } = data;
 
@@ -760,6 +761,52 @@ const Admin = {
         if (!lastEntry || lastEntry.status !== 'check-in') {
           return callback({ message: "Please check-in first." }, null);
         }
+
+        // Insert new check-out record
+        const insertSql = `
+          INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
+          VALUES (?, 'check-out', NOW());
+        `;
+
+        await sequelize.query(insertSql, {
+          replacements: [adminId],
+          type: QueryTypes.INSERT,
+        });
+
+        return callback(null, { message: "Checked out successfully." });
+
+      } else {
+        return callback({ message: "Invalid checkInStatus." }, null);
+      }
+
+    } catch (error) {
+      console.error("Error in updateCheckInStatus:", error);
+      return callback(error, null);
+    }
+  }
+  */
+
+  updateCheckInStatus: async (data, callback) => {
+    const { checkInStatus, adminId } = data;
+
+    try {
+
+      if (checkInStatus === 'check-in') {
+        // Insert new check-in record
+        const insertSql = `
+            INSERT INTO \`check_in_outs\` (\`admin_id\`, \`status\`, \`created_at\`)
+            VALUES (?, 'check-in', NOW());
+          `;
+
+        await sequelize.query(insertSql, {
+          replacements: [adminId],
+          type: QueryTypes.INSERT,
+        });
+
+        return callback(null, { message: "Checked in successfully." });
+
+
+      } else if (checkInStatus === 'check-out') {
 
         // Insert new check-out record
         const insertSql = `
