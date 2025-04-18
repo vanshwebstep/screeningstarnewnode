@@ -341,7 +341,7 @@ exports.bulkCreate = (req, res) => {
                                     );
 
                                     resolveInsert({
-                                        message: "Case Allowcation imported successfully",
+                                        message: "Case Allocation imported successfully",
                                         entry: entry,
                                         id: result.insertId,
                                     });
@@ -354,7 +354,7 @@ exports.bulkCreate = (req, res) => {
                         .then(results => {
                             return res.status(200).json({
                                 status: true,
-                                message: "Case Allowcation imported successfully",
+                                message: "Case Allocation imported successfully",
                                 results: results,
                                 token: newToken,
                             });
@@ -363,7 +363,7 @@ exports.bulkCreate = (req, res) => {
                             console.error("Insertion error:", insertErr);
                             return res.status(400).json({
                                 status: false,
-                                message: insertErr.message || "Failed to insert Case Allowcation.",
+                                message: insertErr.message || "Failed to insert Case Allocation.",
                                 token: newToken,
                             });
                         });
