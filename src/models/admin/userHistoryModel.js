@@ -36,6 +36,7 @@ const tatDelay = {
 
   },
 
+  /*
   attendanceIndex: async (callback) => {
     try {
       const sql = `
@@ -108,6 +109,111 @@ const tatDelay = {
         }
 
         grouped[recordDate][adminId].check_in_outs.push({
+          status: record.status,
+          time: record.created_at,
+        });
+      }
+
+      // Flatten into array sorted by date (newest first)
+      const result = [];
+
+      Object.keys(grouped)
+        .sort((a, b) => new Date(b) - new Date(a)) // newest date first
+        .forEach(date => {
+          result.push(...Object.values(grouped[date]));
+        });
+
+      return callback(null, result);
+    } catch (error) {
+      console.error("Error in index:", error);
+      return callback(error, null);
+    }
+  },
+  */
+
+  attendanceIndex: async (callback) => {
+    try {
+      const sql = `
+        SELECT 
+          cio.admin_id,
+          a.name AS admin_name,
+          a.profile_picture,
+          a.email AS admin_email,
+          a.mobile AS admin_mobile,
+          a.emp_id,
+          cio.status,
+          cio.created_at,
+          DATE(cio.created_at) AS record_date,
+          (
+            SELECT MIN(logs.created_at)
+            FROM admin_login_logs AS logs
+            WHERE logs.admin_id = cio.admin_id 
+              AND logs.action = 'login'
+              AND DATE(logs.created_at) = DATE(cio.created_at)
+          ) AS first_login_time
+        FROM check_in_outs AS cio
+        INNER JOIN admins a ON cio.admin_id = a.id
+        ORDER BY DATE(cio.created_at) DESC;
+      `;
+
+      const records = await sequelize.query(sql, {
+        type: QueryTypes.SELECT,
+      });
+
+      if (records.length === 0) {
+        return callback(null, { message: "No records found" });
+      }
+
+      // Sort records by created_at ASC (important!)
+      records.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+      const grouped = {};
+
+      for (const record of records) {
+        const adminId = record.admin_id;
+        const recordDate = record.record_date;
+
+        if (!grouped[recordDate]) {
+          grouped[recordDate] = {};
+        }
+
+        if (!grouped[recordDate][adminId]) {
+          grouped[recordDate][adminId] = {
+            date: recordDate,
+            admin_id: adminId,
+            admin_name: record.admin_name,
+            profile_picture: record.profile_picture,
+            admin_email: record.admin_email,
+            admin_mobile: record.admin_mobile,
+            emp_id: record.emp_id,
+            first_login_time: record.first_login_time,
+            first_check_in_time: null,
+            last_check_out_time: null,
+            check_in_outs: [],
+          };
+        }
+
+        const entry = grouped[recordDate][adminId];
+
+        const isCheckIn = record.status === 'check-in';
+        const isCheckOut = record.status === 'check-out';
+
+        // Set earliest check-in
+        if (isCheckIn) {
+          if (!entry.first_check_in_time || new Date(record.created_at) < new Date(entry.first_check_in_time)) {
+            entry.first_check_in_time = record.created_at;
+          }
+        }
+
+        // Set latest check-out
+        if (isCheckOut) {
+          if (!entry.last_check_out_time || new Date(record.created_at) > new Date(entry.last_check_out_time)) {
+            entry.last_check_out_time = record.created_at;
+          }
+        }
+
+        // Add to detailed list
+        entry.check_in_outs.push({
           status: record.status,
           time: record.created_at,
         });
