@@ -22,6 +22,16 @@ const generateTable = (services) => {
   return rows;
 };
 
+// Function to check if a file exists
+const checkFileExists = async (url) => {
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    return response.ok; // Returns true if the status is in the range 200-299
+  } catch {
+    return false; // Return false if there was an error (e.g., network issue)
+  }
+};
+
 // Function to create attachments from URLs
 const createAttachments = async (attachments_url) => {
   const urls = Array.isArray(attachments_url)
