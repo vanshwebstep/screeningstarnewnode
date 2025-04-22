@@ -62,6 +62,7 @@ async function twoFactorAuth(mailModule, action, otp, name, toArr) {
     });
 
     console.log("Email sent:", info.response);
+    console.log("Email sent (Info):", info);
   } catch (error) {
     console.error("Error sending email:", error.message);
   } finally {
