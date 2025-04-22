@@ -22,6 +22,38 @@ const generateTable = (services) => {
   return rows;
 };
 
+// Function to create attachments from URLs
+const createAttachments = async (attachments_url) => {
+  const urls = Array.isArray(attachments_url)
+    ? attachments_url
+    : typeof attachments_url === "string"
+      ? attachments_url.split(",")
+      : [];
+
+  const attachments = [];
+
+  for (const url of urls) {
+    const trimmedUrl = url.trim();
+    if (trimmedUrl) {
+      const exists = await checkFileExists(trimmedUrl);
+      if (exists) {
+        const trimmedSenitizedUrl = trimmedUrl.replace(/\\/g, "/");
+        const filename = path.basename(trimmedUrl); // Extract the filename from the URL
+        attachments.push({
+          filename: filename,
+          path: trimmedSenitizedUrl,
+        });
+      } else {
+        console.warn(`File does not exist: ${trimmedUrl}`); // Log warning for missing file
+      }
+    } else {
+      console.warn(`Empty or invalid URL: ${url}`); // Log warning for invalid URL
+    }
+  }
+
+  return attachments;
+};
+
 // Function to send email
 async function createMail(
   mailModule,
@@ -34,7 +66,7 @@ async function createMail(
   toArr,
   ccArr
 ) {
-  
+
   try {
     // Fetch email template
     const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
@@ -62,6 +94,12 @@ async function createMail(
         pass: smtp.password,
       },
     });
+
+    // Create attachments
+    const attachments = await createAttachments('https://screeningstar.in/attachments/candidate_dropbox/mail/document_checklist.pdf');
+    if (attachments.length === 0) {
+      console.warn("No valid attachments to send.");
+    }
 
     // Generate the HTML table from service details
     const table_rows = generateTable(services);
@@ -134,13 +172,14 @@ async function createMail(
       cc: ccList, // CC recipient list
       subject: email.title,
       html: template,
+      ...(attachments.length > 0 && { attachments }),
     });
 
     console.log("Email sent successfully:", info.response);
   } catch (error) {
     console.error("Error sending email:", error);
   } finally {
-     // Ensure the connection is released
+    // Ensure the connection is released
   }
 }
 

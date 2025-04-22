@@ -387,7 +387,7 @@ exports.applicationByID = (req, res) => {
                         token: newToken,
                       });
                     }
-                    
+
                     Admin.list((err, admins) => {
                       if (err) {
                         console.error("Database error:", err);
@@ -733,10 +733,18 @@ exports.submit = (req, res) => {
                         () => { }
                       );
 
+                      /*
                       return res.status(200).json({
                         status: true,
                         message: `Application ${logStatus === "update" ? "updated" : "created"
                           } successfully.`,
+                        token: newToken,
+                      });
+                      */
+
+                      return res.status(200).json({
+                        status: true,
+                        message: `Basic Entry Updated Successfully.`,
                         token: newToken,
                       });
                     }
