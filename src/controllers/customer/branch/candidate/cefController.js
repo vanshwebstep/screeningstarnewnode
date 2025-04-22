@@ -656,7 +656,7 @@ exports.submit = (req, res) => {
                           return res.status(200).json({
                             status: true,
                             cef_id: cefResult.insertId,
-                            message: "CEF Application submitted successfully.",
+                            message: "BGV Form & documents Submitted.",
                           });
                         }
                       })
@@ -701,7 +701,7 @@ exports.submit = (req, res) => {
                           return res.status(200).json({
                             status: true,
                             cef_id: cefResult.insertId,
-                            message: "CEF Application submitted successfully.",
+                            message: "BGV Form & documents Submitted.",
                           });
                         }
                       }
@@ -911,7 +911,7 @@ const sendNotificationEmails = (
                               return res.status(201).json({
                                 status: true,
                                 message:
-                                  "CEF Application submitted successfully and notifications sent.",
+                                  "BGV Form & documents Submitted.",
                               });
                             }
                           );
@@ -924,7 +924,7 @@ const sendNotificationEmails = (
                           return res.status(201).json({
                             status: true,
                             message:
-                              "CEF Application submitted successfully, but email failed to send.",
+                              "BGV Form & documents Submitted.",
                           });
                         });
                     });
@@ -1151,7 +1151,7 @@ exports.upload = async (req, res) => {
                         return res.status(201).json({
                           status: true,
                           message:
-                            "Candidate background Form submitted successfully.",
+                            "BGV Form & documents Submitted.",
                           savedImagePaths,
                         });
                         /*
@@ -1160,7 +1160,7 @@ exports.upload = async (req, res) => {
                     return res.status(400).json({
                       status: false,
                       message:
-                      "Candidate background Form submitted successfully.",
+                      "BGV Form & documents Submitted.",
                       result,
                       savedImagePaths,
                     });
