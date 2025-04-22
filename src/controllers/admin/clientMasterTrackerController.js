@@ -3125,6 +3125,7 @@ exports.annexureDataByServiceIds = (req, res) => {
           });
 
           function finalizeRequest() {
+            console.log(`pendingRequests - `, pendingRequests);
             pendingRequests -= 1;
             if (pendingRequests === 0) {
               if (report_download == 1 || report_download == "1") {
