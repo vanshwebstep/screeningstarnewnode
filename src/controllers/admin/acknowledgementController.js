@@ -290,7 +290,7 @@ exports.sendNotification = async (req, res) => {
 
                         return res.json({
                           status: true,
-                          message: "Customers fetched successfully",
+                          message: "Acknowledgement sent Successfully",
                           customers: customers.data,
                           totalResults: customers.data.length,
                           token: newToken,
@@ -505,7 +505,7 @@ exports.sendAutoNotification = async (req, res) => {
                           if (customersProcessed === customers.data.length) {
                             return res.json({
                               status: true,
-                              message: "Customers fetched successfully",
+                              message: "Acknowledgement sent Successfully",
                               customers: customers,
                               totalResults: customers.length,
                               token: newToken,
