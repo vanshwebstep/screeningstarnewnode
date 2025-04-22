@@ -10,7 +10,8 @@ async function createMail(
     ticket_date,
     employee_name,
     employee_id,
-    leave_date,
+    from_date,
+    to_date,
     purpose_of_leave,
     remarks,
     toArr,
@@ -61,7 +62,8 @@ async function createMail(
             .replace(/{{photo_tr}}/g, profile_picture_tr)
             .replace(/{{employee_name}}/g, employee_name)
             .replace(/{{employee_id}}/g, employee_id)
-            .replace(/{{leave_date}}/g, leave_date)
+            .replace(/{{from_date}}/g, from_date)
+            .replace(/{{to_date}}/g, to_date)
             .replace(/{{purpose_of_leave}}/g, purpose_of_leave)
             .replace(/{{remarks}}/g, remarks);
 

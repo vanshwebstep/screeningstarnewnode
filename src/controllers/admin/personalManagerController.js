@@ -20,7 +20,8 @@ exports.create = (req, res) => {
         ticket_date,
         employee_name,
         employee_id,
-        leave_date,
+        from_date,
+        to_date,
         purpose_of_leave,
         remarks,
         admin_id,
@@ -32,7 +33,8 @@ exports.create = (req, res) => {
     if (!ticket_date || ticket_date === "") missingFields.push("Ticket Date");
     if (!employee_name || employee_name === "") missingFields.push("Employee Name");
     if (!employee_id || employee_id === "") missingFields.push("Employee ID");
-    if (!leave_date || leave_date === "") missingFields.push("Leave ID");
+    if (!from_date || from_date === "") missingFields.push("From Date");
+    if (!to_date || to_date === "") missingFields.push("To Date");
     if (!purpose_of_leave || purpose_of_leave === "") missingFields.push("Purpose of Leave");
     if (!admin_id || admin_id === "") missingFields.push("Admin ID");
     if (!_token || _token === "") missingFields.push("Token");
@@ -74,7 +76,8 @@ exports.create = (req, res) => {
                 ticket_date,
                 employee_name,
                 employee_id,
-                leave_date,
+                from_date,
+                to_date,
                 purpose_of_leave,
                 remarks,
                 admin_id,
@@ -133,7 +136,8 @@ exports.update = (req, res) => {
         ticket_date,
         employee_name,
         employee_id,
-        leave_date,
+        from_date,
+        to_date,
         purpose_of_leave,
         remarks,
         admin_id,
@@ -145,7 +149,8 @@ exports.update = (req, res) => {
     if (!ticket_date || ticket_date === "") missingFields.push("Ticket Date");
     if (!employee_name || employee_name === "") missingFields.push("Employee Name");
     if (!employee_id || employee_id === "") missingFields.push("Employee ID");
-    if (!leave_date || leave_date === "") missingFields.push("Leave ID");
+    if (!from_date || from_date === "") missingFields.push("From Date");
+    if (!to_date || to_date === "") missingFields.push("To Date");
     if (!purpose_of_leave || purpose_of_leave === "") missingFields.push("Purpose of Leave");
     if (!admin_id || admin_id === "") missingFields.push("Admin ID");
     if (!_token || _token === "") missingFields.push("Token");
@@ -186,7 +191,8 @@ exports.update = (req, res) => {
                 ticket_date,
                 employee_name,
                 employee_id,
-                leave_date,
+                from_date,
+                to_date,
                 purpose_of_leave,
                 remarks,
                 admin_id,
@@ -287,7 +293,7 @@ exports.response = (req, res) => {
                 });
             }
 
-            const leaveDate = new Date(currentPersonalManager.leave_date);
+            const leaveDate = new Date(currentPersonalManager.from_date);
             const currentDate = new Date();
 
             // Compare leave date with current date
@@ -372,7 +378,8 @@ exports.response = (req, res) => {
                             "response",
                             currentPersonalManager.employee_name,
                             statusMessage,
-                            currentPersonalManager.leave_date,
+                            currentPersonalManager.from_date,
+                            currentPersonalManager.to_date,
                             currentPersonalManager.purpose_of_leave,
                             currentPersonalManager.remarks,
                             toArr,
@@ -748,7 +755,8 @@ exports.upload = async (req, res) => {
                                             currentPersonalManager.ticket_date,
                                             currentPersonalManager.employee_name,
                                             currentPersonalManager.employee_id,
-                                            currentPersonalManager.leave_date,
+                                            currentPersonalManager.from_date,
+                                            currentPersonalManager.to_date,
                                             currentPersonalManager.purpose_of_leave,
                                             currentPersonalManager.remarks,
                                             toArr,

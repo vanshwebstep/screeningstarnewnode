@@ -8,7 +8,8 @@ async function responseMail(
     action,
     employee_name,
     leave_status,
-    leave_date,
+    from_date,
+    to_date,
     purpose_of_leave,
     remarks,
     toArr,
@@ -56,7 +57,8 @@ async function responseMail(
             .replace(/{{employee_name}}/g, employee_name)
             .replace(/{{leave_status_class}}/g, leave_status_class)
             .replace(/{{leave_status}}/g, leave_status)
-            .replace(/{{leave_date}}/g, leave_date)
+            .replace(/{{from_date}}/g, from_date)
+            .replace(/{{to_date}}/g, to_date)
             .replace(/{{purpose_of_leave}}/g, purpose_of_leave)
             .replace(/{{remarks}}/g, remarks);
 
