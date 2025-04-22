@@ -2930,12 +2930,14 @@ exports.upload = async (req, res) => {
 
 exports.annexureDataByServiceIds = (req, res) => {
   const { service_ids, report_download, application_id, admin_id, _token } = req.query;
-  let missingFields = [];
 
-  // Validation of required fields
+  console.log('Request received:', req.query);
+
+  let missingFields = [];
   if (!service_ids || service_ids === "" || service_ids === undefined || service_ids === "undefined") {
     missingFields.push("Service ID");
   }
+
   if (!application_id || application_id === "" || application_id === undefined || application_id === "undefined") {
     missingFields.push("Application ID");
   }
@@ -2947,6 +2949,7 @@ exports.annexureDataByServiceIds = (req, res) => {
   }
 
   if (missingFields.length > 0) {
+    console.log('Missing fields:', missingFields);
     return res.status(400).json({
       status: false,
       message: `Missing required fields: ${missingFields.join(", ")}`,
@@ -2954,62 +2957,61 @@ exports.annexureDataByServiceIds = (req, res) => {
   }
 
   const action = "admin_manager";
+  console.log('Checking admin authorization...');
   AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
     if (!result.status) {
+      console.log('Admin authorization failed:', result.message);
       return res.status(403).json({
         status: false,
         message: result.message,
       });
     }
 
-    Admin.fetchAllowedServiceIds(admin_id, (err, allowedServiceIdsResult) => {
+    console.log('Admin authorized. Fetching allowed service IDs...');
+    Admin.fetchAllowedServiceIds(admin_id, async (err, allowedServiceIdsResult) => {
       if (err) {
-        console.error("Error retrieving Admin:", err);
+        console.error('Error retrieving Admin:', err);
         return res.status(500).json({
           status: false,
           message: "Database error.",
         });
       }
-
+      
       const allowedServiceIds = allowedServiceIdsResult.finalServiceIds;
       const addressServicesPermission = allowedServiceIdsResult.addressServicesPermission;
+      console.log('Allowed Service IDs:', allowedServiceIds);
 
-      // Verify admin token
+      console.log('Verifying admin token...');
       AdminCommon.isAdminTokenValid(_token, admin_id, (err, result) => {
         if (err) {
-          console.error("Error checking token validity:", err);
-          return res
-            .status(500)
-            .json({ status: false, message: err.message });
+          console.error('Error checking token validity:', err);
+          return res.status(500).json({ status: false, message: err.message });
         }
 
         if (!result.status) {
-          return res
-            .status(401)
-            .json({ status: false, message: result.message });
+          console.log('Admin token is invalid:', result.message);
+          return res.status(401).json({ status: false, message: result.message });
         }
 
         const newToken = result.newToken;
+        console.log('Admin token valid. Generating service IDs...');
 
         // Split service_id into an array
         const rawServiceIds = service_ids.split(",").map((id) => id.trim());
-        // Check if allowedServiceIds is not null
         let serviceIds;
         if (allowedServiceIds && allowedServiceIds.length > 0) {
-          // Filter serviceIds based on allowedServiceIds if it's not null
-          serviceIds = rawServiceIds.filter(
-            (serviceId) => allowedServiceIds.includes(Number(serviceId)) // Convert string to number
-          );
+          serviceIds = rawServiceIds.filter((serviceId) => allowedServiceIds.includes(Number(serviceId)));
         } else {
-          // If allowedServiceIds is null, just pass serviceIds as raw
           serviceIds = rawServiceIds;
         }
 
+        console.log('Service IDs after filtering:', serviceIds);
+
         const annexureResults = [];
         let pendingRequests = serviceIds.length;
-        console.log(`Service Length - `, pendingRequests);
+
         if (pendingRequests === 0) {
-          // No service IDs provided, return immediately.
+          console.log('No service IDs to process.');
           return res.status(200).json({
             status: true,
             message: "No service IDs to process.",
@@ -3019,8 +3021,8 @@ exports.annexureDataByServiceIds = (req, res) => {
           });
         }
 
-        // Loop through each service ID and process asynchronously using callbacks
         serviceIds.forEach((id) => {
+          console.log(`Processing service ID: ${id}`);
           ClientMasterTrackerModel.reportFormJsonByServiceID(id, (err, reportFormJson) => {
             if (err) {
               console.error(`Error fetching report form JSON for service ID ${id}:`, err);
@@ -3047,6 +3049,8 @@ exports.annexureDataByServiceIds = (req, res) => {
             const parsedData = JSON.parse(reportFormJson.json);
             const db_table = parsedData.db_table.replace(/-/g, "_");
             const heading = parsedData.heading;
+
+            console.log(`Fetched report form for service ID ${id}. Heading: ${heading}`);
 
             ClientMasterTrackerModel.annexureData(application_id, db_table, (err, annexureData) => {
               if (err) {
@@ -3087,11 +3091,12 @@ exports.annexureDataByServiceIds = (req, res) => {
 
         function finalizeRequest() {
           pendingRequests -= 1;
-          console.log(`pendingRequests - `, pendingRequests);
           if (pendingRequests === 0) {
             if (report_download == 1 || report_download == "1") {
+              console.log('Updating report download status...');
               ClientMasterTrackerModel.updateReportDownloadStatus(application_id, (err) => {
                 if (err) {
+                  console.error('Error updating report download status:', err);
                   return res.status(500).json({
                     message: "Error updating report download status",
                     error: err,
@@ -3099,6 +3104,7 @@ exports.annexureDataByServiceIds = (req, res) => {
                   });
                 }
 
+                console.log('Report download status updated successfully.');
                 return res.status(200).json({
                   status: true,
                   message: "Applications fetched successfully.",
@@ -3108,6 +3114,7 @@ exports.annexureDataByServiceIds = (req, res) => {
                 });
               });
             } else {
+              console.log('Returning fetched applications.');
               return res.status(200).json({
                 status: true,
                 message: "Applications fetched successfully.",
