@@ -3041,7 +3041,9 @@ exports.annexureDataByServiceIds = (req, res) => {
             });
           }
 
+          console.log("Starting processing of serviceIds...");
           serviceIds.forEach((id) => {
+            console.log(`Processing service ID: ${id}`);
             ClientMasterTrackerModel.reportFormJsonByServiceID(
               id,
               (err, reportFormJson) => {
@@ -3055,6 +3057,7 @@ exports.annexureDataByServiceIds = (req, res) => {
                     serviceStatus: false,
                     message: err.message,
                   });
+                  console.log(`Finalizing request due to error for service ID: ${id}`);
                   finalizeRequest();
                   return;
                 }
@@ -3068,13 +3071,17 @@ exports.annexureDataByServiceIds = (req, res) => {
                     serviceStatus: false,
                     message: "Report form JSON not found",
                   });
+                  console.log(`Finalizing request due to missing JSON for service ID: ${id}`);
                   finalizeRequest();
                   return;
                 }
 
+                console.log(`Fetched report form JSON for service ID ${id}`);
                 const parsedData = JSON.parse(reportFormJson.json);
                 const db_table = parsedData.db_table.replace(/-/g, "_");
                 const heading = parsedData.heading;
+
+                console.log(`Parsed JSON for service ID ${id}: db_table = ${db_table}, heading = ${heading}`);
 
                 ClientMasterTrackerModel.annexureData(
                   application_id,
@@ -3108,6 +3115,7 @@ exports.annexureDataByServiceIds = (req, res) => {
                         message: "Annexure Data not found.",
                       });
                     } else {
+                      console.log(`Annexure data successfully fetched for service ID ${id}`);
                       annexureResults.push({
                         service_id: id,
                         annexureStatus: true,
@@ -3117,6 +3125,8 @@ exports.annexureDataByServiceIds = (req, res) => {
                         heading,
                       });
                     }
+
+                    console.log(`Finalizing request for service ID: ${id}`);
                     finalizeRequest();
                   }
                 );
@@ -3125,31 +3135,38 @@ exports.annexureDataByServiceIds = (req, res) => {
           });
 
           function finalizeRequest() {
-            console.log(`pendingRequests - `, pendingRequests);
+            console.log(`Called finalizeRequest - current pendingRequests: ${pendingRequests}`);
             pendingRequests -= 1;
-            if (pendingRequests === 0) {
-              if (report_download == 1 || report_download == "1") {
-                ClientMasterTrackerModel.updateReportDownloadStatus(
-                  application_id,
-                  (err) => {
-                    if (err) {
-                      return res.status(500).json({
-                        message: "Error updating report download status",
-                        error: err,
-                        token: newToken,
-                      });
-                    }
+            console.log(`Decremented pendingRequests: ${pendingRequests}`);
 
-                    return res.status(200).json({
-                      status: true,
-                      message: "Applications fetched successfully.",
-                      results: annexureResults,
-                      addressServicesPermission,
+            if (pendingRequests === 0) {
+              console.log(`All pending requests completed.`);
+
+              if (report_download == 1 || report_download == "1") {
+                console.log(`Report download is enabled. Updating download status for application ID: ${application_id}`);
+
+                ClientMasterTrackerModel.updateReportDownloadStatus(application_id, (err) => {
+                  if (err) {
+                    console.error(`Error updating report download status for application ID ${application_id}:`, err);
+                    return res.status(500).json({
+                      message: "Error updating report download status",
+                      error: err,
                       token: newToken,
                     });
                   }
-                );
+
+                  console.log(`Report download status updated successfully for application ID ${application_id}`);
+                  return res.status(200).json({
+                    status: true,
+                    message: "Applications fetched successfully.",
+                    results: annexureResults,
+                    addressServicesPermission,
+                    token: newToken,
+                  });
+                });
+
               } else {
+                console.log(`Report download not enabled. Sending response.`);
                 return res.status(200).json({
                   status: true,
                   message: "Applications fetched successfully.",
@@ -3158,8 +3175,11 @@ exports.annexureDataByServiceIds = (req, res) => {
                   token: newToken,
                 });
               }
+            } else {
+              console.log(`Still waiting for ${pendingRequests} requests to complete...`);
             }
           }
+
         });
       }
     );
