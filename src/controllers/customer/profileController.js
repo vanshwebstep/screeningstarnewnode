@@ -1379,7 +1379,7 @@ exports.update = (req, res) => {
     customer_id,
     tat_days,
     state,
-    gstin,
+    gst_number,
     emails,
     address,
     state_code,
