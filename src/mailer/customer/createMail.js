@@ -5,22 +5,27 @@ const { QueryTypes } = require("sequelize");
 // Function to generate an HTML table from branch details
 const generateTable = (branches, password) => {
   let table =
-    '<table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse;">';
+    '<table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;"><thead>';
   table +=
-    "<tr><th>SL No</th><th>Organization Name</th><th>Username</th><th>Password</th></tr>";
+    `<tr style="background-color: #ffeedf; color: #d35400;">
+      <th style="padding: 12px; border: 1px solid #f0cfa1;">SL No</th>
+      <th style="padding: 12px; border: 1px solid #f0cfa1;">Organization Name</th>
+      <th style="padding: 12px; border: 1px solid #f0cfa1;">Username</th>
+      <th style="padding: 12px; border: 1px solid #f0cfa1;">Password</th>
+    </tr></thead><tbody>`;
 
   branches.forEach((branch, index) => {
     table += `<tr>
-                <td>${index + 1}</td>
-                <td>${branch.name}</td>
-                <td style="text-decoration: none; color: inherit; background-color: inherit; user-select: none;">${
-                  branch.email
-                }</td>
-                <td>${password}</td>
+                <td style="padding: 12px; border: 1px solid #f0cfa1;">${index + 1}</td>
+                <td style="padding: 12px; border: 1px solid #f0cfa1;">${branch.name}</td>
+                <td style="padding: 12px; border: 1px solid #f0cfa1;">
+                  <span style="text-decoration: none; color: inherit;">${branch.email}</span>
+                </td>
+                <td style="padding: 12px; border: 1px solid #f0cfa1;">${password}</td>
               </tr>`;
   });
 
-  table += "</table>";
+  table += "</tbody></table>";
   return table;
 };
 
@@ -32,9 +37,10 @@ async function createMail(
   branches,
   password,
   is_head,
-  customerData
+  customerData,
+  appCustomerLoginHost = "www.example.com"
 ) {
-  
+
 
   try {
     // Fetch email template
@@ -66,11 +72,12 @@ async function createMail(
 
     // Generate the HTML table from branch details
     const table = generateTable(branches, password);
-console.log(`client_name - `, client_name);
+    console.log(`client_name - `, client_name);
     // Replace placeholders in the email template
     let template = email.template
       .replace(/{{name}}/g, client_name)
-      .replace(/{{table}}/g, table);
+      .replace(/{{table}}/g, table)
+      .replace(/{{appCustomerLoginHost}}/g, appCustomerLoginHost);
 
     // Prepare recipient list based on whether the branch is a head branch
     let recipientList;
@@ -98,7 +105,7 @@ console.log(`client_name - `, client_name);
   } catch (error) {
     console.error("Error sending email:", error.message);
   } finally {
-    
+
   }
 }
 
