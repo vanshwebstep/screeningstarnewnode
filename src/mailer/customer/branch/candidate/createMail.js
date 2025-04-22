@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const path = require("path");
 const { sequelize } = require("../../../../config/db"); // Import the existing MySQL connection
 const { QueryTypes } = require("sequelize");
 
