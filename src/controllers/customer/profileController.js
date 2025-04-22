@@ -1377,7 +1377,7 @@ exports.update = (req, res) => {
     admin_id,
     _token,
     customer_id,
-    tat,
+    tat_days,
     state,
     gstin,
     emails,
