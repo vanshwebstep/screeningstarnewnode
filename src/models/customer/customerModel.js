@@ -52,19 +52,19 @@ const Customer = {
 
 
   checkUniqueIdForUpdate: async (customer_id, clientUniqueId, callback) => {
-      
-      const sql = `
+
+    const sql = `
       SELECT COUNT(*) AS count
       FROM \`customers\`
       WHERE \`client_unique_id\` = ? AND \`id\` != ? AND is_deleted != 1
-    `;const results = await sequelize.query(sql, {
-      replacements: [clientUniqueId,customer_id], // Positional replacements using ?
+    `; const results = await sequelize.query(sql, {
+      replacements: [clientUniqueId, customer_id], // Positional replacements using ?
       type: QueryTypes.SELECT,
     });
-        const count = results[0].count;
-        callback(null, count > 0);
-    
-    
+    const count = results[0].count;
+    callback(null, count > 0);
+
+
   },
 
   checkUsername: async (username, callback) => {
@@ -86,29 +86,29 @@ const Customer = {
 
   },
 
-  getDedicatedPointOfContact:async (customer_id, callback) => {
-      const sql = "SELECT `dedicated_point_of_contact` FROM `customer_metas` WHERE `customer_id` = ?";
+  getDedicatedPointOfContact: async (customer_id, callback) => {
+    const sql = "SELECT `dedicated_point_of_contact` FROM `customer_metas` WHERE `customer_id` = ?";
 
-      const results = await sequelize.query(sql, {
-        replacements: [customer_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
+    const results = await sequelize.query(sql, {
+      replacements: [customer_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
 
-        if (results.length > 0 && results[0].dedicated_point_of_contact) {
-          const emailsString = results[0].dedicated_point_of_contact;
-          const emailsArray = emailsString.split(',').map(email => email.trim());
+    if (results.length > 0 && results[0].dedicated_point_of_contact) {
+      const emailsString = results[0].dedicated_point_of_contact;
+      const emailsArray = emailsString.split(',').map(email => email.trim());
 
-          // Regular expression to validate email format
-          const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      // Regular expression to validate email format
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-          // Filter only valid emails
-          const validEmails = emailsArray.filter(email => emailRegex.test(email));
+      // Filter only valid emails
+      const validEmails = emailsArray.filter(email => emailRegex.test(email));
 
 
-          return callback(null, validEmails);
-        } else {
-          return callback(null, []);
-        }
+      return callback(null, validEmails);
+    } else {
+      return callback(null, []);
+    }
   },
 
   checkUsernameForUpdate: async (customer_id, username, callback) => {
@@ -208,20 +208,20 @@ const Customer = {
     callback(null, { insertId: customerId });
   },
 
-  documentUpload:async (customer_id, db_column, savedImagePaths, callback) => {
+  documentUpload: async (customer_id, db_column, savedImagePaths, callback) => {
 
-      const savedImagePathsString = Array.isArray(savedImagePaths) ? savedImagePaths.join(",") : savedImagePaths;
+    const savedImagePathsString = Array.isArray(savedImagePaths) ? savedImagePaths.join(",") : savedImagePaths;
 
-      const sqlUpdateCustomer = `
+    const sqlUpdateCustomer = `
         UPDATE customer_metas 
         SET ${db_column} = ?
         WHERE customer_id = ?
       `;
-      const results = await sequelize.query(sqlUpdateCustomer, {
-        replacements: [savedImagePathsString, customer_id], 
-        type: QueryTypes.UPDATE,
-      });
-      callback(null, results);
+    const results = await sequelize.query(sqlUpdateCustomer, {
+      replacements: [savedImagePathsString, customer_id],
+      type: QueryTypes.UPDATE,
+    });
+    callback(null, results);
 
   },
 
@@ -295,18 +295,18 @@ const Customer = {
       metaData.esc_manager_email || 'NIL',
       metaData.esc_manager_mobile || 'NIL',
       metaData.esc_manager_desgn || 'NIL',
-      metaData.client_spoc_name || null,
-      metaData.client_spoc_email || null,
-      metaData.client_spoc_mobile || null,
-      metaData.client_spoc_desgn || null,
+      metaData.client_spoc_name || 'NIL',
+      metaData.client_spoc_email || 'NIL',
+      metaData.client_spoc_mobile || 'NIL',
+      metaData.client_spoc_desgn || 'NIL',
       metaData.billing_spoc_name || 'NIL',
       metaData.billing_spoc_email || 'NIL',
       metaData.billing_spoc_mobile || 'NIL',
       metaData.billing_spoc_desgn || 'NIL',
-      metaData.billing_escalation_name || null,
-      metaData.billing_escalation_email || null,
-      metaData.billing_escalation_mobile || null,
-      metaData.billing_escalation_desgn || null,
+      metaData.billing_escalation_name || 'NIL',
+      metaData.billing_escalation_email || 'NIL',
+      metaData.billing_escalation_mobile || 'NIL',
+      metaData.billing_escalation_desgn || 'NIL',
       metaData.authorized_detail_name || 'NIL',
       metaData.authorized_detail_email || 'NIL',
       metaData.authorized_detail_mobile || 'NIL',
@@ -322,7 +322,7 @@ const Customer = {
 
   },
 
-  updateCustomerMetaByCustomerId:async (customerId, metaData, callback) => {
+  updateCustomerMetaByCustomerId: async (customerId, metaData, callback) => {
     const sqlUpdateCustomerMetas = `
       UPDATE \`customer_metas\` 
       SET 
@@ -381,38 +381,38 @@ const Customer = {
       metaData.visible_fields,
       metaData.custom_template,
       metaData.custom_address,
-      metaData.esc_manager_name,
-      metaData.esc_manager_email,
-      metaData.esc_manager_mobile,
-      metaData.esc_manager_desgn,
-      metaData.client_spoc_name,
-      metaData.client_spoc_email,
-      metaData.client_spoc_mobile,
-      metaData.client_spoc_desgn,
-      metaData.billing_spoc_name,
-      metaData.billing_spoc_email,
-      metaData.billing_spoc_mobile,
-      metaData.billing_spoc_desgn,
-      metaData.billing_escalation_name,
-      metaData.billing_escalation_email,
-      metaData.billing_escalation_mobile,
-      metaData.billing_escalation_desgn,
-      metaData.authorized_detail_name,
-      metaData.authorized_detail_email,
-      metaData.authorized_detail_mobile,
-      metaData.authorized_detail_desgn,
+      metaData.esc_manager_name || "NIL",
+      metaData.esc_manager_email || "NIL",
+      metaData.esc_manager_mobile || "NIL",
+      metaData.esc_manager_desgn || "NIL",
+      metaData.client_spoc_name || "NIL",
+      metaData.client_spoc_email || "NIL",
+      metaData.client_spoc_mobile || "NIL",
+      metaData.client_spoc_desgn || "NIL",
+      metaData.billing_spoc_name || "NIL",
+      metaData.billing_spoc_email || "NIL",
+      metaData.billing_spoc_mobile || "NIL",
+      metaData.billing_spoc_desgn || "NIL",
+      metaData.billing_escalation_name || "NIL",
+      metaData.billing_escalation_email || "NIL",
+      metaData.billing_escalation_mobile || "NIL",
+      metaData.billing_escalation_desgn || "NIL",
+      metaData.authorized_detail_name || "NIL",
+      metaData.authorized_detail_email || "NIL",
+      metaData.authorized_detail_mobile || "NIL",
+      metaData.authorized_detail_desgn || "NIL",
       customerId,
     ];
 
 
 
-      const results = await sequelize.query(sqlUpdateCustomerMetas, {
-        replacements: valuesUpdateCustomerMetas, // Positional replacements using ?
-        type: QueryTypes.UPDATE,
-      });
-      
-      callback(null, results);
-  
+    const results = await sequelize.query(sqlUpdateCustomerMetas, {
+      replacements: valuesUpdateCustomerMetas, // Positional replacements using ?
+      type: QueryTypes.UPDATE,
+    });
+
+    callback(null, results);
+
   },
 
   list: async (callback) => {
@@ -441,7 +441,7 @@ const Customer = {
 
     const updateAllServiceTitles = async () => {
       for (const customerData of results) {
-      console.log('customerData 1',customerData)
+        console.log('customerData 1', customerData)
 
         let servicesData;
         try {
@@ -499,7 +499,7 @@ const Customer = {
 
   },
 
-  listWithBasicInfo:async  (callback) => {
+  listWithBasicInfo: async (callback) => {
     const sql = `
     SELECT
       id, 
@@ -511,11 +511,11 @@ const Customer = {
       customers.status != '0'
       AND customers.is_deleted != 1
   `;
-      const results = await sequelize.query(sql, {
-        type: QueryTypes.SELECT,
-      });
-        callback(null, results);
-      },
+    const results = await sequelize.query(sql, {
+      type: QueryTypes.SELECT,
+    });
+    callback(null, results);
+  },
 
   inactiveList: async (callback) => {
     const sql = `
@@ -635,7 +635,7 @@ const Customer = {
       });
 
       if (results.length === 0) {
-        
+
         return callback(null, { message: "No customer data found" });
       }
 
@@ -645,7 +645,7 @@ const Customer = {
       try {
         servicesData = JSON.parse(customerData.services);
       } catch (parseError) {
-        
+
         return callback(parseError, null);
       }
 
@@ -673,7 +673,7 @@ const Customer = {
         } catch (err) {
           console.error("Error updating service titles:", err);
         } finally {
-          
+
           customerData.services = JSON.stringify(servicesData);
           callback(null, customerData);
         }
@@ -705,7 +705,7 @@ const Customer = {
   `;
 
     try {
-     
+
 
       const results = await sequelize.query(sql, {
         replacements: [customer_id], // Positional replacements using ?
@@ -766,7 +766,7 @@ const Customer = {
       type: QueryTypes.SELECT,
     });
     const customerData = results[0];
-    console.log('customerData 2',customerData)
+    console.log('customerData 2', customerData)
     let servicesData;
     servicesData = JSON.parse(customerData?.services);
 
@@ -803,14 +803,14 @@ const Customer = {
 
   },
 
-  getActiveCustomerById:async (id, callback) => {
+  getActiveCustomerById: async (id, callback) => {
     const sql = "SELECT * FROM `customers` WHERE `id` = ? AND `status` = ? AND is_deleted != 1";
-      
-      const results = await sequelize.query(sql, {
-        replacements: [id, "1"], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        callback(null, results[0]);
+
+    const results = await sequelize.query(sql, {
+      replacements: [id, "1"], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    callback(null, results[0]);
   },
 
   getAllBranchesByCustomerId: async (customerId, callback) => {
@@ -822,19 +822,19 @@ const Customer = {
     callback(null, results);
   },
 
-  getClientUniqueIDByCustomerId:async  (id, callback) => {
+  getClientUniqueIDByCustomerId: async (id, callback) => {
     const sql = "SELECT `client_unique_id` FROM `customers` WHERE `id` = ? AND is_deleted != 1";
 
-      const results = await sequelize.query(sql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-                if (results.length > 0 && results[0].client_unique_id) {
-          return callback(null, results[0].client_unique_id);
-        } else {
-          return callback(null, false); // Return false if not found or invalid
-        }
-  
+    const results = await sequelize.query(sql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length > 0 && results[0].client_unique_id) {
+      return callback(null, results[0].client_unique_id);
+    } else {
+      return callback(null, false); // Return false if not found or invalid
+    }
+
 
   },
 
@@ -880,48 +880,48 @@ const Customer = {
     callback(null, results);
   },
   delete: async (id, callback) => {
-    
 
-      const checkSql = `SELECT is_deleted FROM \`customers\` WHERE id = ?`;
-      const results = await sequelize.query(checkSql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        if (results.length === 0) {
-          return callback({ message: "Client not found" }, null);
-        }
 
-        if (results[0].is_deleted === 1) {
-          return callback({ message: "Client already deleted" }, null);
-        }
+    const checkSql = `SELECT is_deleted FROM \`customers\` WHERE id = ?`;
+    const results = await sequelize.query(checkSql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length === 0) {
+      return callback({ message: "Client not found" }, null);
+    }
 
-        const deleteSql = `
+    if (results[0].is_deleted === 1) {
+      return callback({ message: "Client already deleted" }, null);
+    }
+
+    const deleteSql = `
           UPDATE \`customers\`
           SET is_deleted = 1, deleted_at = NOW()
           WHERE id = ?
         `;
-        const resultss = await sequelize.query(deleteSql, {
-          replacements: [id], 
-          type: QueryTypes.UPDATE,
-        });
+    const resultss = await sequelize.query(deleteSql, {
+      replacements: [id],
+      type: QueryTypes.UPDATE,
+    });
 
-          callback(null, { message: "Client successfully deleted", resultss });
-       
-      
+    callback(null, { message: "Client successfully deleted", resultss });
+
+
   },
 
-  destroy:async (id, callback) => {
+  destroy: async (id, callback) => {
     const sql = `
         DELETE FROM \`customers\`
         WHERE \`id\` = ?
       `;
-      const results = await sequelize.query(sql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.DELETE,
-      });
-        callback(null, results);
-     
-   
+    const results = await sequelize.query(sql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.DELETE,
+    });
+    callback(null, results);
+
+
   },
 
   findByEmailOrMobile: async (username, callback) => {
@@ -987,63 +987,63 @@ const Customer = {
     callback(null, results);
   },
 
-  validateLogin:async (id, callback) => {
+  validateLogin: async (id, callback) => {
     const sql = `
     SELECT \`login_token\`
     FROM \`customers\` 
     WHERE \`id\` = ? AND is_deleted != 1
   `;
-      const results = await sequelize.query(sql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        if (results.length === 0) {
-          return callback({ message: "Customer not found" }, null);
-        }
+    const results = await sequelize.query(sql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length === 0) {
+      return callback({ message: "Customer not found" }, null);
+    }
 
-        callback(null, results);
-      
-   
+    callback(null, results);
+
+
   },
 
-  fetchBranchPasswordByEmail:async (email, callback) => {
+  fetchBranchPasswordByEmail: async (email, callback) => {
     const sql = `
       SELECT \`password\` FROM \`branches\` WHERE \`email\` = ?
     `;
-      const results = await sequelize.query(sql, {
-        replacements: [email], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        if (results.length > 0 && results[0].password) {
-          return callback(null, results[0].password); // Return the password
-        } else {
-          return callback(null, false); // Return false if no result found or empty
-        }
+    const results = await sequelize.query(sql, {
+      replacements: [email], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length > 0 && results[0].password) {
+      return callback(null, results[0].password); // Return the password
+    } else {
+      return callback(null, false); // Return false if no result found or empty
+    }
   },
 
-  logout:async (id, callback) => {
+  logout: async (id, callback) => {
     const sql = `
       UPDATE \`customers\`
       SET \`login_token\` = NULL, \`token_expiry\` = NULL
       WHERE \`id\` = ?
     `;
-      const results = await sequelize.query(sql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.UPDATE,
-      });
-        if (results.affectedRows === 0) {
-          return callback(
-            {
-              message:
-                "Token clear failed. Customer not found or no changes made.",
-            },
-            null
-          );
-        }
+    const results = await sequelize.query(sql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.UPDATE,
+    });
+    if (results.affectedRows === 0) {
+      return callback(
+        {
+          message:
+            "Token clear failed. Customer not found or no changes made.",
+        },
+        null
+      );
+    }
 
-        callback(null, results);
-     
-   
+    callback(null, results);
+
+
   },
 };
 
