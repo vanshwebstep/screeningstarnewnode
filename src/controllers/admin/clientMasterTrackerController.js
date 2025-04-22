@@ -3009,7 +3009,7 @@ exports.annexureDataByServiceIds = (req, res) => {
 
         const annexureResults = [];
         let pendingRequests = serviceIds.length;
-
+        console.log(`serviceIds.length - `, serviceIds.length);
         if (pendingRequests === 0) {
           console.log('No service IDs to process.');
           return res.status(200).json({
@@ -3022,6 +3022,7 @@ exports.annexureDataByServiceIds = (req, res) => {
         }
 
         serviceIds.forEach((id) => {
+          pendingRequests -= 1;
           console.log(`Processing service ID: ${id}`);
           ClientMasterTrackerModel.reportFormJsonByServiceID(id, (err, reportFormJson) => {
             if (err) {
@@ -3090,7 +3091,6 @@ exports.annexureDataByServiceIds = (req, res) => {
         });
 
         function finalizeRequest() {
-          pendingRequests -= 1;
           if (pendingRequests === 0) {
             if (report_download == 1 || report_download == "1") {
               console.log('Updating report download status...');
