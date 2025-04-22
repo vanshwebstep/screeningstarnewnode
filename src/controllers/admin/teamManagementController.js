@@ -829,7 +829,7 @@ exports.upload = async (req, res) => {
                             // Final report email
                             return res.status(200).json({
                               status: true,
-                              message: "Images uploaded successfully.",
+                              message: "Service Status updated Successfully",
                               token: newToken,
                               savedImagePaths,
                             });
@@ -842,7 +842,7 @@ exports.upload = async (req, res) => {
               } else {
                 return res.status(200).json({
                   status: true,
-                  message: "Images uploaded successfully.",
+                  message: "Service Status updated Successfully",
                   token: newToken,
                   savedImagePaths,
                 });
