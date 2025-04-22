@@ -2931,7 +2931,10 @@ exports.upload = async (req, res) => {
 exports.annexureDataByServiceIds = (req, res) => {
   const { service_ids, report_download, application_id, admin_id, _token } = req.query;
 
-  // Validate required fields
+  console.log("Received request for annexure data by service IDs.");
+  console.log("Request query parameters:", req.query);
+
+  // Step 1: Validate input fields
   const missingFields = [];
   if (!service_ids || service_ids === "" || service_ids === "undefined") missingFields.push("Service ID");
   if (!application_id || application_id === "" || application_id === "undefined") missingFields.push("Application ID");
@@ -2939,6 +2942,7 @@ exports.annexureDataByServiceIds = (req, res) => {
   if (!_token || _token === "" || _token === "undefined") missingFields.push("Token");
 
   if (missingFields.length > 0) {
+    console.warn("Missing required fields:", missingFields);
     return res.status(400).json({
       status: false,
       message: `Missing required fields: ${missingFields.join(", ")}`,
@@ -2947,81 +2951,94 @@ exports.annexureDataByServiceIds = (req, res) => {
 
   const action = "admin_manager";
 
-  // Check admin authorization
+  console.log(`Validating admin authorization for admin_id=${admin_id}...`);
   AdminCommon.isAdminAuthorizedForAction(admin_id, action, (authResult) => {
     if (!authResult.status) {
-      return res.status(403).json({
-        status: false,
-        message: authResult.message,
-      });
+      console.warn(`Admin not authorized: ${authResult.message}`);
+      return res.status(403).json({ status: false, message: authResult.message });
     }
 
-    // Fetch allowed service IDs for the admin
+    console.log(`Fetching allowed service IDs for admin_id=${admin_id}...`);
     Admin.fetchAllowedServiceIds(admin_id, async (err, allowedServiceIdsResult) => {
       if (err) {
-        console.error("Error retrieving admin permissions:", err);
-        return res.status(500).json({ status: false, message: "Internal server error." });
+        console.error("Error retrieving allowed service IDs:", err);
+        return res.status(500).json({ status: false, message: "Database error." });
       }
 
-      const { finalServiceIds: allowedServiceIds, addressServicesPermission } = allowedServiceIdsResult;
+      const allowedServiceIds = allowedServiceIdsResult.finalServiceIds || [];
+      const addressServicesPermission = allowedServiceIdsResult.addressServicesPermission;
 
-      // Validate admin token
+      console.log("Allowed service IDs fetched:", allowedServiceIds);
+      console.log("Verifying admin token...");
+
       AdminCommon.isAdminTokenValid(_token, admin_id, (err, tokenResult) => {
         if (err) {
           console.error("Token validation error:", err);
-          return res.status(500).json({ status: false, message: "Token validation failed.", error: err.message });
+          return res.status(500).json({ status: false, message: err.message });
         }
 
         if (!tokenResult.status) {
+          console.warn("Invalid admin token:", tokenResult.message);
           return res.status(401).json({ status: false, message: tokenResult.message });
         }
 
         const newToken = tokenResult.newToken;
-
-        // Split and filter service IDs
         const rawServiceIds = service_ids.split(",").map((id) => id.trim());
-        const serviceIds = allowedServiceIds?.length
+
+        const serviceIds = allowedServiceIds.length
           ? rawServiceIds.filter((id) => allowedServiceIds.includes(Number(id)))
           : rawServiceIds;
 
-        if (serviceIds.length === 0) {
+        console.log("Processing service IDs:", serviceIds);
+
+        const annexureResults = [];
+        let pendingRequests = serviceIds.length;
+
+        if (pendingRequests === 0) {
+          console.log("No valid service IDs to process.");
           return res.status(200).json({
             status: true,
             message: "No service IDs to process.",
-            results: [],
+            results: annexureResults,
             addressServicesPermission,
             token: newToken,
           });
         }
 
-        const annexureResults = [];
-        let pendingRequests = serviceIds.length;
-
-        console.log("Processing service IDs:", serviceIds);
-
-        // Process each service ID
         serviceIds.forEach((serviceId) => {
-          console.log(`Processing service ID: ${serviceId}`);
+          console.log(`Fetching report form JSON for service ID: ${serviceId}`);
+
           ClientMasterTrackerModel.reportFormJsonByServiceID(serviceId, (err, reportFormJson) => {
-            if (err || !reportFormJson) {
-              const message = err ? err.message : "Report form JSON not found";
+            if (err) {
+              console.error(`Error fetching report JSON for service ID ${serviceId}:`, err);
               annexureResults.push({
                 service_id: serviceId,
                 serviceStatus: false,
-                message,
+                message: err.message,
               });
               return finalizeRequest();
             }
 
-            let parsedData;
-            try {
-              parsedData = JSON.parse(reportFormJson.json);
-            } catch (parseErr) {
-              console.error(`JSON parse error for service ID ${serviceId}:`, parseErr);
+            if (!reportFormJson) {
+              console.warn(`Report form JSON not found for service ID: ${serviceId}`);
               annexureResults.push({
                 service_id: serviceId,
                 serviceStatus: false,
-                message: "Invalid report form JSON format.",
+                message: "Report form JSON not found.",
+              });
+              return finalizeRequest();
+            }
+
+            console.log(`Successfully fetched report JSON for service ID: ${serviceId}`);
+            let parsedData;
+            try {
+              parsedData = JSON.parse(reportFormJson.json);
+            } catch (jsonErr) {
+              console.error(`JSON parse error for service ID ${serviceId}:`, jsonErr);
+              annexureResults.push({
+                service_id: serviceId,
+                serviceStatus: false,
+                message: "Invalid JSON format in report form.",
               });
               return finalizeRequest();
             }
@@ -3029,22 +3046,31 @@ exports.annexureDataByServiceIds = (req, res) => {
             const db_table = parsedData.db_table.replace(/-/g, "_");
             const heading = parsedData.heading;
 
+            console.log(`Fetching annexure data for service ID: ${serviceId}, db_table: ${db_table}`);
             ClientMasterTrackerModel.annexureData(application_id, db_table, (err, annexureData) => {
-              if (err || !annexureData) {
-                const message = err
-                  ? "An error occurred while fetching annexure data."
-                  : "Annexure data not found.";
+              if (err) {
+                console.error(`Error fetching annexure data for service ID ${serviceId}:`, err);
                 annexureResults.push({
                   service_id: serviceId,
                   annexureStatus: false,
+                  annexureData: null,
                   serviceStatus: true,
                   reportFormJson,
+                  message: "An error occurred while fetching annexure data.",
+                  error: err,
+                });
+              } else if (!annexureData) {
+                console.warn(`Annexure data not found for service ID: ${serviceId}`);
+                annexureResults.push({
+                  service_id: serviceId,
+                  annexureStatus: false,
                   annexureData: null,
-                  heading,
-                  message,
-                  error: err || null,
+                  serviceStatus: true,
+                  reportFormJson,
+                  message: "Annexure Data not found.",
                 });
               } else {
+                console.log(`Successfully fetched annexure data for service ID: ${serviceId}`);
                 annexureResults.push({
                   service_id: serviceId,
                   annexureStatus: true,
@@ -3060,34 +3086,43 @@ exports.annexureDataByServiceIds = (req, res) => {
           });
         });
 
-        // Final response handler
         function finalizeRequest() {
           pendingRequests--;
-          if (pendingRequests > 0) return;
+          console.log(`Pending requests: ${pendingRequests}`);
 
-          const responsePayload = {
+          if (pendingRequests === 0) {
+            console.log("All service ID processing completed.");
+
+            if (report_download === "1" || report_download === 1) {
+              console.log(`Updating report download status for application ID: ${application_id}`);
+              ClientMasterTrackerModel.updateReportDownloadStatus(application_id, (err) => {
+                if (err) {
+                  console.error("Error updating report download status:", err);
+                  return res.status(500).json({
+                    message: "Error updating report download status.",
+                    error: err,
+                    token: newToken,
+                  });
+                }
+
+                console.log("Report download status updated successfully.");
+                return sendResponse();
+              });
+            } else {
+              console.log("Report download not requested. Returning response.");
+              return sendResponse();
+            }
+          }
+        }
+
+        function sendResponse() {
+          return res.status(200).json({
             status: true,
             message: "Applications fetched successfully.",
             results: annexureResults,
             addressServicesPermission,
             token: newToken,
-          };
-
-          if (report_download == "1") {
-            ClientMasterTrackerModel.updateReportDownloadStatus(application_id, (err) => {
-              if (err) {
-                console.error("Error updating report download status:", err);
-                return res.status(500).json({
-                  message: "Error updating report download status.",
-                  error: err,
-                  token: newToken,
-                });
-              }
-              return res.status(200).json(responsePayload);
-            });
-          } else {
-            return res.status(200).json(responsePayload);
-          }
+          });
         }
       });
     });
