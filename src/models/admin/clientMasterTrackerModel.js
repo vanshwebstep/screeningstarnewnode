@@ -942,8 +942,82 @@ const Customer = {
       });
       callback(null, results[0] || null);
     }
+  },
 
+  reportFormJsonWithannexureData: async (client_application_id, service_id, callback) => {
+    try {
+      // Step 1: Fetch JSON from report_forms
+      const reportFormQuery = "SELECT `json` FROM `report_forms` WHERE `service_id` = ?";
+      const reportFormResults = await sequelize.query(reportFormQuery, {
+        replacements: [service_id],
+        type: QueryTypes.SELECT,
+      });
 
+      const reportFormJson = reportFormResults[0] || null;
+
+      // If no JSON, return early with empty annexureData
+      if (!reportFormJson) {
+        return callback(null, { reportFormJson });
+      }
+
+      const parsedData = JSON.parse(reportFormJson.json);
+      const db_table = parsedData.db_table.replace(/-/g, "_");
+      const heading = parsedData.heading;
+
+      // Step 2: Check if the db_table exists
+      const checkTableSql = `
+        SELECT COUNT(*) AS count 
+        FROM information_schema.tables 
+        WHERE table_schema = DATABASE() 
+        AND table_name = ?`;
+
+      const tableCheckResults = await sequelize.query(checkTableSql, {
+        replacements: [db_table],
+        type: QueryTypes.SELECT,
+      });
+
+      const tableExists = tableCheckResults[0].count > 0;
+
+      // Step 3: If table does not exist, create it
+      if (!tableExists) {
+        const createTableSql = `
+          CREATE TABLE \`${db_table}\` (
+            \`id\` BIGINT(20) NOT NULL AUTO_INCREMENT,
+            \`cmt_id\` BIGINT(20) DEFAULT NULL,
+            \`client_application_id\` BIGINT(20) NOT NULL,
+            \`branch_id\` INT(11) NOT NULL,
+            \`customer_id\` INT(11) NOT NULL,
+            \`status\` VARCHAR(100) DEFAULT NULL,
+            \`team_management_docs\` LONGTEXT DEFAULT NULL,
+            \`created_at\` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            \`updated_at\` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (\`id\`),
+            KEY \`client_application_id\` (\`client_application_id\`),
+            KEY \`cmt_application_customer_id\` (\`customer_id\`),
+            KEY \`cmt_application_cmt_id\` (\`cmt_id\`),
+            CONSTRAINT \`fk_${db_table}_client_application_id\` FOREIGN KEY (\`client_application_id\`) REFERENCES \`client_applications\` (\`id\`) ON DELETE CASCADE,
+            CONSTRAINT \`fk_${db_table}_customer_id\` FOREIGN KEY (\`customer_id\`) REFERENCES \`customers\` (\`id\`) ON DELETE CASCADE,
+            CONSTRAINT \`fk_${db_table}_cmt_id\` FOREIGN KEY (\`cmt_id\`) REFERENCES \`cmt_applications\` (\`id\`) ON DELETE CASCADE
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `;
+        await sequelize.query(createTableSql);
+        return callback(null, { reportFormJson, annexureData: null });
+      }
+
+      // Step 4: If table exists, fetch data
+      const dataQuery = `SELECT * FROM \`${db_table}\` WHERE \`client_application_id\` = ?`;
+      const dataResults = await sequelize.query(dataQuery, {
+        replacements: [client_application_id],
+        type: QueryTypes.SELECT,
+      });
+
+      const annexureData = dataResults[0] || null;
+      return callback(null, { reportFormJson, annexureData });
+
+    } catch (error) {
+      console.error("Error in annexureData:", error);
+      return callback(error);
+    }
   },
 
   filterOptions: async (callback) => {
@@ -1567,8 +1641,6 @@ const Customer = {
       callback(null, response);
 
     }
-
-
   },
 
   reportFormJsonByServiceID: async (service_id, callback) => {
@@ -1578,8 +1650,6 @@ const Customer = {
       type: QueryTypes.SELECT,
     });
     callback(null, results[0] || null);
-
-
   },
 
   generateReport: async (

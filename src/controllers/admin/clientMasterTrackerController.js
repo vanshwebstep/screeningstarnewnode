@@ -3164,3 +3164,126 @@ exports.annexureDataByServiceIds = (req, res) => {
     );
   });
 };
+
+/*
+exports.annexureDataByServiceIds = (req, res) => {
+  const { service_ids, report_download, application_id, admin_id, _token } = req.query;
+
+  // Validate required fields
+  const missingFields = [];
+  if (!service_ids || service_ids === "undefined") missingFields.push("Service ID");
+  if (!application_id || application_id === "undefined") missingFields.push("Application ID");
+  if (!admin_id || admin_id === "undefined") missingFields.push("Admin ID");
+  if (!_token || _token === "undefined") missingFields.push("Token");
+
+  if (missingFields.length > 0) {
+    return res.status(400).json({
+      status: false,
+      message: `Missing required fields: ${missingFields.join(", ")}`,
+    });
+  }
+
+  const action = "admin_manager";
+
+  AdminCommon.isAdminAuthorizedForAction(admin_id, action, (authResult) => {
+    if (!authResult.status) {
+      return res.status(403).json({ status: false, message: authResult.message });
+    }
+
+    Admin.fetchAllowedServiceIds(admin_id, async (err, allowedServiceIdsResult) => {
+      if (err) {
+        console.error("Error fetching allowed service IDs:", err);
+        return res.status(500).json({ status: false, message: "Database error." });
+      }
+
+      const { finalServiceIds: allowedServiceIds, addressServicesPermission } = allowedServiceIdsResult;
+
+      // Verify admin token
+      AdminCommon.isAdminTokenValid(_token, admin_id, (err, tokenResult) => {
+        if (err) {
+          console.error("Token validation error:", err);
+          return res.status(500).json({ status: false, message: err.message });
+        }
+
+        if (!tokenResult.status) {
+          return res.status(401).json({ status: false, message: tokenResult.message });
+        }
+
+        const newToken = tokenResult.newToken;
+        const rawServiceIds = service_ids.split(",").map(id => id.trim());
+        const serviceIds = allowedServiceIds?.length
+          ? rawServiceIds.filter(id => allowedServiceIds.includes(Number(id)))
+          : rawServiceIds;
+
+        if (serviceIds.length === 0) {
+          return res.status(200).json({
+            status: true,
+            message: "No valid service IDs to process.",
+            results: [],
+            addressServicesPermission,
+            token: newToken,
+          });
+        }
+
+        const annexureResults = [];
+        let pending = serviceIds.length;
+
+        serviceIds.forEach((serviceId) => {
+          ClientMasterTrackerModel.reportFormJsonWithannexureData(
+            application_id,
+            serviceId,
+            (err, result) => {
+              if (err) {
+                console.error(`Error fetching data for service ID ${serviceId}:`, err);
+                annexureResults.push({
+                  service_id: serviceId,
+                  serviceStatus: false,
+                  message: err.message,
+                });
+              } else {
+                const { reportFormJson, annexureData } = result;
+                annexureResults.push({
+                  service_id: serviceId,
+                  annexureStatus: true,
+                  serviceStatus: true,
+                  reportFormJson,
+                  annexureData,
+                });
+              }
+
+              if (--pending === 0) finalizeResponse();
+            }
+          );
+        });
+
+        function finalizeResponse() {
+          if (report_download == "1") {
+            ClientMasterTrackerModel.updateReportDownloadStatus(application_id, (err) => {
+              if (err) {
+                return res.status(500).json({
+                  message: "Error updating report download status",
+                  error: err,
+                  token: newToken,
+                });
+              }
+              return sendResponse();
+            });
+          } else {
+            return sendResponse();
+          }
+        }
+
+        function sendResponse() {
+          return res.status(200).json({
+            status: true,
+            message: "Applications fetched successfully.",
+            results: annexureResults,
+            addressServicesPermission,
+            token: newToken,
+          });
+        }
+      });
+    });
+  });
+};
+*/
