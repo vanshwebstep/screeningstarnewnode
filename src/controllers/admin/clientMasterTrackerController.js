@@ -2928,6 +2928,7 @@ exports.upload = async (req, res) => {
   });
 };
 
+/*
 exports.annexureDataByServiceIds = (req, res) => {
   const { service_ids, report_download, application_id, admin_id, _token } =
     req.query;
@@ -3164,8 +3165,8 @@ exports.annexureDataByServiceIds = (req, res) => {
     );
   });
 };
+*/
 
-/*
 exports.annexureDataByServiceIds = (req, res) => {
   const { service_ids, report_download, application_id, admin_id, _token } = req.query;
 
@@ -3286,4 +3287,3 @@ exports.annexureDataByServiceIds = (req, res) => {
     });
   });
 };
-*/
