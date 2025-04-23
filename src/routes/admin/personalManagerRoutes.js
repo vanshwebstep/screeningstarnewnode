@@ -7,6 +7,7 @@ router.post("/create", personalManagerController.create);
 router.get("/list", personalManagerController.list);
 router.get("/attendance-list", personalManagerController.attendanceIndex);
 router.get("/my-list", personalManagerController.myList);
+router.post("/break", personalManagerController.breakCreate);
 router.post("/upload", personalManagerController.upload);
 router.put("/update", personalManagerController.update);
 router.put("/response", personalManagerController.response);

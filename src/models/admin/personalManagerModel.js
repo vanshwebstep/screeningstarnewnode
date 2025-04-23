@@ -5,7 +5,7 @@ const PersonalManager = {
         const tableName = "personal_managers";
         const columns = Object.keys(data);
         const values = Object.values(data);
-    
+
         try {
             // Step 1: Check if table exists
             const checkTableSql = `
@@ -17,9 +17,9 @@ const PersonalManager = {
                 replacements: [tableName],
                 type: QueryTypes.SELECT,
             });
-    
+
             const tableExists = tableResults[0].tableCount > 0;
-    
+
             // Step 2: Create table if it doesn't exist
             if (!tableExists) {
                 const createTableSql = `
@@ -38,19 +38,19 @@ const PersonalManager = {
                 `;
                 await sequelize.query(createTableSql, { type: QueryTypes.RAW });
             }
-    
+
             // Step 3: Check for missing columns and add them
             const existingColumnsResults = await sequelize.query(`SHOW COLUMNS FROM \`${tableName}\``, {
                 type: QueryTypes.SELECT,
             });
             const existingColumns = existingColumnsResults.map((col) => col.Field);
-    
+
             const missingColumns = columns.filter((col) => !existingColumns.includes(col));
             for (const column of missingColumns) {
                 const alterSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${column}\` TEXT`;
                 await sequelize.query(alterSql, { type: QueryTypes.RAW });
             }
-    
+
             // Step 4: Insert data
             const insertSql = `
                 INSERT INTO \`${tableName}\` (${columns.map((col) => `\`${col}\``).join(", ")})
@@ -60,16 +60,81 @@ const PersonalManager = {
                 replacements: values,
                 type: QueryTypes.INSERT,
             });
-    
-            callback(null, {insertId: insertResults[0]});
+
+            callback(null, { insertId: insertResults[0] });
         } catch (error) {
             console.error("Error in create function:", error);
             callback(error, null);
         }
     },
-    
 
-    update:async (
+    breakCreate: async (data, callback) => {
+        const tableName = "admin_breaks";
+        const columns = Object.keys(data);
+        const values = Object.values(data);
+        
+        try {
+            // Step 1: Check if table exists
+            const checkTableSql = `
+                SELECT COUNT(*) AS tableCount
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE() AND table_name = ?
+            `;
+            const tableResults = await sequelize.query(checkTableSql, {
+                replacements: [tableName],
+                type: QueryTypes.SELECT,
+            });
+
+            const tableExists = tableResults[0].tableCount > 0;
+
+            // Step 2: Create table if it doesn't exist
+            if (!tableExists) {
+                const createTableSql = `
+                    CREATE TABLE \`${tableName}\` (
+                        \`id\` INT NOT NULL AUTO_INCREMENT,
+                        \`admin_id\` INT NOT NULL,
+                        \`type\` LONGTEXT DEFAULT NULL,
+                        \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (\`id\`),
+                        KEY \`${tableName}_fk_admin_id\` (\`admin_id\`),
+                        CONSTRAINT \`${tableName}_fk_admin_id\`
+                            FOREIGN KEY (\`admin_id\`) REFERENCES \`admins\` (\`id\`)
+                            ON DELETE CASCADE ON UPDATE RESTRICT
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                `;
+                await sequelize.query(createTableSql, { type: QueryTypes.RAW });
+            }
+
+            // Step 3: Check for missing columns and add them
+            const existingColumnsResults = await sequelize.query(`SHOW COLUMNS FROM \`${tableName}\``, {
+                type: QueryTypes.SELECT,
+            });
+            const existingColumns = existingColumnsResults.map((col) => col.Field);
+
+            const missingColumns = columns.filter((col) => !existingColumns.includes(col));
+            for (const column of missingColumns) {
+                const alterSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${column}\` TEXT`;
+                await sequelize.query(alterSql, { type: QueryTypes.RAW });
+            }
+
+            // Step 4: Insert data
+            const insertSql = `
+                INSERT INTO \`${tableName}\` (${columns.map((col) => `\`${col}\``).join(", ")})
+                VALUES (${columns.map(() => "?").join(", ")})
+            `;
+            const insertResults = await sequelize.query(insertSql, {
+                replacements: values,
+                type: QueryTypes.INSERT,
+            });
+
+            callback(null, { insertId: insertResults[0] });
+        } catch (error) {
+            console.error("Error in create function:", error);
+            callback(error, null);
+        }
+    },
+
+    update: async (
         personal_manager_id,
         data,
         callback
@@ -78,18 +143,18 @@ const PersonalManager = {
         const columns = Object.keys(data);
         const values = Object.values(data);
 
-            const checkTableSql = `
+        const checkTableSql = `
                 SELECT COUNT(*) AS tableCount
                 FROM information_schema.tables
                 WHERE table_schema = DATABASE() AND table_name = ?
             `;
-            const tableResults = await sequelize.query(checkTableSql, {
-                replacements: [tableName], // Positional replacements using ?
-                type: QueryTypes.SELECT,
-              });
+        const tableResults = await sequelize.query(checkTableSql, {
+            replacements: [tableName], // Positional replacements using ?
+            type: QueryTypes.SELECT,
+        });
 
-                const tableExists = tableResults[0].tableCount > 0;
-                const createTableSql = `CREATE TABLE \`${tableName}\` (
+        const tableExists = tableResults[0].tableCount > 0;
+        const createTableSql = `CREATE TABLE \`${tableName}\` (
                     \`id\` int NOT NULL AUTO_INCREMENT,
                     \`admin_id\` int NOT NULL,
                     \`photo\` LONGTEXT DEFAULT NULL,
@@ -100,63 +165,63 @@ const PersonalManager = {
                     CONSTRAINT \`${tableName}_fk_admin_id\` FOREIGN KEY (\`admin_id\`) REFERENCES \`admins\` (\`id\`) ON DELETE CASCADE ON UPDATE RESTRICT
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;`;
 
-                const ensureTable = tableExists
-                ? Promise.resolve()
-                : sequelize.query(createTableSql, {
-                    type: QueryTypes.CREATE,
-                }).then(() => Promise.resolve()); // Ensures a resolved promise
-            
+        const ensureTable = tableExists
+            ? Promise.resolve()
+            : sequelize.query(createTableSql, {
+                type: QueryTypes.CREATE,
+            }).then(() => Promise.resolve()); // Ensures a resolved promise
 
-                ensureTable
-                    .then(() => {
-                        // Step 2: Check and add missing columns
-                        const checkColumnsSql = `SHOW COLUMNS FROM \`${tableName}\``;
 
-                        return new Promise( async(resolve, reject) => {
-                            const columnResults = await sequelize.query(checkColumnsSql, {
+        ensureTable
+            .then(() => {
+                // Step 2: Check and add missing columns
+                const checkColumnsSql = `SHOW COLUMNS FROM \`${tableName}\``;
+
+                return new Promise(async (resolve, reject) => {
+                    const columnResults = await sequelize.query(checkColumnsSql, {
+                        type: QueryTypes.SELECT,
+                    });
+                    const existingColumns = columnResults.map((column) => column.Field);
+                    const missingColumns = columns.filter((column) => !existingColumns.includes(column));
+
+                    const alterTablePromises = missingColumns.map((column) => {
+                        const alterTableSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${column}\` TEXT`;
+
+                        return new Promise(async (resolve, reject) => {
+                            const results = await sequelize.query(alterTableSql, {
+                                replacements: [username, username], // Positional replacements using ?
                                 type: QueryTypes.SELECT,
-                              });
-                                const existingColumns = columnResults.map((column) => column.Field);
-                                const missingColumns = columns.filter((column) => !existingColumns.includes(column));
+                            });
+                            resolve();
 
-                                const alterTablePromises = missingColumns.map((column) => {
-                                    const alterTableSql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${column}\` TEXT`;
-
-                                    return new Promise(async(resolve, reject) => {
-                                        const results = await sequelize.query(alterTableSql, {
-                                            replacements: [username, username], // Positional replacements using ?
-                                            type: QueryTypes.SELECT,
-                                          });
-                                            resolve();
-                                      
-                                    });
-                                });
-
-                                Promise.all(alterTablePromises)
-                                    .then(() => resolve())
-                                    .catch((err) => reject(err));
-                            
                         });
-                    })
-                    .then(async() => {
-                        const updateServiceSql = `
+                    });
+
+                    Promise.all(alterTablePromises)
+                        .then(() => resolve())
+                        .catch((err) => reject(err));
+
+                });
+            })
+            .then(async () => {
+                const updateServiceSql = `
                             UPDATE \`${tableName}\`
                             SET ${columns.map((col) => `\`${col}\` = ?`).join(", ")}
                             WHERE id = ?
                         `;
-                        const results = await sequelize.query(updateServiceSql, {
-                            replacements: [...values, personal_manager_id], // Positional replacements using ?
-                            type: QueryTypes.UPDATE,
-                          });
-                            callback(null, results);
-                        
-                    })
-                    .catch((err) => {
-                        console.error("Database query error (ensure table/columns):", err);
-                        callback(err, null);
-                    });
-            
-      
+                const results = await sequelize.query(updateServiceSql, {
+                    replacements: [...values, personal_manager_id], // Positional replacements using ?
+                    type: QueryTypes.UPDATE,
+                });
+                callback(null, results);
+
+            })
+            .catch((err) => {
+                console.error("Database query error (ensure table/columns):", err);
+                callback(err, null);
+            });
+
+
     },
 
     response: async (
@@ -186,13 +251,13 @@ const PersonalManager = {
         `;
         const joinedPaths = savedImagePaths.join(", ");
         const queryParams = [joinedPaths, id];
-    
+
         try {
             const [results, metadata] = await sequelize.query(sqlUpdateCustomer, {
                 replacements: queryParams,
                 type: QueryTypes.UPDATE,
             });
-    
+
             // metadata is the number of affected rows in UPDATE
             if (metadata > 0) {
                 callback(true, { affectedRows: metadata });
@@ -212,7 +277,7 @@ const PersonalManager = {
             });
         }
     },
-    
+
 
     findById: async (id, callback) => {
         const sql = `SELECT * FROM \`personal_managers\` WHERE \`id\` = ?`;

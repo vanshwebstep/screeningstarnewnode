@@ -190,6 +190,7 @@ const tatDelay = {
             first_check_in_time: null,
             last_check_out_time: null,
             check_in_outs: [],
+            breaks: [],
           };
         }
 
@@ -217,6 +218,39 @@ const tatDelay = {
           status: record.status,
           time: record.created_at,
         });
+      }
+
+      // Fetch break data
+      const breakSql = `
+        SELECT b.*
+        FROM admin_breaks b
+        INNER JOIN (
+          SELECT admin_id, type, DATE(created_at) AS record_date, MAX(id) AS max_id
+          FROM admin_breaks
+          GROUP BY admin_id, type, DATE(created_at)
+        ) latest
+        ON b.id = latest.max_id
+      `;
+
+      const breaks = await sequelize.query(breakSql, {
+        type: QueryTypes.SELECT,
+      });
+
+      console.log(`grouped - `, grouped);
+      console.log(`breaks - `, breaks);
+
+      // Add breaks to grouped records
+      for (const brk of breaks) {
+        const date = brk.created_at.toISOString().split("T")[0]; // YYYY-MM-DD
+        console.log(`date - `, date);
+        const adminId = brk.admin_id;
+
+        if (grouped[date] && grouped[date][adminId]) {
+          grouped[date][adminId].breaks.push({
+            type: brk.type,
+            time: brk.created_at
+          });
+        }
       }
 
       // Flatten into array sorted by date (newest first)
