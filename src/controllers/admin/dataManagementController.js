@@ -744,7 +744,7 @@ exports.submit = (req, res) => {
 
                       return res.status(200).json({
                         status: true,
-                        message: `Basic Entry Updated Successfully.`,
+                        message: data_qc == 1 ? `QC Successfully Cleared` : `Basic Entry Updated Successfully.`,
                         token: newToken,
                       });
                     }
