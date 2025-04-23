@@ -26,6 +26,20 @@ const {
   reminderMail,
 } = require("../../../../mailer/customer/branch/candidate/reminderMail");
 
+exports.test = (req, res) => {
+  sendNotificationEmails(
+    90,
+    35,
+    "Vansh",
+    79,
+    65,
+    'CL-992623424',
+    'Development',
+    '1',
+    res
+  );
+};
+
 exports.formJson = (req, res) => {
   const { service_id } = req.query;
 
@@ -823,7 +837,8 @@ const sendNotificationEmails = (
                       pdfFileName,
                       candidateFormPdfTargetDirectory
                     );
-                    // console.log("candidateFormPDFPath - ", candidateFormPDFPath);
+                    console.log("candidateFormPDFPath - ", candidateFormPDFPath);
+                    return;
                     const pdfPath = '';
                     /*
                     const pdfPath = await cdfDataPDF(

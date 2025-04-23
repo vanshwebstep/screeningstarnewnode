@@ -1966,16 +1966,16 @@ module.exports = {
                                                                     );
 
                                                                     // Save PDF
-                                                                    // console.log(`pdfFileName - `, pdfFileName);
-                                                                    doc.save(`123.pdf`);
+                                                                    console.log(`pdfFileName - `, pdfFileName);
+                                                                    // doc.save(`123.pdf`);
 
                                                                     // console.log(`targetDirectory - `, targetDirectory);
-                                                                    // const pdfPathCloud = await savePdf(
-                                                                    //     doc,
-                                                                    //     pdfFileName,
-                                                                    //     targetDirectory
-                                                                    // );
-                                                                    resolve(`123.pdf`);
+                                                                    const pdfPathCloud = await savePdf(
+                                                                        doc,
+                                                                        pdfFileName,
+                                                                        targetDirectory
+                                                                    );
+                                                                    resolve(pdfPathCloud);
                                                                     // console.log("PDF generation completed successfully.");
                                                                 })();
                                                             } catch (error) {
