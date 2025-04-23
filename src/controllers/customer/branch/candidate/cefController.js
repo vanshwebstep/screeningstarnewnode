@@ -838,7 +838,6 @@ const sendNotificationEmails = (
                       candidateFormPdfTargetDirectory
                     );
                     console.log("candidateFormPDFPath - ", candidateFormPDFPath);
-                    return;
                     const pdfPath = '';
                     /*
                     const pdfPath = await cdfDataPDF(
