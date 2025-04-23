@@ -311,7 +311,7 @@ const cef = {
             WHERE table_schema = ? AND table_name = ?`;
 
     const tableResults = await sequelize.query(checkTableSql, {
-      replacements: [process.env.DB_NAME || "goldquest", db_table],
+      replacements: [process.env.DB_NAME || "screeningstar", db_table],
       type: QueryTypes.SELECT,
     });
 
