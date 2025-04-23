@@ -13,9 +13,9 @@ const tatDelay = {
                     admins.mobile AS admin_mobile,
                     admins.emp_id,
                     -- First login time
-                    MIN(created_at) AS first_login_time,
+                    MIN(logs.created_at) AS first_login_time,
                     -- Last logout time
-                    MAX(created_at) AS last_logout_time,
+                    MAX(logs.created_at) AS last_logout_time,
                     -- First login time
                     MIN(logs.created_at) AS created_at
                 FROM admin_login_logs AS logs
