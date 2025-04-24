@@ -943,7 +943,7 @@ exports.sendLink = (req, res) => {
                             if (appInfo) {
                               const appHost =
                                 appInfo.host || "www.example.com";
-                              const base64_app_id = btoa(result.insertId);
+                              const base64_app_id = btoa(application_id);
                               const base64_branch_id = btoa(branch_id);
                               const base64_customer_id = btoa(customer_id);
                               const base64_link_with_ids = `YXBwX2lk=${base64_app_id}&YnJhbmNoX2lk=${base64_branch_id}&Y3VzdG9tZXJfaWQ==${base64_customer_id}`;
@@ -1005,7 +1005,7 @@ exports.sendLink = (req, res) => {
                                   "create",
                                   name,
                                   customer.name,
-                                  result.insertId,
+                                  application_id,
                                   bgv_href,
                                   serviceNames,
                                   toArr,
