@@ -211,7 +211,7 @@ exports.breakCreate = (req, res) => {
 
                 res.json({
                     status: true,
-                    message: "Break created successfully",
+                    message: `${type} done`,
                     result,
                     token: newToken,
                 });
