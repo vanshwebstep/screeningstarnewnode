@@ -311,32 +311,14 @@ function createEmploymentFields(noOfEmployments, fieldValue) {
     return employmentFields;
 }
 
-function updateEmploymentFields(annexureData, noOfEmployments, fieldValue) {
-    // Generate new employment fields based on the provided number of employments
-    const allEmploymentFields = createEmploymentFields(noOfEmployments, fieldValue);
 
-    // Create a copy of the current annexureData
-    const updatedAnnexureData = { ...annexureData };
-
-    // Check if gap_validation exists before modifying
-    if (updatedAnnexureData.gap_validation) {
-        // Delete the existing employment_fields key
-        delete updatedAnnexureData.gap_validation.employment_fields;
-    } else {
-        // If gap_validation doesn't exist, initialize it
-        updatedAnnexureData.gap_validation = {};
-    }
-
-    // Add the new employment_fields data
-    updatedAnnexureData.gap_validation.highest_education_gap = fieldValue.highest_education_gap;
-    updatedAnnexureData.gap_validation.no_of_employment = fieldValue.no_of_employment;
-    updatedAnnexureData.gap_validation.years_of_experience_gap = fieldValue.years_of_experience_gap;
-    updatedAnnexureData.gap_validation.education_fields = JSON.parse(fieldValue.education_fields);
-    updatedAnnexureData.gap_validation.employment_fields = allEmploymentFields;
-
-    return updatedAnnexureData; // This can be used for further handling if needed
-}
-
+const formatDate = (isoString) => {
+    const date = new Date(isoString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
+};
 module.exports = {
     candidateFormPDF: async (
         candidate_applicaton_id,
@@ -449,12 +431,16 @@ module.exports = {
                                                                     new Error('An error occurred while fetching service form json.')
                                                                 );
                                                             }
+
+                                                            const serviceValueDataForPDF = Object.values(serviceData)?.map(item => item.data) || [];
+
                                                             data = {
                                                                 application,
                                                                 CEFData: CEFApplicationData,
                                                                 branchInfo: currentBranch,
                                                                 customerInfo: currentCustomer,
                                                                 serviceData,
+                                                                serviceValueDataForPDF,
                                                                 admins: adminList,
                                                             };
 
@@ -558,579 +544,154 @@ module.exports = {
 
                                                             const serviceDataMain = allJsonData;
                                                             try {
+                                                                // Create a new PDF document
                                                                 const doc = new jsPDF();
-                                                                let yPosition = 10;  // Initial y position
+                                                                let yPosition = 10;
+                                                                const gapY = 8; // consistent gap between tables
 
-                                                                // Add the form title
-
-                                                                if (customBgv === 1) {
-                                                                    const imageData = await fetchImageToBase(LogoBgv);
-
-                                                                    if (imageData) {
-                                                                        doc.addImage(
-                                                                            imageData,
-                                                                            'png',
-                                                                            75,
-                                                                            yPosition,
-                                                                            60,
-                                                                            10
-                                                                        );
-                                                                    }
-                                                                }
-
+                                                                // Table 1: Header
                                                                 doc.autoTable({
                                                                     startY: yPosition,
-                                                                    head: [
-                                                                        [
-                                                                            {
-                                                                                content: 'Background Verification Form',
-                                                                                styles: {
-                                                                                    halign: 'left',
-                                                                                    fontSize: 12,
-                                                                                    fontStyle: 'bold',
-                                                                                    fillColor: [197, 217, 241], textColor: [80, 80, 80]
-                                                                                }
-                                                                            }
-                                                                        ],
-                                                                    ],
-                                                                    body: [
-
-                                                                        [
-                                                                            { content: `Company name: ${companyName}`, styles: { fontStyle: 'bold', } },
-                                                                        ],
-                                                                        [
-                                                                            { content: `Purpose of Application: ${purpose || 'NIL'}`, styles: { fontStyle: 'bold', } },
-                                                                        ],
-                                                                    ],
+                                                                    head: [[{
+                                                                        content: 'Background Verification Form',
+                                                                        styles: {
+                                                                            halign: 'center',
+                                                                            fontSize: 12,
+                                                                            fontStyle: 'bold',
+                                                                            fillColor: [197, 217, 241],
+                                                                            textColor: [80, 80, 80]
+                                                                        }
+                                                                    }]],
+                                                                    body: [[{
+                                                                        content: `Company name: ${companyName}`,
+                                                                        styles: { fontStyle: 'bold', halign: 'center' }
+                                                                    }]],
                                                                     theme: 'grid',
-                                                                    margin: { top: 10 },
+                                                                    margin: { top: 10, left: 15, right: 15 },
                                                                     styles: {
                                                                         cellPadding: 2,
                                                                         fontSize: 10,
+                                                                        lineWidth: 0.2,
+                                                                        lineColor: [0, 0, 0]
                                                                     }
                                                                 });
-                                                                yPosition += 40;
+                                                                yPosition = doc.autoTable.previous.finalY + gapY;
+                                                                const pageWidth = doc.internal.pageSize.getWidth() - 30;
 
-                                                                const imageWidth = doc.internal.pageSize.width - 10; // 20px padding for margins
-                                                                const imageHeight = 80; // Fixed height of 500px for the image
-                                                                doc.setFontSize(16);
-                                                                doc.setFont("helvetica", "bold");
-                                                                if (purpose === 'NORMAL BGV(EMPLOYMENT)') {
-                                                                    // Add a form group with Applicant's CV label
-                                                                    doc.setFontSize(12);
-                                                                    doc.text("Applicant’s CV", doc.internal.pageSize.width / 2, yPosition, {
-                                                                        align: 'center'
-                                                                    });
-
-                                                                    if (cefData && cefData.resume_file) {
-                                                                        // Check if the file is an image (this can be enhanced with MIME type checks, e.g., 'image/png', 'image/jpeg')
-                                                                        const resumeFile = cefData.resume_file.trim();
-
-                                                                        if (isImage(resumeFile)) {
-                                                                            // If the resume file is an image, fetch and add it to the document
-                                                                            const imageBases = await fetchImageToBase([resumeFile]);
-
-                                                                            if (imageBases?.[0]?.base64) {
-                                                                                doc.addImage(imageBases?.[0]?.base64, 'PNG', 5, yPosition + 10, imageWidth, imageHeight);
-                                                                            } else {
-                                                                                doc.text("Unable to load image.", 10, 40);
-                                                                            }
-                                                                        } else {
-                                                                            const doctext = 'View Document';
-                                                                            const doctextWidth = doc.getTextWidth(doctext);
-                                                                            const noCVTextX = (doc.internal.pageSize.width - doctextWidth) / 2;
-                                                                            const resumeUrl = resumeFile;
-                                                                            doc.setTextColor(255, 0, 0); // Set the text color to blue (like a link)
-                                                                            doc.textWithLink(doctext, noCVTextX, 60, { url: resumeUrl });  // Opens the document in a new tab
-                                                                        }
-                                                                    } else {
-                                                                        // If no resume file is available, center the text for "No CV uploaded."
-                                                                        const noCVText = "No CV uploaded.";
-                                                                        const noCVTextWidth = doc.getTextWidth(noCVText);
-                                                                        const noCVTextX = (doc.internal.pageSize.width - noCVTextWidth) / 2;
-
-                                                                        doc.text(noCVText, noCVTextX + 40, 40);
-                                                                    }
-
-
-                                                                    // Helper function to determine if the file is an image (you can improve this with more MIME type checks)
-                                                                    function isImage(fileName) {
-                                                                        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp'];
-                                                                        return imageExtensions.some(extension => fileName.toLowerCase().endsWith(extension));
-                                                                    }
-
-                                                                }
-                                                                // console.log(`Step 5: Adding images to PDF`);
-                                                                doc.setTextColor(0, 0, 0);
-                                                                if (purpose === 'NORMAL BGV(EMPLOYMENT)') {
-                                                                    yPosition += imageHeight + 10;
-                                                                }
-                                                                yPosition += 10;
-                                                                if (cefData && cefData.govt_id) {
-                                                                    // Split the comma-separated string into an array of image URLs
-                                                                    const govtIdUrls = cefData.govt_id.split(',').map(url => url.trim());
-
-                                                                    // Check if there are any URLs in the array
-                                                                    if (govtIdUrls.length > 0) {
-                                                                        for (let i = 0; i < govtIdUrls.length; i++) {
-                                                                            const govtIdUrl = govtIdUrls[i];
-
-                                                                            // Fetch the image as base64
-                                                                            // console.log(`govtIdUrl - `, govtIdUrl);
-                                                                            const imageBases = await fetchImageToBase([govtIdUrl]);
-                                                                            // console.log(`imageBases - `, imageBases);
-                                                                            // Check if the image is valid
-                                                                            if (imageBases?.[0]?.base64) {
-                                                                                // Set font size and add the label for each image
-                                                                                doc.setFontSize(12);
-                                                                                const labelText = "Govt ID #" + (i + 1);
-                                                                                const labelTextWidth = doc.getTextWidth(labelText);
-                                                                                const labelCenterX = (doc.internal.pageSize.width - labelTextWidth) / 2;
-
-                                                                                // Add label at the center for each image
-                                                                                doc.text(labelText, labelCenterX, yPosition);
-
-                                                                                // Add image to the document (ensure image fits properly)
-                                                                                const imageWidth = doc.internal.pageSize.width - 10; // 20px padding for margins
-                                                                                let imageHeight = 100; // Adjust according to your requirements
-                                                                                if (yPosition > doc.internal.pageSize.height - 40) {
-                                                                                    doc.addPage(); // Add a new page
-                                                                                    imageHeight = 150;
-                                                                                    yPosition = 20; // Reset yPosition for new page
-                                                                                }
-                                                                                doc.addImage(imageBases[0].base64, 'PNG', 5, yPosition + 5, imageWidth, imageHeight);
-
-                                                                                // Update yPosition after adding the image
-                                                                                yPosition += imageHeight + 10; // Adjust for image height + some margin
-
-                                                                                // Check if the yPosition exceeds the page height, and if so, add a new page
-
-                                                                            } else {
-                                                                                // If no image is found for this govt_id, center the message
-                                                                                const messageText = "Image #" + (i + 1) + " not found.";
-                                                                                const messageTextWidth = doc.getTextWidth(messageText);
-                                                                                const messageCenterX = (doc.internal.pageSize.width - messageTextWidth) / 2;
-
-                                                                                doc.text(messageText, messageCenterX, yPosition);
-
-                                                                                // Update yPosition after showing the message
-                                                                                yPosition += 20 + 30; // Adjust for message height + margin
-
-                                                                                // Check if the yPosition exceeds the page height, and if so, add a new page
-                                                                                if (yPosition > doc.internal.pageSize.height - 40) {
-                                                                                    doc.addPage();
-                                                                                    imageHeight = 150;// Add a new page
-                                                                                    yPosition = 20; // Reset yPosition for new page
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    } else {
-                                                                        // If no government ID images are available in the string, center the message
-                                                                        const noImagesText = "No Government ID images uploaded.";
-                                                                        const noImagesTextWidth = doc.getTextWidth(noImagesText);
-                                                                        const noImagesCenterX = (doc.internal.pageSize.width - noImagesTextWidth) / 2;
-
-                                                                        doc.text(noImagesText, noImagesCenterX, 40);
-                                                                    }
-                                                                } else {
-                                                                    // If govt_id is not present in cefData, center the message
-                                                                    const noGovtIdText = "No Government ID uploaded.";
-                                                                    const noGovtIdTextWidth = doc.getTextWidth(noGovtIdText);
-                                                                    const noGovtIdCenterX = (doc.internal.pageSize.width - noGovtIdTextWidth) / 2;
-
-                                                                    doc.text(noGovtIdText, noGovtIdCenterX, 40);
-                                                                }
-
-                                                                // console.log(`Step 6: Adding passport photo to PDF`);
-
-                                                                if (customBgv === 1) {
-                                                                    doc.addPage();
-                                                                }
-                                                                const passport_photoHeight = 62;
-                                                                yPosition = 10;
-
-                                                                if (customBgv === 1) {
-                                                                    // Center the "Passport Photo" header
-                                                                    const headerText = "Passport Photo.";
-                                                                    doc.text(headerText, doc.internal.pageSize.width / 2, yPosition, { align: 'center' });
-
-                                                                    if (cefData && cefData.passport_photo) {
-                                                                        // Split the comma-separated image URLs into an array
-                                                                        const imageUrls = cefData.passport_photo.trim().split(',').map(url => url.trim());
-
-                                                                        // Filter valid image URLs based on file extensions
-                                                                        const validImageUrls = imageUrls.filter(url => {
-                                                                            const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                                                            return validImageExtensions.some(ext => url.toLowerCase().endsWith(ext));
-                                                                        });
-
-                                                                        if (validImageUrls.length > 0) {
-                                                                            // Constants for grid layout
-                                                                            const cols = validImageUrls.length > 3 ? 3 : validImageUrls.length;  // Limit to 3 columns at most
-                                                                            const margin = 5;  // Space between images
-                                                                            const xStart = 5;  // Starting x position
-                                                                            const yStart = yPosition + 10;  // Starting y position (below the header)
-                                                                            const pageWidth = doc.internal.pageSize.width; // Get the page width
-
-                                                                            let xPos = xStart;
-                                                                            yPosition = yStart;
-
-                                                                            // Dynamically calculate the image width based on the number of images
-                                                                            const imageWidth = validImageUrls.length === 1 ? pageWidth - 2 * margin :
-                                                                                validImageUrls.length === 2 ? (pageWidth / 2) - margin :
-                                                                                    validImageUrls.length === 3 ? (pageWidth / 3) - margin :
-                                                                                        (pageWidth / 3) - margin; // Use 3 columns for more than 3 images
-
-                                                                            // Loop through each valid image URL and process it
-                                                                            for (let i = 0; i < validImageUrls.length; i++) {
-                                                                                const imageUrl = validImageUrls[i];
-                                                                                try {
-                                                                                    // Fetch the base64 image for each URL
-                                                                                    const imageBases = await fetchImageToBase([imageUrl]);
-
-                                                                                    if (imageBases && imageBases[0]?.base64) {
-                                                                                        // Add image to the PDF at the correct xPos and yPosition (grid layout)
-                                                                                        doc.addImage(imageBases[0].base64, imageBases[0].type, xPos, yPosition, imageWidth, passport_photoHeight);
-
-                                                                                        // Update xPos for the next image (move horizontally)
-                                                                                        xPos += imageWidth + margin;
-
-                                                                                        // If we have reached the end of the row (3 columns), reset xPos and move to the next row
-                                                                                        if ((i + 1) % cols === 0) {
-                                                                                            xPos = xStart;
-                                                                                            yPosition += passport_photoHeight + margin;  // Move to the next row
-                                                                                        }
-                                                                                    } else {
-                                                                                        // console.error(`Image at index ${i} could not be loaded.`);
-                                                                                        const imageNotFoundText = `Image #${i + 1} not found.`;
-                                                                                        const imageNotFoundTextWidth = doc.getTextWidth(imageNotFoundText);
-                                                                                        const imageNotFoundCenterX = (doc.internal.pageSize.width - imageNotFoundTextWidth) / 2;
-                                                                                        doc.text(imageNotFoundText, imageNotFoundCenterX, yPosition + 10);
-                                                                                        yPosition += 10;  // Update yPos for the error message
-                                                                                    }
-                                                                                } catch (error) {
-                                                                                    // console.error(`Error loading image at index ${i}:`, error);
-                                                                                    const errorMessage = `Error loading image #${i + 1}.`;
-                                                                                    const errorTextWidth = doc.getTextWidth(errorMessage);
-                                                                                    const errorTextCenterX = (doc.internal.pageSize.width - errorTextWidth) / 2;
-                                                                                    doc.text(errorMessage, errorTextCenterX, yPosition + 10);
-                                                                                    yPosition += 20;  // Update yPos for the error message
-                                                                                }
-                                                                            }
-                                                                        } else {
-                                                                            // If no valid image URLs are found, display a message
-                                                                            const noImagesText = "No valid Passport Photo images found.";
-                                                                            const noImagesTextWidth = doc.getTextWidth(noImagesText);
-                                                                            const noImagesCenterX = (doc.internal.pageSize.width - noImagesTextWidth) / 2;
-                                                                            doc.text(noImagesText, noImagesCenterX, yPosition + 10);
-                                                                            yPosition += 20; // Adjust for the message
-                                                                        }
-
-                                                                    } else {
-                                                                        // If no passport photo is available, display a message
-                                                                        const noPhotoText = "No Passport Photo uploaded.";
-                                                                        const noPhotoTextWidth = doc.getTextWidth(noPhotoText);
-                                                                        const noPhotoCenterX = (doc.internal.pageSize.width - noPhotoTextWidth) / 2;
-                                                                        doc.text(noPhotoText, noPhotoCenterX, yPosition + 10);
-                                                                        yPosition += 20; // Adjust position for the message
-                                                                    }
-                                                                }
-
-                                                                // console.log(`Step 7: Adding personal information to PDF`);
-
-
-
-
-                                                                const body = [
-                                                                    // Row 1: Headers
-                                                                    [
-                                                                        {
-                                                                            content: "Name of the Candidate (As per Government\nIdentity proof)",
-                                                                            colSpan: 1,
-                                                                            styles: { fontStyle: 'bold' }
-                                                                        },
-                                                                        { content: cefData.full_name || "N/A" },
-                                                                        { content: "Pancard Number", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.pan_card_number || "N/A" },
-                                                                    ],
-                                                                    // Row 2: Data for row 1
-                                                                    [
-                                                                        { content: "Aadhar Number", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.aadhar_card_number || "N/A" },
-                                                                        { content: "Father's Name", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.father_name || "N/A" },
-                                                                    ],
-                                                                    // Row 3: Second header row
-                                                                    [
-                                                                        { content: "Date of Birth(dd/mm/yy)", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.dob || "N/A" },
-                                                                        { content: "Husband's Name", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.husband_name || "N/A" },
-                                                                    ],
-                                                                    // Row 5: Third header row
-                                                                    [
-                                                                        { content: "Gender", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.gender || "N/A" },
-                                                                        { content: "Mobile Number", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.mb_no || "N/A" },
-                                                                    ],
-                                                                    // Row 6: Data for row 5
-                                                                    [
-                                                                        { content: "Nationality", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.nationality || "N/A" },
-                                                                        { content: "Marital Status", styles: { fontStyle: 'bold' } },
-                                                                        { content: cefData.marital_status || "N/A" },
-                                                                    ]
+                                                                console.log('cefData', cefData);
+                                                                const personalBody = [
+                                                                    [{ content: "Full Name of the Applicant", styles: { fontStyle: 'bold' } }, cefData.full_name || "N/A"],
+                                                                    [{ content: "Pancard Number", styles: { fontStyle: 'bold' } }, cefData.pan_card_number || "N/A"],
+                                                                    [{ content: "Aadhar Number", styles: { fontStyle: 'bold' } }, cefData.aadhar_card_number || "N/A"],
+                                                                    [{ content: "Father's Name", styles: { fontStyle: 'bold' } }, cefData.father_name || "N/A"],
+                                                                    [{ content: "Date of Birth (dd/mm/yy)", styles: { fontStyle: 'bold' } }, cefData.dob || "N/A"],
+                                                                    [{ content: "Husband's Name", styles: { fontStyle: 'bold' } }, cefData.husband_name || "N/A"],
+                                                                    [{ content: "Gender", styles: { fontStyle: 'bold' } }, cefData.gender || "N/A"],
+                                                                    [{ content: "Mobile Number", styles: { fontStyle: 'bold' } }, cefData.mb_no || "N/A"],
+                                                                    [{ content: "Nationality", styles: { fontStyle: 'bold' } }, cefData.nationality || "N/A"],
+                                                                    [{ content: "Marital Status", styles: { fontStyle: 'bold' } }, cefData.marital_status || "N/A"]
                                                                 ];
-
-
-                                                                // Header row
-                                                                const head = [
-                                                                    [
-                                                                        {
-                                                                            content: "Personal Information",
-                                                                            colSpan: 4,
-                                                                            styles: { halign: "left", fontSize: 12, fontStyle: "bold", fillColor: [197, 217, 241], textColor: [80, 80, 80] }
-                                                                        }
-                                                                    ]
-                                                                ];
-
-                                                                // Generate PDF page
-                                                                doc.addPage();
-                                                                yPosition = 20;
-
+                                                                console.log(`step1`);
                                                                 doc.autoTable({
-                                                                    startY: yPosition + 5,
-                                                                    head: head,
-                                                                    body: body,
+                                                                    startY: yPosition,
+                                                                    head: [[{
+                                                                        content: "Personal Information",
+                                                                        colSpan: 2,
+                                                                        styles: {
+                                                                            halign: "center",
+                                                                            fontSize: 12,
+                                                                            fontStyle: "bold",
+                                                                            fillColor: [197, 217, 241],
+                                                                            textColor: [80, 80, 80],
+                                                                            cellPadding: 2
+                                                                        }
+                                                                    }]],
+                                                                    body: personalBody,
                                                                     theme: 'grid',
-                                                                    margin: { top: 10 },
+                                                                    margin: { top: 10, left: 15, right: 15 },
                                                                     styles: {
-                                                                        cellPadding: 2,
                                                                         fontSize: 10,
-                                                                        halign: 'left',
-                                                                        valign: 'middle',
                                                                         font: 'helvetica',
-                                                                        lineWidth: 0.2
+                                                                        textColor: [80, 80, 80],
+                                                                        lineWidth: 0.2,
+                                                                        lineColor: [0, 0, 0],
+                                                                        cellPadding: 2
                                                                     },
+                                                                    headStyles: {
+                                                                        fillColor: [197, 217, 241],
+                                                                        textColor: [0, 0, 0],
+                                                                        fontStyle: 'bold',
+                                                                        fontSize: 11
+                                                                    },
+                                                                    columnStyles: {
+                                                                        0: { cellWidth: pageWidth * 0.4 },
+                                                                        1: { cellWidth: pageWidth * 0.6 }
+                                                                    }
                                                                 });
+                                                                yPosition = doc.autoTable.previous.finalY + gapY;
+                                                                console.log(`step2`);
 
-
-                                                                // console.log(`Step 8: Adding Aadhar and Pan card images to PDF`);
-
-                                                                const aadharcardimageHeight = 100;
-                                                                yPosition = doc.autoTable.previous.finalY + 10;
-
-                                                                if (customBgv === 1 && nationality === "Indian") {
-                                                                    // Add Aadhaar card image if available
-                                                                    if (cefData.aadhar_card_image) {
-                                                                        doc.addPage();
-                                                                        let yPosition = 10; // Reset yPosition for a new page
-                                                                        doc.setTextColor(0, 0, 0);
-                                                                        // Center the "Aadhar Card Image" header
-                                                                        doc.text('Aadhar Card Image', doc.internal.pageSize.width / 2, yPosition + 10, {
-                                                                            align: 'center'
-                                                                        });
-
-                                                                        // Process Aadhaar card image
-                                                                        const imageUrls = [cefData.aadhar_card_image.trim()];
-                                                                        const imageUrlsToProcess = imageUrls.filter(url => {
-                                                                            const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                                                            return validImageExtensions.some(ext => url.toLowerCase().endsWith(ext));
-                                                                        });
-
-                                                                        // If it's an image, add to PDF
-                                                                        if (imageUrlsToProcess.length > 0) {
-                                                                            const imageBases = await fetchImageToBase(imageUrlsToProcess);
-                                                                            doc.addImage(imageBases[0]?.base64, imageBases[0]?.type, 5, yPosition + 20, imageWidth, aadharcardimageHeight);
-                                                                            yPosition += aadharcardimageHeight;
-                                                                        } else {
-                                                                            // If not an image (e.g., PDF or XLS), show a clickable link centered
-                                                                            const fileUrl = cefData.aadhar_card_image.trim();
-                                                                            const buttonText = `Click to open Aadhar Card File`;
-                                                                            const textWidth = doc.getTextWidth(buttonText);
-                                                                            const centerX = (doc.internal.pageSize.width - textWidth) / 2;
-
-                                                                            doc.setFont("helvetica", "normal");
-                                                                            doc.setFontSize(10);
-                                                                            doc.setTextColor(255, 0, 0);
-                                                                            doc.text(buttonText, centerX, yPosition + 20);
-
-                                                                            // Create clickable link to open the file
-                                                                            doc.link(centerX, yPosition + 10, textWidth, 10, { url: fileUrl });
-
-                                                                            yPosition += 20;
-                                                                        }
-                                                                    }
-
-                                                                    yPosition = aadharcardimageHeight + 40;
-                                                                    if (cefData.pan_card_image) {
-                                                                        // Center the "Pan Card Image" header
-                                                                        doc.setTextColor(0, 0, 0);
-                                                                        doc.text('Pan Card Image', doc.internal.pageSize.width / 2, yPosition + 10, {
-                                                                            align: 'center'
-                                                                        });
-
-                                                                        const imageUrls = [cefData.pan_card_image.trim()];
-                                                                        const imageUrlsToProcess = imageUrls.filter(url => {
-                                                                            const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                                                            return validImageExtensions.some(ext => url.toLowerCase().endsWith(ext));
-                                                                        });
-
-                                                                        // If it's an image, add to PDF
-                                                                        if (imageUrlsToProcess.length > 0) {
-                                                                            const imageBases = await fetchImageToBase(imageUrlsToProcess);
-                                                                            doc.addImage(imageBases[0]?.base64, imageBases[0]?.type, 5, yPosition + 20, imageWidth, aadharcardimageHeight);
-                                                                            yPosition += aadharcardimageHeight + 20;
-                                                                        } else {
-                                                                            // If not an image (e.g., PDF or XLS), show a clickable link centered
-                                                                            const fileUrl = cefData.pan_card_image.trim();
-                                                                            const buttonText = `Click to open Pan Card File`;
-                                                                            const textWidth = doc.getTextWidth(buttonText);
-                                                                            const centerX = (doc.internal.pageSize.width - textWidth) / 2;
-
-                                                                            doc.setFont("helvetica", "normal");
-                                                                            doc.setFontSize(10);
-                                                                            doc.setTextColor(255, 0, 0);
-                                                                            doc.text(buttonText, centerX, yPosition + 20);
-
-                                                                            // Create clickable link to open the file
-                                                                            doc.link(centerX, yPosition + 10, textWidth, 10, { url: fileUrl });
-
-                                                                            yPosition += 20;
-                                                                        }
-                                                                    }
-                                                                } else {
-                                                                    yPosition = doc.autoTable.previous.finalY + 10;
-                                                                }
-
-                                                                if (customBgv === 1 && nationality === "Indian") {
-                                                                    doc.addPage();
-                                                                    yPosition = 10;
-                                                                }
-
-                                                                // console.log(`Step 9: Adding address information to PDF`);
-
-                                                                doc.setFontSize(14);
-                                                                yPosition += 10; // Move yPosition down for the next section
-
-                                                                // Table for Permanent Address
+                                                                // Table 3: Current Address
                                                                 doc.autoTable({
                                                                     startY: yPosition,
-                                                                    head: [
-                                                                        [
-                                                                            {
-                                                                                content: 'Permanent Address',
-                                                                                colSpan: 4,
-                                                                                styles: {
-                                                                                    halign: 'left',
-                                                                                    fontSize: 12,
-                                                                                    fontStyle: 'bold',
-                                                                                    fillColor: [197, 217, 241], textColor: [80, 80, 80]
-                                                                                }
-                                                                            }
-                                                                        ],
-                                                                    ],
+                                                                    head: [[{
+                                                                        content: 'Current Address',
+                                                                        colSpan: 2,
+                                                                        styles: {
+                                                                            halign: 'center',
+                                                                            fontSize: 12,
+                                                                            fontStyle: 'bold',
+                                                                            fillColor: [197, 217, 241],
+                                                                            textColor: [80, 80, 80]
+                                                                        }
+                                                                    }]],
                                                                     body: [
                                                                         [
-                                                                            { content: 'Permanent Address', styles: { fontStyle: 'bold', } },
-                                                                            cefData.permanent_address || 'N/A',
-                                                                            { content: 'Pin Code', styles: { fontStyle: 'bold', } },
-                                                                            cefData.permanent_pin_code || 'N/A',
-
+                                                                            { content: 'Current Address', styles: { fontStyle: 'bold' } },
+                                                                            cefData.full_address || 'N/A'
                                                                         ],
                                                                         [
-                                                                            { content: 'Mobile Number', styles: { fontStyle: 'bold', } },
-                                                                            cefData.permanent_address_landline_number || 'N/A',
-                                                                            { content: 'Current State', styles: { fontStyle: 'bold', } },
-                                                                            cefData.permanent_address_state || 'N/A'
+                                                                            { content: 'Pin Code', styles: { fontStyle: 'bold' } },
+                                                                            cefData.pin_code || 'N/A'
                                                                         ],
                                                                         [
-                                                                            { content: 'Current Landmark', styles: { fontStyle: 'bold', } },
-                                                                            cefData.permanent_prominent_landmark || 'N/A',
-                                                                            { content: 'Current Address Stay No.', styles: { fontStyle: 'bold', } },
-                                                                            cefData.permanent_address_stay_to || 'N/A',
-
+                                                                            { content: 'Mobile Number', styles: { fontStyle: 'bold' } },
+                                                                            cefData.current_address_landline_number || 'N/A'
                                                                         ],
                                                                         [
-                                                                            { content: 'Nearest Police Station', styles: { fontStyle: 'bold', } },
-                                                                            cefData.permanent_address_nearest_police_station || 'N/A'
+                                                                            { content: 'Current State', styles: { fontStyle: 'bold' } },
+                                                                            cefData.current_address_state || 'N/A'
+                                                                        ],
+                                                                        [
+                                                                            { content: 'Current Landmark', styles: { fontStyle: 'bold' } },
+                                                                            cefData.current_prominent_landmark || 'N/A'
+                                                                        ],
+                                                                        [
+                                                                            { content: 'Current Address Stay No.', styles: { fontStyle: 'bold' } },
+                                                                            cefData.current_address_stay_to || 'N/A'
+                                                                        ],
+                                                                        [
+                                                                            { content: 'Nearest Police Station', styles: { fontStyle: 'bold' } },
+                                                                            cefData.nearest_police_station || 'N/A'
                                                                         ]
                                                                     ],
                                                                     theme: 'grid',
-                                                                    margin: { top: 10 },
+                                                                    margin: { top: 10, left: 15, right: 15 },
                                                                     styles: {
                                                                         fontSize: 10,
-                                                                        cellPadding: 2
+                                                                        cellPadding: 2,
+                                                                        lineWidth: 0.2,
+                                                                        lineColor: [0, 0, 0]
+                                                                    },
+                                                                    columnStyles: {
+                                                                        0: { cellWidth: pageWidth * 0.4 },
+                                                                        1: { cellWidth: pageWidth * 0.6 }
                                                                     }
                                                                 });
 
+                                                                console.log(`step3`);
 
-                                                                // Update yPosition after the permanent address table
-                                                                yPosition = doc.autoTable.previous.finalY + 20; // Add a small margin after the table
-
-                                                                // Check if current address is different from permanent address
-                                                                if (!isSameAsPermanent) {
-                                                                    // Table for Current Address if not same as Permanent Address
-                                                                    doc.autoTable({
-                                                                        startY: yPosition,
-                                                                        head: [
-                                                                            [
-                                                                                {
-                                                                                    content: 'Current Address',
-                                                                                    colSpan: 4,
-                                                                                    styles: {
-                                                                                        halign: 'left',
-                                                                                        fontSize: 12,
-                                                                                        fontStyle: 'bold',
-                                                                                        fillColor: [197, 217, 241], textColor: [80, 80, 80]
-                                                                                    }
-                                                                                }
-                                                                            ]
-                                                                        ],
-                                                                        body: [
-                                                                            [
-                                                                                { content: 'Current Address', styles: { fontStyle: 'bold' } },
-                                                                                cefData.current_address || 'N/A',
-                                                                                { content: 'Pin Code', styles: { fontStyle: 'bold' } },
-                                                                                cefData.current_address_pin_code || 'N/A',
-
-                                                                            ],
-                                                                            [
-                                                                                { content: 'Mobile Number', styles: { fontStyle: 'bold' } },
-                                                                                cefData.current_address_landline_number || 'N/A',
-                                                                                { content: 'Current State', styles: { fontStyle: 'bold' } },
-                                                                                cefData.current_address_state || 'N/A'
-                                                                            ],
-                                                                            [
-                                                                                { content: 'Current Landmark', styles: { fontStyle: 'bold' } },
-                                                                                cefData.current_prominent_landmark || 'N/A',
-                                                                                { content: 'Current Address Stay No.', styles: { fontStyle: 'bold' } },
-                                                                                cefData.current_address_stay_to || 'N/A',
-                                                                                ''
-                                                                            ],
-                                                                            [
-                                                                                { content: 'Nearest Police Station', styles: { fontStyle: 'bold' } },
-                                                                                cefData.current_address_nearest_police_station || 'N/A',
-                                                                                ''
-                                                                            ]
-                                                                        ],
-                                                                        theme: 'grid',
-                                                                        margin: { top: 10 },
-                                                                        styles: {
-                                                                            fontSize: 10,
-                                                                            cellPadding: 2
-                                                                        }
-                                                                    });
-
-
-                                                                    // Update yPosition after the current address table
-                                                                    yPosition = doc.autoTable.previous.finalY + 10; // Add a small margin after the table
-                                                                }
-
-
-                                                                yPosition = doc.autoTable.previous.finalY + 10;
-                                                                // console.log(`Step 10: Adding education information to PDF`);
+                                                                yPosition = doc.autoTable.previous.finalY - 2;
                                                                 (async () => {
                                                                     if (!serviceDataMain.length) {
                                                                         const pageWidth = doc.internal.pageSize.width;
@@ -1138,568 +699,78 @@ module.exports = {
                                                                         yPosition += 20;
                                                                     } else {
 
-                                                                        // const selectedServices = serviceDataMain.slice(0, 2); // Get only the first 2 services
-
                                                                         for (let i = 0; i < serviceDataMain.length; i++) {
                                                                             const service = serviceDataMain[i];
-                                                                            const tableData = [];
+                                                                            console.log(`step6`);
 
-                                                                            if (serviceDataMain.length > 1) {
-                                                                                doc.addPage();
-                                                                                yPosition = 20;
+                                                                            const isNonEmpty = (obj) => {
+                                                                                if (!obj || typeof obj !== 'object') return false;
+                                                                                return Object.values(obj).some(
+                                                                                    (value) =>
+                                                                                        value !== null &&
+                                                                                        !(typeof value === 'string' && value.trim() === '')
+                                                                                );
+                                                                            };
+                                                                            console.log(`step7`);
+
+                                                                            let tableData = [];
+                                                                            let shouldSkipEntireTable = false;
+                                                                            console.log(`step8`);
+
+                                                                            for (const row of service.rows) {
+                                                                                for (const input of row.inputs) {
+                                                                                    const isCheckbox = input.type === 'checkbox';
+                                                                                    const value = serviceValueDataForPDF[service?.db_table]?.[input?.name] || 'N/A';
+
+                                                                                    if (
+                                                                                        isCheckbox &&
+                                                                                        (value === '1' || value === 1 || value === true || value === 'true')
+                                                                                    ) {
+                                                                                        shouldSkipEntireTable = true;
+                                                                                        break;
+                                                                                    }
+                                                                                }
+                                                                                if (shouldSkipEntireTable) break;
                                                                             }
-                                                                            // Reset yPosition before each service
 
-                                                                            function renderGapMessageNew(gap) {
-                                                                                if (!gap) {
-                                                                                    return 'No Gap'; // Return 'N/A' if gap is undefined or null
-                                                                                }
-                                                                                const { years, months } = gap; // Safely destructure if gap is valid
-                                                                                return `${years} years and ${months} months`;
+                                                                            if (shouldSkipEntireTable) {
+                                                                                continue;
                                                                             }
 
-
-                                                                            if (service.db_table === "gap_validation") {
-
-
-                                                                                doc.setFontSize(12);
-                                                                                doc.setTextColor(0, 0, 0);
-                                                                                if (annexureData?.gap_validation?.highest_education_gap === 'phd') {
-                                                                                    const { employGaps, gaps } = calculateGaps(annexureData);
-                                                                                    // console.log(`gaps - `, gaps);
-                                                                                    // Table for PhD information
-                                                                                    yPosition += 10;
-                                                                                    doc.autoTable({
-                                                                                        startY: yPosition,
-                                                                                        head: [
-                                                                                            [
-                                                                                                {
-                                                                                                    content: 'PHD',
-                                                                                                    colSpan: 2,
-                                                                                                    styles: {
-                                                                                                        halign: 'left',
-                                                                                                        fontSize: 12,
-                                                                                                        fontStyle: 'bold',
-                                                                                                        fillColor: [197, 217, 241], textColor: [80, 80, 80]
-                                                                                                    }
-                                                                                                }
-                                                                                            ]
-                                                                                        ],
-                                                                                        body: [
-                                                                                            [
-                                                                                                { content: 'Institute Name', styles: { fontStyle: 'bold' } },
-                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_institute_name_gap || 'N/A'
-                                                                                            ],
-                                                                                            [
-                                                                                                { content: 'School Name', styles: { fontStyle: 'bold' } },
-                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_school_name_gap || 'N/A'
-                                                                                            ],
-                                                                                            [
-                                                                                                { content: 'Start Date', styles: { fontStyle: 'bold' } },
-                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_start_date_gap || 'N/A'
-                                                                                            ],
-                                                                                            [
-                                                                                                { content: 'End Date', styles: { fontStyle: 'bold' } },
-                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_end_date_gap || 'N/A'
-                                                                                            ],
-                                                                                            [
-                                                                                                { content: 'Specialization', styles: { fontStyle: 'bold' } },
-                                                                                                annexureData?.gap_validation?.education_fields?.phd_1?.phd_specialization_gap || 'N/A'
-                                                                                            ],
-                                                                                            [
-                                                                                                { content: 'Gap Status', styles: { fontStyle: 'bold' } },
-                                                                                                renderGapMessageNew(gaps?.gapPostGradToPhd) || 'N/A'
-                                                                                            ]
-                                                                                        ],
-                                                                                        theme: 'grid',
-                                                                                        margin: { top: 10 },
-                                                                                        styles: {
-                                                                                            fontSize: 10,
-                                                                                            cellPadding: 2
-                                                                                        }
-                                                                                    });
-
-
-                                                                                    let index = 1;
-                                                                                    let phdSections = [];
-
-                                                                                    while (true) {
-                                                                                        const key = `phd_corespondence_${index}`;
-
-                                                                                        // Check if the key exists in annexureData
-                                                                                        if (!annexureData?.gap_validation?.education_fields?.[key]) {
-                                                                                            break; // Exit loop if the key is missing
-                                                                                        }
-
-                                                                                        const phdSection = annexureData.gap_validation.education_fields[key];
-
-                                                                                        // Log the current phdSection to ensure data is being read correctly
-
-                                                                                        phdSections.push([
-                                                                                            `Correspondence Phd ${index}`,
-                                                                                            phdSection?.phd_institute_name_gap || 'N/A',
-                                                                                            phdSection?.phd_school_name_gap || 'N/A',
-                                                                                            phdSection?.phd_start_date_gap || 'N/A',
-                                                                                            phdSection?.phd_end_date_gap || 'N/A',
-                                                                                            phdSection?.phd_specialization_gap || 'N/A'
-                                                                                        ]);
-
-                                                                                        index++; // Move to the next phd_corespondence_*
-                                                                                    }
-
-                                                                                    // Check if phdSections is populated before attempting to render
-
-                                                                                    if (phdSections.length > 0) {
-                                                                                        doc.setFontSize(16);
-                                                                                        const textWidth = doc.internal.pageSize.width;
-                                                                                        doc.text("Correspondence Phd Details", doc.internal.pageSize.width / 2, doc.autoTable.previous.finalY + 10, {
-                                                                                            align: 'center'
-                                                                                        });
-                                                                                        // Add the table data
-                                                                                        doc.autoTable({
-                                                                                            head: [['Correspondence', 'Institute Name', 'School Name', 'Start Date', 'End Date', 'Specialization']],
-                                                                                            body: phdSections,
-                                                                                            startY: doc.autoTable.previous.finalY + 20, // Start below the title
-                                                                                            theme: 'grid',
-                                                                                            styles: {
-                                                                                                cellPadding: 2,
-                                                                                                fontSize: 10
-                                                                                            }
-                                                                                        });
-                                                                                    } else {
-                                                                                    }
-
-                                                                                }
-                                                                                yPosition = doc.autoTable.previous.finalY + 10;
-                                                                                // Post Graduation
-                                                                                if (annexureData?.gap_validation?.highest_education_gap === 'post_graduation' || annexureData?.gap_validation?.highest_education_gap === 'phd') {
-                                                                                    doc.addPage();
-                                                                                    yPosition = 20;
-                                                                                    const { employGaps, gaps } = calculateGaps(annexureData);
-                                                                                    const postGradData = [
-                                                                                        ["University / Institute Name", annexureData?.gap_validation?.education_fields?.post_graduation_1?.post_graduation_university_institute_name_gap || 'N/A'],
-                                                                                        ["Course", annexureData?.gap_validation?.education_fields?.post_graduation_1?.post_graduation_course_gap || 'N/A'],
-                                                                                        ["Specialization Major", annexureData?.gap_validation?.education_fields?.post_graduation_1?.post_graduation_specialization_major_gap || 'N/A'],
-                                                                                        ["Start Date", annexureData?.gap_validation?.education_fields?.post_graduation_1?.post_graduation_start_date_gap || 'N/A'],
-                                                                                        ["End Date", annexureData?.gap_validation?.education_fields?.post_graduation_1?.post_graduation_end_date_gap || 'N/A'],
-                                                                                        ["Gap Status", renderGapMessageNew(gaps?.gapGradToPostGrad) || 'N/A']
-                                                                                    ];
-
-
-                                                                                    doc.autoTable({
-                                                                                        head: [[{ content: 'POST GRADUATION', colSpan: 2, styles: { halign: 'center', fontSize: 12, bold: true } }],
-                                                                                        ],
-                                                                                        body: postGradData,
-                                                                                        startY: yPosition + 5,
-                                                                                        theme: 'grid',
-                                                                                        styles: {
-                                                                                            cellPadding: 2,
-                                                                                            fontSize: 10
-                                                                                        }
-                                                                                    });
-
-                                                                                    let index = 1;
-                                                                                    let postGradSections = [];
-                                                                                    while (true) {
-                                                                                        const key = `post_graduation_corespondence_${index}`;
-
-                                                                                        // Check if the key exists in the annexureData
-                                                                                        if (!annexureData?.gap_validation?.education_fields?.[key]) {
-                                                                                            break; // Exit loop if the key is missing
-                                                                                        }
-
-                                                                                        const postGradSection = annexureData.gap_validation.education_fields[key];
-
-                                                                                        // Push the section data into postGradSections array
-                                                                                        postGradSections.push([
-                                                                                            `Correspondence Post Graduation ${index}`,
-                                                                                            postGradSection?.post_graduation_university_institute_name_gap || 'N/A',
-                                                                                            postGradSection?.post_graduation_course_gap || 'N/A',
-                                                                                            postGradSection?.post_graduation_specialization_major_gap || 'N/A',
-                                                                                            postGradSection?.post_graduation_start_date_gap || 'N/A',
-                                                                                            postGradSection?.post_graduation_end_date_gap || 'N/A'
-                                                                                        ]);
-
-                                                                                        index++; // Move to the next post_graduation_corespondence_*
-                                                                                    }
-
-                                                                                    // Add a title for the table
-                                                                                    yPosition += 20;
-
-                                                                                    if (postGradSections.length > 0) {
-                                                                                        doc.setFontSize(16);
-                                                                                        doc.text("Correspondence Post Graduation Details", doc.internal.pageSize.width / 2, doc.autoTable.previous.finalY + 10, {
-                                                                                            align: 'center'
-                                                                                        });
-
-                                                                                        doc.autoTable({
-                                                                                            head: [['Correspondence', 'University/Institute Name', 'Course', 'Specialization Major', 'Start Date', 'End Date']],
-                                                                                            body: postGradSections,
-                                                                                            startY: doc.autoTable.previous.finalY + 20, // Start below the title
-                                                                                            theme: 'grid',
-                                                                                            styles: {
-                                                                                                cellPadding: 2,
-                                                                                                fontSize: 10
-                                                                                            }
-                                                                                        });
-                                                                                    }
-
-                                                                                }
-
-                                                                                // Graduation
-                                                                                yPosition = yPosition += 30;
-                                                                                if (annexureData?.gap_validation?.highest_education_gap === 'graduation' || annexureData?.gap_validation?.highest_education_gap === 'post_graduation' || annexureData?.gap_validation?.highest_education_gap === 'phd') {
-                                                                                    const { employGaps, gaps } = calculateGaps(annexureData);
-
-                                                                                    const gradData = [
-                                                                                        ["University / Institute Name", annexureData?.gap_validation?.education_fields?.graduation_1?.graduation_university_institute_name_gap || 'N/A'],
-                                                                                        ["Course", annexureData?.gap_validation?.education_fields?.graduation_1?.graduation_course_gap || 'N/A'],
-                                                                                        ["Specialization Major", annexureData?.gap_validation?.education_fields?.graduation_1?.graduation_specialization_major_gap || 'N/A'],
-                                                                                        ["Start Date", annexureData?.gap_validation?.education_fields?.graduation_1?.graduation_start_date_gap || 'N/A'],
-                                                                                        ["End Date", annexureData?.gap_validation?.education_fields?.graduation_1?.graduation_end_date_gap || 'N/A'],
-                                                                                        ["Gap Status", renderGapMessageNew(gaps?.gapSrSecToGrad) || 'N/A']
-
-                                                                                    ];
-
-                                                                                    doc.autoTable({
-                                                                                        head: [[{ content: 'GRADUATION', colSpan: 2, styles: { halign: 'center', fontSize: 12, bold: true } }],
-                                                                                        ],
-                                                                                        body: gradData,
-                                                                                        startY: doc.autoTable.previous.finalY + 10,
-                                                                                        theme: 'grid',
-                                                                                        styles: {
-                                                                                            cellPadding: 2,
-                                                                                            fontSize: 10
-                                                                                        }
-                                                                                    });
-
-                                                                                    let index = 1;
-                                                                                    let Graduation = [];
-                                                                                    while (true) {
-                                                                                        const key = `graduation_corespondence_${index}`;
-
-                                                                                        // Check if the key exists in the annexureData
-                                                                                        if (!annexureData?.gap_validation?.education_fields?.[key]) {
-                                                                                            break; // Exit loop if the key is missing
-                                                                                        }
-
-                                                                                        const GradSec = annexureData.gap_validation.education_fields[key];
-
-                                                                                        // Push the section data into Graduation array
-                                                                                        Graduation.push([
-                                                                                            `Correspondence Graduation ${index}`,
-                                                                                            GradSec?.graduation_university_institute_name_gap || 'N/A',
-                                                                                            GradSec?.graduation_course_gap || 'N/A',
-                                                                                            GradSec?.graduation_specialization_major_gap || 'N/A',
-                                                                                            GradSec?.graduation_start_date_gap || 'N/A',
-                                                                                            GradSec?.graduation_end_date_gap || 'N/A'
-                                                                                        ]);
-
-                                                                                        index++; // Move to the next post_graduation_corespondence_*
-                                                                                    }
-
-                                                                                    if (Graduation.length > 0) {
-                                                                                        // Add a title for the table
-                                                                                        doc.setFontSize(16);
-                                                                                        doc.text("Correspondence Graduation Details", doc.internal.pageSize.width / 2, doc.autoTable.previous.finalY + 10, {
-                                                                                            align: 'center'
-                                                                                        });
-                                                                                        // Add the table data
-                                                                                        doc.autoTable({
-                                                                                            head: [['Correspondence', 'University/Institute Name', 'Course', 'Specialization Major', 'Start Date', 'End Date']],
-                                                                                            body: Graduation,
-                                                                                            startY: doc.autoTable.previous.finalY + 30, // Start below the title
-                                                                                            theme: 'grid',
-                                                                                            styles: {
-                                                                                                cellPadding: 2,
-                                                                                                fontSize: 10
-                                                                                            }
-                                                                                        });
-
-                                                                                    }
-
-                                                                                    // Call this function separately if required for gap message
-                                                                                }
-
-                                                                                if (annexureData?.gap_validation?.highest_education_gap === 'senior_secondary' || annexureData?.gap_validation?.highest_education_gap === 'graduation' || annexureData?.gap_validation?.highest_education_gap === 'phd' || annexureData?.gap_validation?.highest_education_gap === 'post_graduation') {
-                                                                                    const { employGaps, gaps } = calculateGaps(annexureData);
-                                                                                    const seniorSecondaryData = [
-                                                                                        ["School Name", annexureData?.gap_validation?.education_fields?.senior_secondary?.senior_secondary_school_name_gap || 'N/A'],
-                                                                                        ["Start Date", annexureData?.gap_validation?.education_fields?.senior_secondary?.senior_secondary_start_date_gap || 'N/A'],
-                                                                                        ["End Date", annexureData?.gap_validation?.education_fields?.senior_secondary?.senior_secondary_end_date_gap || 'N/A'],
-                                                                                        ["Gap Status", renderGapMessageNew(gaps?.gapSecToSrSec) || 'N/A']
-                                                                                    ];
-
-                                                                                    doc.autoTable({
-                                                                                        head: [[{ content: 'SENIOR SECONDARY', colSpan: 2, styles: { halign: 'center', fontSize: 12, bold: true } }],
-                                                                                        ],
-                                                                                        body: seniorSecondaryData,
-                                                                                        startY: doc.autoTable.previous.finalY + 30,
-                                                                                        theme: 'grid',
-                                                                                        styles: {
-                                                                                            cellPadding: 2,
-                                                                                            fontSize: 10
-                                                                                        }
-                                                                                    });
-
-                                                                                    let index = 1;
-                                                                                    let seniorSecondarySections = [];
-
-                                                                                    while (true) {
-                                                                                        const key = `senior_secondary_corespondence_${index}`;
-
-                                                                                        // Check if the key exists in annexureData
-                                                                                        if (!annexureData?.gap_validation?.education_fields?.[key]) {
-                                                                                            break; // Exit loop if the key is missing
-                                                                                        }
-
-                                                                                        const seniorSecondarySection = annexureData.gap_validation.education_fields[key];
-
-                                                                                        // Push the section data into seniorSecondarySections array
-                                                                                        seniorSecondarySections.push([
-                                                                                            `Correspondence SENIOR SECONDARY ${index}`,
-                                                                                            seniorSecondarySection?.senior_secondary_school_name_gap || 'N/A',
-                                                                                            seniorSecondarySection?.senior_secondary_start_date_gap || 'N/A',
-                                                                                            seniorSecondarySection?.senior_secondary_end_date_gap || 'N/A'
-                                                                                        ]);
-
-                                                                                        index++; // Move to the next senior_secondary_corespondence_*
-                                                                                    }
-
-                                                                                    // Add a title for the table
-                                                                                    if (seniorSecondarySections.length > 0) {
-                                                                                        doc.setFontSize(16);
-                                                                                        doc.text("Correspondence Senior Secondary Details", doc.internal.pageSize.width / 2, doc.autoTable.previous.finalY + 10, {
-                                                                                            align: 'center'
-                                                                                        });
-                                                                                        // Add the table data
-                                                                                        doc.autoTable({
-                                                                                            head: [['Correspondence', 'School Name', 'Start Date', 'End Date']],
-                                                                                            body: seniorSecondarySections,
-                                                                                            startY: doc.autoTable.previous.finalY + 20, // Start below the title
-                                                                                            theme: 'grid',
-                                                                                            styles: {
-                                                                                                cellPadding: 2,
-                                                                                                fontSize: 10
-                                                                                            }
-                                                                                        });
-
-                                                                                    }
-
-                                                                                    ;  // Call this function separately if required for gap message
-                                                                                }
-
-                                                                                doc.addPage();
-                                                                                yPosition = 10;
-                                                                                // Secondary Education Section
-                                                                                if (
-                                                                                    annexureData["gap_validation"].highest_education_gap === 'secondary' ||
-                                                                                    annexureData["gap_validation"].highest_education_gap === 'senior_secondary' ||
-                                                                                    annexureData["gap_validation"].highest_education_gap === 'graduation' ||
-                                                                                    annexureData["gap_validation"].highest_education_gap === 'phd' ||
-                                                                                    annexureData["gap_validation"].highest_education_gap === 'post_graduation'
-                                                                                ) {
-
-                                                                                    const secondaryData = [
-                                                                                        ["School Name", annexureData?.gap_validation?.education_fields?.secondary?.secondary_school_name_gap || 'N/A'],
-                                                                                        ["Start Date", annexureData?.gap_validation?.education_fields?.secondary?.secondary_start_date_gap || 'N/A'],
-                                                                                        ["End Date", annexureData?.gap_validation?.education_fields?.secondary?.secondary_end_date_gap || 'N/A']
-                                                                                    ];
-
-                                                                                    // Generate the table for secondary education
-                                                                                    doc.autoTable({
-                                                                                        head: [[{ content: 'SECONDARY', colSpan: 2, styles: { halign: 'center', fontSize: 12, bold: true } }],
-                                                                                        ],
-                                                                                        body: secondaryData,
-                                                                                        startY: yPosition,
-                                                                                        theme: 'grid',
-                                                                                        styles: {
-                                                                                            cellPadding: 2,
-                                                                                            fontSize: 10
-                                                                                        }
-                                                                                    });
-
-                                                                                    let index = 1;
-                                                                                    let SecondarySections = [];
-
-                                                                                    // Loop through to find any "secondary_corespondence_*" sections and add them
-                                                                                    while (true) {
-                                                                                        const key = `secondary_corespondence_${index}`;
-
-                                                                                        // Check if the key exists in annexureData
-                                                                                        if (!annexureData?.gap_validation?.education_fields?.[key]) {
-                                                                                            break; // Exit loop if the key is missing
-                                                                                        }
-
-                                                                                        const secondarySection = annexureData.gap_validation.education_fields[key];
-
-                                                                                        // Push the section data into SecondarySections array
-                                                                                        SecondarySections.push([
-                                                                                            `Correspondence SECONDARY ${index}`,
-                                                                                            secondarySection?.secondary_school_name_gap || 'N/A',
-                                                                                            secondarySection?.secondary_start_date_gap || 'N/A',
-                                                                                            secondarySection?.secondary_end_date_gap || 'N/A'
-                                                                                        ]);
-
-                                                                                        index++; // Move to the next secondary_corespondence_*
-                                                                                    }
-
-                                                                                    // Add a title for the table if there are any secondary sections
-                                                                                    if (SecondarySections.length > 0) {
-                                                                                        doc.setFontSize(16);
-                                                                                        doc.text("Correspondence Secondary Education Details", doc.internal.pageSize.width / 2, doc.autoTable.previous.finalY + 10, {
-                                                                                            align: 'center'
-                                                                                        });
-                                                                                        // Add the table data
-                                                                                        doc.autoTable({
-                                                                                            head: [['Secondary No.', 'School Name', 'Start Date', 'End Date']],
-                                                                                            body: SecondarySections,
-                                                                                            startY: doc.autoTable.previous.finalY + 20, // Start below the title
-                                                                                            theme: 'grid',
-                                                                                            styles: {
-                                                                                                cellPadding: 2,
-                                                                                                fontSize: 10
-                                                                                            }
-                                                                                        });
-
-
-                                                                                    }
-                                                                                }
-
-
-                                                                                yPosition = doc.autoTable.previous.finalY + 10;
-
-                                                                                // Employment Section
-                                                                                doc.setFontSize(18);
-                                                                                const employmentData = [
-                                                                                    ["Years of Experience", annexureData["gap_validation"].years_of_experience_gap || ''],
-                                                                                    ["No of Employment", annexureData["gap_validation"].no_of_employment || '']
-                                                                                ];
-
-                                                                                doc.autoTable({
-                                                                                    head: [[{ content: `Employment Deails`, colSpan: 2, styles: { halign: 'center', fontSize: 12, bold: true } }],
-                                                                                    ],
-                                                                                    body: employmentData,
-                                                                                    startY: doc.autoTable.previous.finalY + 10,
-                                                                                    theme: 'grid',
-                                                                                    styles: {
-                                                                                        cellPadding: 2,
-                                                                                        fontSize: 10
-                                                                                    }
+                                                                            service.rows.forEach((row) => {
+                                                                                row.inputs.forEach((input) => {
+                                                                                    const value = serviceValueDataForPDF[service?.db_table]?.[input?.name] || 'N/A';
+
+                                                                                    if (input.type === 'file' || input.type === 'checkbox') return;
+
+                                                                                    tableData.push([
+                                                                                        { content: input.label, styles: { fontStyle: 'bold' } }, // Bold label
+                                                                                        value
+                                                                                    ]);
                                                                                 });
+                                                                            });
 
-                                                                                doc.setFontSize(12);
-                                                                                // Dynamically render Employment Forms
-                                                                                if (annexureData["gap_validation"].no_of_employment > 0) {
-                                                                                    let yPosition = doc.autoTable.previous.finalY + 10;
-                                                                                    const { employGaps, gaps } = calculateGaps(annexureData);
-                                                                                    Array.from({ length: annexureData["gap_validation"].no_of_employment || 0 }, (_, index) => {
-                                                                                        const employmentFormData = [
-                                                                                            ["Employment Type", annexureData["gap_validation"]?.employment_fields?.[`employment_${index + 1}`]?.[`employment_type_gap`] || ''],
-                                                                                            ["Start Date", annexureData["gap_validation"]?.employment_fields?.[`employment_${index + 1}`]?.[`employment_start_date_gap`] || ''],
-                                                                                            ["End Date", annexureData["gap_validation"]?.employment_fields?.[`employment_${index + 1}`]?.[`employment_end_date_gap`] || '']
-                                                                                        ];
-
-                                                                                        doc.autoTable({
-                                                                                            head: [[{ content: `Employment (${index + 1})`, colSpan: 2, styles: { halign: 'center', fontSize: 12, bold: true } }],
-                                                                                            ],
-                                                                                            body: employmentFormData,
-                                                                                            startY: yPosition,
-                                                                                            theme: 'grid',
-                                                                                            styles: {
-                                                                                                cellPadding: 2,
-                                                                                                fontSize: 10
-                                                                                            }
-                                                                                        });
-
-                                                                                        yPosition = doc.autoTable.previous.finalY + 10;
-                                                                                        for (let idx = 0; idx < employGaps.length; idx++) {
-                                                                                            const item = employGaps[idx];  // Fix: Use idx directly, not idx - 1
-
-
-                                                                                            if (item) {
-                                                                                                const isNoGap = item.difference.toLowerCase().includes("no") && item.difference.toLowerCase().includes("gap");
-
-                                                                                                const isMatchingEndDate = item.endValue === annexureData["gap_validation"]?.employment_fields?.[`employment_${index}`]?.[`employment_end_date_gap`];
-
-                                                                                                if (isMatchingEndDate) {
-                                                                                                    // Prepare the text to be shown in the document
-                                                                                                    const textToDisplay = `${isNoGap ? item.difference : `GAP:${item.difference || 'No gap Found'}`}`;
-
-                                                                                                    // Log the text that will be displayed
-
-                                                                                                    // Display the text in the document
-                                                                                                    doc.text(
-                                                                                                        textToDisplay,
-                                                                                                        14,
-                                                                                                        doc.autoTable.previous.finalY + 7
-                                                                                                    );
-
-                                                                                                    // Update yPosition for next table or text
-                                                                                                    yPosition = doc.autoTable.previous.finalY + 10;
-
-                                                                                                }
-                                                                                            }
-                                                                                        }
-
-
-                                                                                    });
-                                                                                }
-
-
-
+                                                                            // ✅ Add spacing bet
+                                                                            if (tableData.length > 0 && i !== 0) {
+                                                                                yPosition -= 2;
                                                                             }
-                                                                            else {
-                                                                                service.rows.forEach((row, rowIndex) => {
-                                                                                    // First: check if any has_not_done checkbox is checked
-                                                                                    let skipRow = false;
-
-                                                                                    for (const input of row.inputs) {
-                                                                                        if (input.type === 'checkbox' && input.name?.startsWith('has_not_done')) {
-                                                                                            const rawValue = annexureData[service.db_table]?.[input.name];
-                                                                                            const isChecked = ["1", 1, true, "true"].includes(rawValue ?? false);
-                                                                                            if (isChecked) {
-                                                                                                skipRow = true;
-                                                                                                break; // no need to check more
-                                                                                            }
-                                                                                        }
-                                                                                    }
-
-                                                                                    if (skipRow) return; // Skip this row entirely
-
-                                                                                    // Continue with normal input processing
-                                                                                    row.inputs.forEach((input) => {
-                                                                                        const isCheckbox = input.type === 'checkbox';
-                                                                                        const isDoneCheckbox = isCheckbox && input.name?.startsWith('done_or_not');
-                                                                                        const rawValue = annexureData[service.db_table]?.[input.name];
-                                                                                        const isChecked = ["1", 1, true, "true"].includes(rawValue ?? false);
-
-                                                                                        if (isDoneCheckbox && !isChecked) return; // Skip done_or_not if not checked
-                                                                                        if (input.type === 'file') return; // Skip file inputs
-
-                                                                                        let inputValue;
-                                                                                        if (rawValue === 1 || rawValue === "1") {
-                                                                                            inputValue = "TRUE";
-                                                                                        } else if (rawValue === 0 || rawValue === "0") {
-                                                                                            inputValue = "FALSE";
-                                                                                        } else if (rawValue === null || rawValue === undefined || rawValue === "") {
-                                                                                            inputValue = "N/A";
-                                                                                        } else {
-                                                                                            inputValue = rawValue;
-                                                                                        }
-
-                                                                                        tableData.push([
-                                                                                            { content: input.label, styles: { fontStyle: 'bold' } },
-                                                                                            inputValue
-                                                                                        ]);
-                                                                                    });
-                                                                                });
-
-
-
-                                                                                // Add service heading
+                                                                            if (tableData.length > 0) {
                                                                                 doc.setFontSize(16);
                                                                                 yPosition += 10;
+
+                                                                                const pageHeight = doc.internal.pageSize.getHeight();
+                                                                                const pageWidth = doc.internal.pageSize.getWidth();
+                                                                                const tableWidth = pageWidth - 30;
+                                                                                const col1Width = tableWidth * 0.4;
+                                                                                const col2Width = tableWidth * 0.6;
+
+                                                                                const estimatedTableHeight = 10 + (tableData.length * 10); // Rough estimation, adjust if needed
+
+                                                                                // Check if space is sufficient, otherwise add a new page
+                                                                                if (yPosition + estimatedTableHeight > pageHeight) {
+                                                                                    doc.addPage();
+                                                                                    yPosition = 20;
+                                                                                }
 
                                                                                 doc.autoTable({
                                                                                     startY: yPosition,
@@ -1709,261 +780,192 @@ module.exports = {
                                                                                                 content: service.heading,
                                                                                                 colSpan: 2,
                                                                                                 styles: {
-                                                                                                    halign: 'left',
+                                                                                                    halign: 'center',
                                                                                                     fontSize: 12,
                                                                                                     fontStyle: 'bold',
-                                                                                                    fillColor: [197, 217, 241], textColor: [80, 80, 80]
+                                                                                                    fillColor: [197, 217, 241],
+                                                                                                    textColor: [80, 80, 80]
                                                                                                 }
                                                                                             }
                                                                                         ]
                                                                                     ],
-                                                                                    body: tableData || 'N/A',
+                                                                                    body: tableData,
                                                                                     theme: 'grid',
-                                                                                    margin: { top: 10, horizontal: 10 },
+                                                                                    margin: { top: 10, left: 15, right: 15 },
                                                                                     styles: {
                                                                                         fontSize: 10,
-                                                                                        cellPadding: 2
+                                                                                        cellPadding: 2,
+                                                                                        lineWidth: 0.2,
+                                                                                        lineColor: [0, 0, 0],
+                                                                                    },
+                                                                                    columnStyles: {
+                                                                                        0: { cellWidth: col1Width },
+                                                                                        1: { cellWidth: col2Width }
+                                                                                    },
+                                                                                    headStyles: {
+                                                                                        fillColor: [197, 217, 241],
+                                                                                        textColor: [80, 80, 80]
+                                                                                    },
+                                                                                    didDrawPage: (data) => {
+                                                                                        // You can add a title or page number here if needed
+                                                                                    },
+                                                                                    // Avoid repeating head automatically
+                                                                                    // only draw header on the first page of the table
+                                                                                    didDrawCell: (data) => {
+                                                                                        if (data.section === 'head' && data.row.index > 0) {
+                                                                                            data.cell.styles.fillColor = null; // Skip redraw of header
+                                                                                        }
                                                                                     }
                                                                                 });
 
-                                                                                yPosition = doc.lastAutoTable.finalY + 10; // Update yPosition after table
-
-
-                                                                                // Process and add images for this service
-                                                                                const fileInputs = service.rows.flatMap(row =>
-                                                                                    row.inputs.filter(({ type }) => type === "file").map(input => input.name)
-                                                                                );
-
-                                                                                if (fileInputs.length > 0) {
-                                                                                    const filePromises = fileInputs.map(async (inputName) => {
-                                                                                        const annexureFilesStr = annexureData[service.db_table]?.[inputName];
-                                                                                        let annexureDataImageHeight = 180; // Reduced image height
-
-                                                                                        if (annexureFilesStr) {
-                                                                                            const fileUrls = annexureFilesStr.split(",").map(url => url.trim());
-                                                                                            if (fileUrls.length === 0) {
-                                                                                                doc.setFont("helvetica", "italic");
-                                                                                                doc.setFontSize(10);
-                                                                                                doc.setTextColor(150, 150, 150);
-                                                                                                doc.text("No annexure files available.", 10, yPosition + 10);
-                                                                                                yPosition += 10;
-                                                                                                return;
-                                                                                            }
-
-                                                                                            const imageUrlsToProcess = fileUrls.filter(url => {
-                                                                                                const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                                                                                return validImageExtensions.some(ext => url.toLowerCase().endsWith(ext));
-                                                                                            });
-
-                                                                                            const nonImageUrlsToProcess = fileUrls.filter(url => {
-                                                                                                const validNonImageExtensions = ['pdf', 'xls', 'xlsx'];
-                                                                                                return validNonImageExtensions.some(ext => url.toLowerCase().endsWith(ext));
-                                                                                            });
-
-                                                                                            // Handle image files
-                                                                                            if (imageUrlsToProcess.length > 0) {
-                                                                                                const imageBases = await fetchImageToBase(imageUrlsToProcess);
-                                                                                                if (imageBases) {
-                                                                                                    for (const image of imageBases) {
-                                                                                                        if (!image.base64.startsWith('data:image/')) continue;
-
-                                                                                                        doc.addPage();
-                                                                                                        yPosition = 20;
-
-                                                                                                        try {
-                                                                                                            const pageWidth = doc.internal.pageSize.width;
-                                                                                                            const padding = 8;
-                                                                                                            const borderX = 10;
-                                                                                                            const borderY = yPosition + 20;
-                                                                                                            const borderWidth = pageWidth - 20;
-                                                                                                            const borderHeight = annexureDataImageHeight;
-
-                                                                                                            // Image position inside border box with padding
-                                                                                                            const imageX = borderX + padding;
-                                                                                                            const imageY = borderY + padding;
-                                                                                                            const imageWidth = borderWidth - padding * 2;
-                                                                                                            const imageHeight = borderHeight - padding * 2;
-
-                                                                                                            // Add image
-                                                                                                            doc.addImage(image.base64, image.type, imageX, imageY, imageWidth, imageHeight);
-
-                                                                                                            // Add border
-                                                                                                            doc.setDrawColor(0); // black
-                                                                                                            doc.setLineWidth(0.5);
-                                                                                                            doc.rect(borderX, borderY, borderWidth, borderHeight); // x, y, width, height
-
-                                                                                                            yPosition += (borderHeight + 30);
-                                                                                                        } catch (error) {
-                                                                                                            // console.error(`Error adding image:`, error);
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-
-                                                                                            // Handle non-image files
-                                                                                            const pageHeight = doc.internal.pageSize.height;
-                                                                                            const margin = 10;
-                                                                                            let lineHeight = 10;
-
-                                                                                            if (nonImageUrlsToProcess.length > 0) {
-                                                                                                nonImageUrlsToProcess.forEach(url => {
-                                                                                                    if (yPosition + lineHeight > pageHeight - margin) {
-                                                                                                        doc.addPage();
-                                                                                                        yPosition = margin;
-                                                                                                    }
-
-                                                                                                    doc.setFont("helvetica", "normal");
-                                                                                                    doc.setFontSize(10);
-                                                                                                    doc.setTextColor(255, 0, 0);
-                                                                                                    const buttonText = `Click to open the file`;
-                                                                                                    const textWidth = doc.getTextWidth(buttonText);
-                                                                                                    const centerX = (doc.internal.pageSize.width - textWidth) / 2;
-
-                                                                                                    doc.text(buttonText, centerX, yPosition + 10);
-                                                                                                    doc.link(centerX, yPosition + 10, textWidth, 10, { url: url });
-
-                                                                                                    yPosition += lineHeight + 2;
-                                                                                                });
-                                                                                            }
-                                                                                        }
-                                                                                    });
-
-                                                                                    await Promise.all(filePromises);
-                                                                                }
-
-
-
+                                                                                yPosition = doc.lastAutoTable.finalY;
                                                                             }
 
                                                                         }
                                                                     }
 
-                                                                    doc.addPage();
                                                                     let newYPosition = 20
+                                                                    doc.addPage();
+                                                                    const disclaimerButtonHeight = 8; // Button height (without padding)
+                                                                    const disclaimerButtonWidth = doc.internal.pageSize.width - 20; // Full width minus margins
+
+                                                                    // Constants for additional spacing
+                                                                    const buttonBottomPadding = 5; // Padding below the button
+                                                                    const backgroundColor = '#c5d9f1';
+
+                                                                    let disclaimerY = 10; // Starting position
+                                                                    const adjustedDisclaimerButtonHeight = disclaimerButtonHeight + buttonBottomPadding;
+                                                                    const disclaimerButtonXPosition = (doc.internal.pageSize.width - disclaimerButtonWidth) / 2;
+
+                                                                    doc.setDrawColor(0, 0, 0); // Set border color to black
+                                                                    doc.setFillColor(backgroundColor); // Fill color
+                                                                    doc.rect(disclaimerButtonXPosition, disclaimerY, disclaimerButtonWidth, disclaimerButtonHeight, 'F'); // Fill
+                                                                    doc.rect(disclaimerButtonXPosition, disclaimerY, disclaimerButtonWidth, disclaimerButtonHeight, 'D'); // Border
+
+                                                                    doc.setTextColor(80, 80, 80); // Black text
+                                                                    doc.setFontSize(13);
+
+                                                                    // Calculate center Y of button for vertical alignment
+                                                                    const disclaimerTextYPosition = disclaimerY + (disclaimerButtonHeight / 2) + (doc.getFontSize() / 8);
+                                                                    doc.setFont('helvetica', 'bold'); // Set font to Helvetica Bold
+                                                                    doc.text('Declaration and Authorization', doc.internal.pageSize.width / 2, disclaimerTextYPosition, {
+                                                                        align: 'center',
+                                                                    });
+
+
+                                                                    const disclaimerTextPart1 = `I hereby authorize Screeningstar Solutions Private Limited and its representative to verify the information provided in my application for employment and this employee background verification form, and to conduct enquiries as may be necessary, at the company’s discretion.
+                                                                    
+                                                                    I authorize all persons who may have information relevant to this enquiry to disclose it to ScreeningStar HR Services Pvt Ltd or its representative. I release all persons from liability on account of such disclosure. I confirm that the above information is correct to the best of my knowledge. I agree that in the event of my obtaining employment, my probationary appointment, confirmation as well as continued employment in the services of the company are subject to clearance of medical test and background verification check done by the company.`;
+
+                                                                    const disclaimerLinesPart1 = doc.splitTextToSize(disclaimerTextPart1, disclaimerButtonWidth);
+                                                                    const lineHeight = 5
+                                                                    const disclaimerTextHeight =
+                                                                        disclaimerLinesPart1.length * lineHeight +
+                                                                        lineHeight; // Extra space for anchor // Extra space for anchor
+                                                                    const disclaimerTextTopMargin = 5; // Margin from top of the disclaimer text
+
+                                                                    const totalContentHeight = adjustedDisclaimerButtonHeight + disclaimerTextHeight + disclaimerTextTopMargin;
+                                                                    let currentY = disclaimerY + adjustedDisclaimerButtonHeight + disclaimerTextTopMargin;
+                                                                    let maxLineWidth = 0;
+                                                                    disclaimerLinesPart1.forEach((line) => {
+                                                                        const lineWidth = doc.getTextWidth(line);
+                                                                        if (lineWidth > maxLineWidth) {
+                                                                            maxLineWidth = lineWidth;
+                                                                        }
+                                                                    });
+                                                                    const paragraphX = (doc.internal.pageSize.width - maxLineWidth - 10.5);
+                                                                    const paragraphGap = 2; // smaller gap between paragraphs
+                                                                    const paragraphs = disclaimerTextPart1.trim().split(/\n\s*\n/); // split into paragraphs
+                                                                    doc.setFont('helvetica', 'normal'); // Reset to normal for following text
+
+                                                                    paragraphs.forEach(paragraph => {
+                                                                        const lines = doc.splitTextToSize(paragraph.trim(), disclaimerButtonWidth);
+
+                                                                        lines.forEach((line, index) => {
+                                                                            doc.setFontSize(13);
+                                                                            doc.setFont('helvetica', 'normal'); // Reset to normal for following text
+
+                                                                            const words = line.trim().split(' ');
+                                                                            const lineWidth = doc.getTextWidth(line);
+                                                                            const spaceWidth = doc.getTextWidth(' ');
+                                                                            const extraSpace = disclaimerButtonWidth - lineWidth;
+                                                                            const spacesToAdd = words.length - 1;
+
+                                                                            let spacing = 0;
+
+                                                                            // Apply spacing only if it's not the last line and enough words to space
+                                                                            if (index !== lines.length - 1 && spacesToAdd > 0) {
+                                                                                spacing = extraSpace / spacesToAdd;
+
+                                                                                // 👌 Control it — don’t let it stretch too much
+                                                                                const maxSpacing = 1.5; // You can tweak this to 1 or 2
+                                                                                spacing = Math.min(spacing, maxSpacing);
+                                                                            }
+
+                                                                            let x = paragraphX;
+                                                                            words.forEach((word, wordIndex) => {
+                                                                                doc.text(word, x, currentY);
+                                                                                x += doc.getTextWidth(word) + spaceWidth + (wordIndex < words.length - 1 ? spacing : 0);
+                                                                            });
+
+                                                                            currentY += lineHeight;
+                                                                        });
+
+                                                                        currentY += paragraphGap;
+                                                                    });
+
+                                                                    newYPosition = doc.autoTable.previous.finalY - 10; // Adjusting for space from the last table
+
+
+                                                                    const newPageWidth = pageWidth + 10;
+                                                                    // Create a single row table
+                                                                    const tableWidth = newPageWidth * 0.9; // Adjust this value for the desired table width
+                                                                    const tableMargin = (newPageWidth - tableWidth) / 2; // Calculate the left margin to center the table
+                                                                    const createdDate = formatDate(cefData.created_at);
+
+
                                                                     doc.autoTable({
-                                                                        head: [[{ content: 'Declaration and Authorization', colSpan: 2, styles: { halign: 'center', fontSize: 16, bold: true, fillColor: [197, 217, 241], textColor: [80, 80, 80] } }],
-                                                                        ], // Table headers
+                                                                        startY: newYPosition - 70,
+                                                                        margin: { left: tableMargin }, // Apply the margin to center the table
                                                                         body: [
                                                                             [
                                                                                 {
-                                                                                    content: 'I hereby authorize ScreeningStar and its representative to verify information provided in my application for employment and this employee background verification form, and to conduct enquiries as may be necessary, at the company’s discretion. I authorize all persons who may have information relevant to this enquiry to disclose it to ScreeningStar or its representative. I release all persons from liability on account of such disclosure. I confirm that the above information is correct to the best of my knowledge. I agree that in the event of my obtaining employment, my probationary appointment, confirmation as well as continued employment in the services of the company are subject to clearance of medical test and background verification check done by the company.',
-                                                                                    colSpan: 2, styles: { halign: 'center', fontSize: 9, cellPadding: 5 }
+                                                                                    content: 'Full Name of Applicant',
+                                                                                    styles: { fontStyle: 'bold', halign: 'center' } // Center align the first column
+                                                                                },
+                                                                                {
+                                                                                    content: cefData.full_name,
+                                                                                    styles: { fontStyle: 'normal', halign: 'center' } // Center align the second column
+                                                                                },
+                                                                                {
+                                                                                    content: 'Date',
+                                                                                    styles: { fontStyle: 'bold', halign: 'center' } // Center align the third column
+                                                                                },
+                                                                                {
+                                                                                    content: createdDate,
+                                                                                    styles: {
+                                                                                        fontStyle: 'normal',
+                                                                                        fillColor: [255, 255, 255], // white background
+                                                                                        halign: 'center' // Center align the fourth column
+                                                                                    }
                                                                                 }
-                                                                            ],
-                                                                            ['Name', cefData.name_declaration],
-                                                                            ['Date', cefData.declaration_date],
+                                                                            ]
                                                                         ],
-                                                                        startY: newYPosition, // Starting Y position
-                                                                        margin: { top: 20 }, // Margin for the table
-                                                                        theme: 'grid', // You can change the table theme (grid, stripes, etc.)
-                                                                    });
-
-                                                                    newYPosition = doc.autoTable.previous.finalY + 20; // Adjusting for space from the last table
-
-                                                                    doc.text("Attach Signature.", doc.internal.pageSize.width / 2, newYPosition, { align: 'center' });
-
-                                                                    const lineHeight = 10;
-                                                                    const margin = 10;
-                                                                    const DocHeight = 100; // Height for images (adjust as needed)
-
-                                                                    // Check if the signature exists
-                                                                    if (cefData && cefData.signature) {
-                                                                        // Check if the signature is an image
-                                                                        const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-                                                                        const isImage = validImageExtensions.some(ext => cefData.signature.toLowerCase().endsWith(ext));
-
-                                                                        if (isImage) {
-                                                                            // Fetch the base64 image
-                                                                            const imageBases = await fetchImageToBase([cefData.signature]);
-
-                                                                            // Assuming imageBases[0] exists and contains the base64 string
-                                                                            if (imageBases && imageBases[0] && imageBases[0].base64) {
-                                                                                const imageBase64 = imageBases[0].base64;
-                                                                                const imageWidth = doc.internal.pageSize.width - 10; // 20px padding for margins
-
-                                                                                // Add the image to the PDF
-                                                                                doc.addImage(imageBase64, 'PNG', 5, newYPosition + 20, imageWidth, DocHeight);
-                                                                                newYPosition += DocHeight + 20; // Update the position after the image
-                                                                            }
-                                                                        } else {
-                                                                            // If not an image, show a clickable button to view the document
-                                                                            const buttonText = "Click to view attached document";
-                                                                            const textWidth = doc.getTextWidth(buttonText);
-                                                                            const centerX = (doc.internal.pageSize.width - textWidth) / 2;
-
-                                                                            // Add the text at the center
-                                                                            doc.setFont("helvetica", "normal");
-                                                                            doc.setFontSize(10);
-                                                                            doc.setTextColor(255, 0, 0); // Red color for the button text
-                                                                            doc.text(buttonText, centerX + 10, newYPosition + 10);
-
-                                                                            // Create the clickable link to open the document (e.g., cefData.signature could be a URL to the document)
-                                                                            doc.link(centerX, newYPosition + 10, textWidth, 10, { url: cefData.signature });
-
-                                                                            // Update the position after the link
-                                                                            newYPosition += lineHeight + 20; // Adjust space for next content
-                                                                        }
-                                                                    } else {
-                                                                        // If no signature exists, add a message or alternative content
-                                                                        doc.text("No Signature uploaded.", 10, newYPosition + 10);
-                                                                        newYPosition += lineHeight + 20; // Adjust space for next content
-                                                                    }
-
-                                                                    doc.addPage();
-
-                                                                    doc.setFontSize(14);
-                                                                    doc.setFont("helvetica", "bold");
-                                                                    const pageWidth = doc.internal.pageSize.width; // Get the page width
-                                                                    const textWidth = doc.getTextWidth("Documents (Mandatory)"); // Get the width of the text
-
-                                                                    doc.text("Documents (Mandatory)", (pageWidth - textWidth) / 2, 15); // Center-align text
-
-                                                                    // Define table columns
-                                                                    const columns = [
-                                                                        { content: "Education", styles: { fontStyle: "bold" } },
-                                                                        { content: "Employment", styles: { fontStyle: "bold" } },
-                                                                        { content: "Government ID / Address Proof", styles: { fontStyle: "bold" } }
-                                                                    ];
-
-                                                                    // Define table rows
-                                                                    const rows = [
-                                                                        [
-                                                                            "Photocopy of degree certificate and final mark sheet of all examinations.",
-                                                                            "Photocopy of relieving / experience letter for each employer mentioned in the form.",
-                                                                            "Aadhaar Card / Bank Passbook / Passport Copy / Driving License / Voter ID."
-                                                                        ]
-                                                                    ];
-
-                                                                    // Generate table
-                                                                    doc.autoTable({
-                                                                        startY: 20,
-                                                                        head: [columns],
-                                                                        headStyles: {
-                                                                            lineWidth: 0.3,
-                                                                            fillColor: [197, 217, 241],
-                                                                            textColor: [80, 80, 80]
-
+                                                                        theme: 'grid',
+                                                                        styles: {
+                                                                            fontSize: 12,
+                                                                            halign: 'center', // Center align the entire table content
+                                                                            lineWidth: 0.2,
+                                                                            lineColor: [0, 0, 0],
+                                                                            cellPadding: 2,
                                                                         },
-                                                                        body: rows,
-                                                                        styles: { fontSize: 10, cellPadding: 2 },
-                                                                        theme: "grid",
                                                                         columnStyles: {
-                                                                            0: { halign: "center", minCellWidth: 60 },
-                                                                            1: { halign: "center", minCellWidth: 60 },
-                                                                            2: { halign: "center", minCellWidth: 60 }
+                                                                            0: { cellWidth: newPageWidth * 0.3 },
+                                                                            1: { cellWidth: newPageWidth * 0.2 },
+                                                                            2: { cellWidth: newPageWidth * 0.3 },
+                                                                            3: { cellWidth: newPageWidth * 0.2 },
                                                                         }
                                                                     });
-
-                                                                    // Footer Note
-                                                                    doc.setFontSize(10);
-                                                                    doc.setTextColor(0, 0, 0);
-                                                                    doc.setFont("helvetica", "normal");
-                                                                    doc.text(
-                                                                        "NOTE: If you experience any issues or difficulties with submitting the form, please take screenshots of all pages, including attachments and error messages, and email them to onboarding@screeningstar.in. Additionally, you can reach out to us at onboarding@screeningstar.in.",
-                                                                        14,
-                                                                        doc.lastAutoTable.finalY + 10,
-                                                                        { maxWidth: 180 }
-                                                                    );
 
                                                                     // Save PDF
                                                                     console.log(`pdfFileName - `, pdfFileName);
