@@ -238,6 +238,18 @@ exports.bulkCreate = (req, res) => {
                             date = convertedDate; // Update date to the correctly formatted one
                         }
 
+                        // If the date is in DD-MM-YYYY, convert it to YYYY-MM-DD
+                        if (entry.callback_asked_at) {
+                            const convertedDate = convertDateFormat(entry.callback_asked_at);
+                            if (!isValidDate(convertedDate)) {
+                                return res.status(400).json({
+                                    status: false,
+                                    message: "Invalid date format. Please use 'YYYY-MM-DD' or 'DD-MM-YYYY'.",
+                                });
+                            }
+                            callback_asked_at = convertedDate; // Update date to the correctly formatted one
+                        }
+
                         return new Promise((resolveInsert, rejectInsert) => {
                             DailyActivity.create(
                                 entry.bd_expert_name || "",
@@ -253,7 +265,7 @@ exports.bulkCreate = (req, res) => {
                                 entry.is_interested_in_using_our_services || "",
                                 entry.reason_for_not_using_our_services || "",
                                 entry.reason_for_using_our_services || "",
-                                entry.callback_asked_at || "",
+                                callback_asked_at || "",
                                 entry.is_prospect || "",
                                 entry.comments || "",
                                 entry.followup_date || "",
