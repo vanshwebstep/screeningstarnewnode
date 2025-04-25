@@ -50,41 +50,6 @@ exports.create = (req, res) => {
         });
     }
 
-    // Function to check if the date is in DD-MM-YYYY format
-    const isValidDate = (date) => {
-        const regex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD format
-        return regex.test(date) && !isNaN(new Date(date).getTime());
-    };
-
-    // Convert DD-MM-YYYY to YYYY-MM-DD
-    const convertDateFormat = (date) => {
-        if (typeof date === 'string' && date.includes('-')) {
-            const parts = date.split('-');
-            if (parts.length === 3) {
-                if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
-                    // DD-MM-YYYY format
-                    const day = parts[0];
-                    const month = parts[1];
-                    const year = parts[2];
-                    return `${year}-${month}-${day}`; // Convert to YYYY-MM-DD
-                }
-            }
-        }
-        return date; // If it's already in YYYY-MM-DD format, return as is
-    };
-
-    // If the date is in DD-MM-YYYY, convert it to YYYY-MM-DD
-    if (date) {
-        const convertedDate = convertDateFormat(date);
-        if (!isValidDate(convertedDate)) {
-            return res.status(400).json({
-                status: false,
-                message: "Invalid date format. Please use 'YYYY-MM-DD' or 'DD-MM-YYYY'.",
-            });
-        }
-        date = convertedDate; // Update date to the correctly formatted one
-    }
-
     const action = "internal_storage";
     Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
         if (!result.status) {
@@ -237,10 +202,46 @@ exports.bulkCreate = (req, res) => {
 
                     // ✅ Proceed to insert after uniqueness check
                     const insertPromises = cleanedData.map(entry => {
+
+                        // Function to check if the date is in DD-MM-YYYY format
+                        const isValidDate = (date) => {
+                            const regex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD format
+                            return regex.test(date) && !isNaN(new Date(date).getTime());
+                        };
+
+                        // Convert DD-MM-YYYY to YYYY-MM-DD
+                        const convertDateFormat = (date) => {
+                            if (typeof date === 'string' && date.includes('-')) {
+                                const parts = date.split('-');
+                                if (parts.length === 3) {
+                                    if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+                                        // DD-MM-YYYY format
+                                        const day = parts[0];
+                                        const month = parts[1];
+                                        const year = parts[2];
+                                        return `${year}-${month}-${day}`; // Convert to YYYY-MM-DD
+                                    }
+                                }
+                            }
+                            return date; // If it's already in YYYY-MM-DD format, return as is
+                        };
+
+                        // If the date is in DD-MM-YYYY, convert it to YYYY-MM-DD
+                        if (entry.date) {
+                            const convertedDate = convertDateFormat(entry.date);
+                            if (!isValidDate(convertedDate)) {
+                                return res.status(400).json({
+                                    status: false,
+                                    message: "Invalid date format. Please use 'YYYY-MM-DD' or 'DD-MM-YYYY'.",
+                                });
+                            }
+                            date = convertedDate; // Update date to the correctly formatted one
+                        }
+
                         return new Promise((resolveInsert, rejectInsert) => {
                             DailyActivity.create(
                                 entry.bd_expert_name || "",
-                                entry.date || "",
+                                date || "",
                                 entry.client_organization_name || "",
                                 entry.company_size || "",
                                 entry.spoc_name || "",
