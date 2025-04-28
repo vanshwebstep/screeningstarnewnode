@@ -73,7 +73,7 @@ const candidateApplication = {
 
   list: async (branch_id, callback) => {
     const sql =
-      "SELECT * FROM `candidate_applications` WHERE `branch_id` = ? AND is_deleted != 1 ORDER BY created_at DESC";
+      "SELECT * FROM `candidate_applications` WHERE `branch_id` = ? ORDER BY created_at DESC";
 
     const results = await sequelize.query(sql, {
       replacements: [branch_id], // Positional replacements using ?
