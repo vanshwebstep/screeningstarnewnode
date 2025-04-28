@@ -2,6 +2,57 @@ const { sequelize } = require("../../../config/db");
 const { QueryTypes } = require("sequelize");
 
 const dav = {
+
+  isApplicationExist: async (app_id, branch_id, customer_id, callback) => {
+    const sql = `
+                  SELECT ca.*, c.name AS company_name
+                  FROM candidate_applications ca
+                  INNER JOIN customers c ON c.id = ca.customer_id
+                  LEFT JOIN dav_applications dav ON dav.candidate_application_id = ca.id
+                  WHERE ca.id = ? 
+                    AND ca.branch_id = ? 
+                    AND ca.customer_id = ? 
+                    AND ca.is_submitted = 0
+                    AND (dav.id IS NULL OR dav.is_submitted = 1);
+              `;
+    const results = await sequelize.query(sql, {
+      replacements: [app_id, branch_id, customer_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length === 0) {
+      return callback(null, { status: false, message: "Application not found" });
+    }
+
+    const application = results[0];
+
+    if (application.reminder_sent === 3) {
+      const lastReminderDate = new Date(
+        Math.max(
+          new Date(application.cef_last_reminder_sent_at).getTime(),
+          new Date(application.dav_last_reminder_sent_at).getTime()
+        )
+      );
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const expirationDate = new Date(today);
+      expirationDate.setDate(today.getDate() - 1);
+
+      if (lastReminderDate <= expirationDate) {
+        const updateSQL = `UPDATE candidate_applications SET status = 2 WHERE id = ?`;
+        await sequelize.query(updateSQL, {
+          replacements: [app_id], // Positional replacements using ?
+          type: QueryTypes.SELECT,
+        });
+        return;
+      }
+    }
+    return callback(null, { status: true, message: "Application exists", data: application });
+
+
+  },
+
   getDAVApplicationById: async (candidate_application_id, callback) => {
     try {
       const sql = "SELECT * FROM `dav_applications` WHERE `candidate_application_id` = ?";

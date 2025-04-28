@@ -51,7 +51,7 @@ exports.isApplicationExist = (req, res) => {
     });
   }
 
-  Candidate.isApplicationExist(
+  DAV.isApplicationExist(
     app_id,
     branch_id,
     customer_id,
