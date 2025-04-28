@@ -6,6 +6,12 @@ const DAV = require("../../../../models/customer/branch/davModel");
 const Service = require("../../../../models/admin/serviceModel");
 const App = require("../../../../models/appModel");
 
+const {
+  upload,
+  saveImage,
+  saveImages,
+} = require("../../../../utils/cloudImageSave");
+
 exports.isApplicationExist = (req, res) => {
   const { app_id, branch_id, customer_id } = req.query;
 
@@ -349,7 +355,7 @@ exports.upload = async (req, res) => {
               message: applicationResult.message,
             });
           }
-    
+
           // Store application data if status is true
           const exists = applicationResult.data;
 
