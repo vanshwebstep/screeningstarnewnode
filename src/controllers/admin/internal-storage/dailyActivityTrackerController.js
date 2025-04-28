@@ -209,63 +209,10 @@ exports.bulkCreate = (req, res) => {
                             return regex.test(date) && !isNaN(new Date(date).getTime());
                         };
 
-                        // Convert DD-MM-YYYY to YYYY-MM-DD
-                        const convertDateFormat = (date) => {
-                            if (typeof date === 'string' && date.includes('-')) {
-                                const parts = date.split('-');
-                                if (parts.length === 3) {
-                                    if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
-                                        // DD-MM-YYYY format
-                                        const day = parts[0];
-                                        const month = parts[1];
-                                        const year = parts[2];
-                                        return `${year}-${month}-${day}`; // Convert to YYYY-MM-DD
-                                    }
-                                }
-                            }
-                            return date; // If it's already in YYYY-MM-DD format, return as is
-                        };
-
-                        // If the date is in DD-MM-YYYY, convert it to YYYY-MM-DD
-                        if (entry.date) {
-                            const convertedDate = convertDateFormat(entry.date);
-                            if (!isValidDate(convertedDate)) {
-                                return res.status(400).json({
-                                    status: false,
-                                    message: "Invalid date format. Please use 'YYYY-MM-DD' or 'DD-MM-YYYY'.",
-                                });
-                            }
-                            date = convertedDate; // Update date to the correctly formatted one
-                        }
-
-                        // If the date is in DD-MM-YYYY, convert it to YYYY-MM-DD
-                        if (entry.callback_asked_at) {
-                            const convertedDate = convertDateFormat(entry.callback_asked_at);
-                            if (!isValidDate(convertedDate)) {
-                                return res.status(400).json({
-                                    status: false,
-                                    message: "Invalid date format. Please use 'YYYY-MM-DD' or 'DD-MM-YYYY'.",
-                                });
-                            }
-                            callback_asked_at = convertedDate; // Update date to the correctly formatted one
-                        }
-
-                        // If the date is in DD-MM-YYYY, convert it to YYYY-MM-DD
-                        if (entry.followup_date) {
-                            const convertedDate = convertDateFormat(entry.followup_date);
-                            if (!isValidDate(convertedDate)) {
-                                return res.status(400).json({
-                                    status: false,
-                                    message: "Invalid date format. Please use 'YYYY-MM-DD' or 'DD-MM-YYYY'.",
-                                });
-                            }
-                            followup_date = convertedDate; // Update date to the correctly formatted one
-                        }
-
                         return new Promise((resolveInsert, rejectInsert) => {
                             DailyActivity.create(
                                 entry.bd_expert_name || "",
-                                date || "",
+                                entry.date || "",
                                 entry.client_organization_name || "",
                                 entry.company_size || "",
                                 entry.spoc_name || "",
@@ -277,10 +224,10 @@ exports.bulkCreate = (req, res) => {
                                 entry.is_interested_in_using_our_services || "",
                                 entry.reason_for_not_using_our_services || "",
                                 entry.reason_for_using_our_services || "",
-                                callback_asked_at || "",
+                                entry.callback_asked_at || "",
                                 entry.is_prospect || "",
                                 entry.comments || "",
-                                followup_date || "",
+                                entry.followup_date || "",
                                 entry.followup_comments || "",
                                 entry.remarks || "",
                                 (err, result) => {
