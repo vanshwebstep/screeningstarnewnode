@@ -225,12 +225,13 @@ const candidateApplication = {
 
   isApplicationExist: async (app_id, branch_id, customer_id, callback) => {
     const sql = `
-        SELECT *
-        FROM candidate_applications 
-        WHERE id = ? 
-        AND branch_id = ? 
-        AND customer_id = ? 
-        AND is_submitted = 0
+        SELECT ca.*, c.name AS company_name
+        FROM candidate_applications ca
+        INNER JOIN customers c ON c.id = ca.customer_id
+        WHERE ca.id = ? 
+        AND ca.branch_id = ? 
+        AND ca.customer_id = ? 
+        AND ca.is_submitted = 0;
     `;
     const results = await sequelize.query(sql, {
       replacements: [app_id, branch_id, customer_id], // Positional replacements using ?
