@@ -187,6 +187,7 @@ const clientApplication = {
         \`client_applications\`
       WHERE 
         status != 'completed'
+        AND is_deleted != 1
         AND branch_id = ?
       ORDER BY 
         created_at DESC`;
