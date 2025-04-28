@@ -220,6 +220,7 @@ exports.submit = (req, res) => {
                 });
               }
 
+              /*
               if (
                 currentDAVApplication &&
                 Object.keys(currentDAVApplication).length > 0
@@ -229,6 +230,7 @@ exports.submit = (req, res) => {
                   message: "An application has already been submitted.",
                 });
               }
+              */
 
               // Create new DAV application
               DAV.create(
