@@ -6,6 +6,7 @@ const { QueryTypes } = require("sequelize");
 // Function to check if a file exists
 const checkFileExists = async (url) => {
   try {
+    console.log(`url - `, url);
     const response = await fetch(url, { method: "HEAD" });
     return response.ok;
   } catch (error) {
