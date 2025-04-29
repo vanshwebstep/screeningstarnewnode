@@ -39,100 +39,6 @@ const tatDelay = {
   /*
   attendanceIndex: async (callback) => {
     try {
-      const sql = `
-        SELECT 
-          cio.admin_id,
-          a.name AS admin_name,
-          a.profile_picture,
-          a.email AS admin_email,
-          a.mobile AS admin_mobile,
-          a.emp_id,
-          cio.status,
-          cio.created_at,
-          DATE(cio.created_at) AS record_date,
-          (
-            SELECT MIN(logs.created_at)
-            FROM admin_login_logs AS logs
-            WHERE logs.admin_id = cio.admin_id 
-              AND logs.action = 'login'
-              AND DATE(logs.created_at) = DATE(cio.created_at)
-          ) AS first_login_time
-        FROM check_in_outs AS cio
-        INNER JOIN admins a ON cio.admin_id = a.id
-        ORDER BY DATE(cio.created_at) DESC;
-      `;
-
-      const records = await sequelize.query(sql, {
-        type: QueryTypes.SELECT,
-      });
-
-      if (records.length === 0) {
-        return callback(null, { message: "No records found" });
-      }
-
-      // Step 2: Group and structure data per admin per day
-      const grouped = {};
-
-      for (const record of records) {
-        const adminId = record.admin_id;
-        const recordDate = record.record_date;
-
-        if (!grouped[recordDate]) {
-          grouped[recordDate] = {};
-        }
-
-        if (!grouped[recordDate][adminId]) {
-          grouped[recordDate][adminId] = {
-            date: recordDate,
-            admin_id: adminId,
-            admin_name: record.admin_name,
-            profile_picture: record.profile_picture,
-            admin_email: record.admin_email,
-            admin_mobile: record.admin_mobile,
-            emp_id: record.emp_id,
-            first_login_time: record.first_login_time,
-            first_check_in_time: null,
-            last_check_out_time: null,
-            check_in_outs: [],
-          };
-        }
-
-        const isCheckIn = record.status === 'check-in';
-        const isCheckOut = record.status === 'check-out';
-
-        if (isCheckIn && !grouped[recordDate][adminId].first_check_in_time) {
-          grouped[recordDate][adminId].first_check_in_time = record.created_at;
-        }
-
-        if (isCheckOut) {
-          grouped[recordDate][adminId].last_check_out_time = record.created_at;
-        }
-
-        grouped[recordDate][adminId].check_in_outs.push({
-          status: record.status,
-          time: record.created_at,
-        });
-      }
-
-      // Flatten into array sorted by date (newest first)
-      const result = [];
-
-      Object.keys(grouped)
-        .sort((a, b) => new Date(b) - new Date(a)) // newest date first
-        .forEach(date => {
-          result.push(...Object.values(grouped[date]));
-        });
-
-      return callback(null, result);
-    } catch (error) {
-      console.error("Error in index:", error);
-      return callback(error, null);
-    }
-  },
-  */
-
-  attendanceIndex: async (callback) => {
-    try {
       // Step 1: Fetch all admins
       const admins = await sequelize.query(`
         SELECT id AS admin_id, name AS admin_name, profile_picture, email AS admin_email, mobile AS admin_mobile, emp_id
@@ -276,6 +182,116 @@ const tatDelay = {
       // return callback(null, result);
     } catch (error) {
       console.error("Error in index:", error);
+      return callback(error, null);
+    }
+  },
+  */
+
+  attendanceIndex: async (callback) => {
+    try {
+      const breakTableName = "admin_breaks";
+      const adminLoginLogsTableName = "admin_login_logs";
+  
+      // Step 1: Fetch all admins
+      const admins = await sequelize.query(`
+        SELECT id AS admin_id, name AS admin_name, profile_picture, email AS admin_email, mobile AS admin_mobile, emp_id
+        FROM admins
+      `, {
+        type: QueryTypes.SELECT,
+      });
+  
+      const finalResult = [];
+  
+      // Step 2: Fetch all distinct dates from admin_login_logs
+      const distinctDatesResult = await sequelize.query(`
+        SELECT DISTINCT DATE(created_at) AS date
+        FROM ${adminLoginLogsTableName}
+        ORDER BY date DESC
+      `, {
+        type: QueryTypes.SELECT,
+      });
+  
+      const distinctDates = distinctDatesResult.map(row => row.date);
+  
+      // Step 3: Fetch all distinct break types
+      const distinctTypesResult = await sequelize.query(`
+        SELECT DISTINCT type
+        FROM ${breakTableName}
+      `, {
+        type: QueryTypes.SELECT,
+      });
+  
+      const distinctBreakTypes = distinctTypesResult.map(row => row.type);
+  
+      // Step 4: Loop through each admin and date
+      for (const admin of admins) {
+        for (const date of distinctDates) {
+  
+          // 4.1 Fetch first login time for that admin and date
+          const [firstLoginResult] = await sequelize.query(`
+            SELECT created_at AS first_login_time
+            FROM ${adminLoginLogsTableName}
+            WHERE admin_id = ? AND action = 'login' AND DATE(created_at) = ?
+            ORDER BY id ASC
+            LIMIT 1
+          `, {
+            replacements: [admin.admin_id, date],
+            type: QueryTypes.SELECT,
+          });
+
+          const [lastLogoutResult] = await sequelize.query(`
+            SELECT created_at AS last_logout_time
+            FROM ${adminLoginLogsTableName}
+            WHERE admin_id = ? AND action = 'logout' AND DATE(created_at) = ?
+            ORDER BY id DESC
+            LIMIT 1
+          `, {
+            replacements: [admin.admin_id, date],
+            type: QueryTypes.SELECT,
+          });
+  
+          const first_login_time = firstLoginResult ? firstLoginResult.first_login_time : null;
+          const last_logout_time = lastLogoutResult ? lastLogoutResult.last_logout_time : null;
+  
+          // 4.2 Fetch first break time for each type for that admin and date
+          const breakTimes = {};
+          for (const type of distinctBreakTypes) {
+            const [breakResult] = await sequelize.query(`
+              SELECT created_at
+              FROM ${breakTableName}
+              WHERE admin_id = ? AND type = ? AND DATE(created_at) = ?
+              ORDER BY id ASC
+              LIMIT 1
+            `, {
+              replacements: [admin.admin_id, type, date],
+              type: QueryTypes.SELECT,
+            });
+  
+            breakTimes[type] = breakResult ? breakResult.created_at : null;
+          }
+  
+          finalResult.push({
+            date,
+            admin_id: admin.admin_id,
+            admin_name: admin.admin_name,
+            profile_picture: admin.profile_picture,
+            admin_email: admin.admin_email,
+            admin_mobile: admin.admin_mobile,
+            emp_id: admin.emp_id,
+            first_login_time,
+            last_logout_time,
+            break_times: breakTimes,
+          });
+        }
+      }
+  
+      // Optional: sort by latest date first
+      finalResult.sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+      return callback(null, finalResult);
+  
+    } catch (error) {
+      console.error("Error in attendanceIndex:", error);
       return callback(error, null);
     }
   },
