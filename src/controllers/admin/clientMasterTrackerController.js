@@ -1766,93 +1766,94 @@ exports.generateReport = (req, res) => {
                                                   status === "completed" ||
                                                   status === "complete"
                                                 ) {
-                                                  console.log(`Step 29`);
 
-                                                  const pdfTargetDirectory = `uploads/customers/${currentCustomer.client_unique_id}/client-applications/${application.application_id}/final-reports`;
-                                                  const pdfFileName =
-                                                    `${application.application_id}-${application.name}-${(application.employee_id?.trim() || "NA")}-${(report_type.replace(/_/g, " ").toUpperCase())}.pdf`
-                                                      .replace(/\s+/g, "-")
-                                                      .toLowerCase();
-
-                                                  const pdfPath =
-                                                    await generatePDF(
-                                                      application_id,
-                                                      branch_id,
-                                                      pdfFileName,
-                                                      pdfTargetDirectory
-                                                    );
-                                                  attachments +=
-                                                    (attachments
-                                                      ? ","
-                                                      : "") +
-                                                    `${imageHost}/${pdfPath}`;
-
-                                                  if (verified === "yes") {
-                                                    console.log(`Step 30`);
-
-                                                    ClientMasterTrackerModel.updateReportCompletedStatus(
-                                                      {
-                                                        is_report_completed: 1,
-                                                        report_completed_at: new Date(), // or now() if it's a custom function returning Date
-                                                        application_id: application_id
-                                                      },
-                                                      async (err, result) => {
-                                                        if (err) {
-                                                          console.error(
-                                                            "Error updating data QC:",
-                                                            err
-                                                          );
-                                                          return res.status(500).json({
+                                                  App.appInfo(
+                                                    "backend",
+                                                    async (err, appInfo) => {
+                                                      if (err) {
+                                                        console.error(
+                                                          "Database error:",
+                                                          err
+                                                        );
+                                                        return res
+                                                          .status(500)
+                                                          .json({
                                                             status: false,
+                                                            err,
                                                             message:
-                                                              "An error occurred while updating data QC. Please try again.",
+                                                              err.message,
                                                             token: newToken,
                                                           });
-                                                        }
-                                                        if (send_mail == 0) {
-                                                          console.log(`Step 31`);
+                                                      }
 
-                                                          return res
-                                                            .status(200)
-                                                            .json({
-                                                              status: true,
-                                                              message: `CMT Application ${currentCMTApplication &&
-                                                                Object.keys(
-                                                                  currentCMTApplication
-                                                                ).length > 0
-                                                                ? "updated"
-                                                                : "created"
-                                                                } successfully`,
-                                                              email_status: 1,
-                                                              token: newToken,
-                                                            });
-                                                        }
-                                                        App.appInfo(
-                                                          "backend",
-                                                          async (err, appInfo) => {
+                                                      let imageHost =
+                                                        "www.example.in";
+
+                                                      if (appInfo) {
+                                                        imageHost =
+                                                          appInfo.cloud_host ||
+                                                          "www.example.in";
+                                                      }
+                                                      console.log(`Step 29`);
+
+                                                      const pdfTargetDirectory = `uploads/customers/${currentCustomer.client_unique_id}/client-applications/${application.application_id}/final-reports`;
+                                                      const pdfFileName =
+                                                        `${application.application_id}-${application.name}-${(application.employee_id?.trim() || "NA")}-${(report_type.replace(/_/g, " ").toUpperCase())}.pdf`
+                                                          .replace(/\s+/g, "-")
+                                                          .toLowerCase();
+
+                                                      const pdfPath =
+                                                        await generatePDF(
+                                                          application_id,
+                                                          branch_id,
+                                                          pdfFileName,
+                                                          pdfTargetDirectory
+                                                        );
+                                                      attachments +=
+                                                        (attachments
+                                                          ? ","
+                                                          : "") +
+                                                        `${imageHost}/${pdfPath}`;
+
+                                                      if (verified === "yes") {
+                                                        console.log(`Step 30`);
+
+                                                        ClientMasterTrackerModel.updateReportCompletedStatus(
+                                                          {
+                                                            is_report_completed: 1,
+                                                            report_completed_at: new Date(), // or now() if it's a custom function returning Date
+                                                            application_id: application_id
+                                                          },
+                                                          async (err, result) => {
                                                             if (err) {
                                                               console.error(
-                                                                "Database error:",
+                                                                "Error updating data QC:",
                                                                 err
                                                               );
+                                                              return res.status(500).json({
+                                                                status: false,
+                                                                message:
+                                                                  "An error occurred while updating data QC. Please try again.",
+                                                                token: newToken,
+                                                              });
+                                                            }
+                                                            if (send_mail == 0) {
+                                                              console.log(`Step 31`);
+
                                                               return res
-                                                                .status(500)
+                                                                .status(200)
                                                                 .json({
-                                                                  status: false,
-                                                                  err,
-                                                                  message:
-                                                                    err.message,
+                                                                  status: true,
+                                                                  message: `CMT Application ${currentCMTApplication &&
+                                                                    Object.keys(
+                                                                      currentCMTApplication
+                                                                    ).length > 0
+                                                                    ? "updated"
+                                                                    : "created"
+                                                                    } successfully`,
+                                                                  email_status: 1,
                                                                   token: newToken,
                                                                 });
-                                                            }
-
-                                                            let imageHost =
-                                                              "www.example.in";
-
-                                                            if (appInfo) {
-                                                              imageHost =
-                                                                appInfo.cloud_host ||
-                                                                "www.example.in";
                                                             }
                                                             const today =
                                                               new Date();
@@ -1927,63 +1928,120 @@ exports.generateReport = (req, res) => {
                                                                     });
                                                                 }
                                                               );
-                                                          }
-                                                        );
-                                                      });
-                                                  } else if (
-                                                    verified === "no"
-                                                  ) {
-                                                    console.log(`Step 34`);
-
-                                                    ClientMasterTrackerModel.updateReportCompletedStatus(
-                                                      {
-                                                        is_report_completed: 0,
-                                                        report_completed_at: null,
-                                                        application_id: application_id
-                                                      },
-                                                      async (err, result) => {
-                                                        if (err) {
-                                                          console.error(
-                                                            "Error updating data QC:",
-                                                            err
-                                                          );
-                                                          return res.status(500).json({
-                                                            status: false,
-                                                            message:
-                                                              "An error occurred while updating data QC. Please try again.",
-                                                            token: newToken,
                                                           });
-                                                        }
-                                                        if (send_mail == 0) {
-                                                          console.log(`Step 35`);
+                                                      } else if (
+                                                        verified === "no"
+                                                      ) {
+                                                        console.log(`Step 34`);
 
-                                                          return res
-                                                            .status(200)
-                                                            .json({
-                                                              status: true,
-                                                              message: `CMT Application ${currentCMTApplication &&
-                                                                Object.keys(
-                                                                  currentCMTApplication
-                                                                ).length > 0
-                                                                ? "updated"
-                                                                : "created"
-                                                                } successfully`,
-                                                              email_status: 2,
-                                                              token: newToken,
-                                                            });
-                                                        }
-                                                        qcReportCheckMail(
-                                                          "cmt",
-                                                          "qc",
-                                                          gender_title,
-                                                          application.name,
-                                                          application.application_id,
-                                                          attachments,
-                                                          toArr,
-                                                          ccArr
-                                                        )
-                                                          .then(() => {
-                                                            console.log(`Step 36`);
+                                                        ClientMasterTrackerModel.updateReportCompletedStatus(
+                                                          {
+                                                            is_report_completed: 0,
+                                                            report_completed_at: null,
+                                                            application_id: application_id
+                                                          },
+                                                          async (err, result) => {
+                                                            if (err) {
+                                                              console.error(
+                                                                "Error updating data QC:",
+                                                                err
+                                                              );
+                                                              return res.status(500).json({
+                                                                status: false,
+                                                                message:
+                                                                  "An error occurred while updating data QC. Please try again.",
+                                                                token: newToken,
+                                                              });
+                                                            }
+                                                            if (send_mail == 0) {
+                                                              console.log(`Step 35`);
+
+                                                              return res
+                                                                .status(200)
+                                                                .json({
+                                                                  status: true,
+                                                                  message: `CMT Application ${currentCMTApplication &&
+                                                                    Object.keys(
+                                                                      currentCMTApplication
+                                                                    ).length > 0
+                                                                    ? "updated"
+                                                                    : "created"
+                                                                    } successfully`,
+                                                                  email_status: 2,
+                                                                  token: newToken,
+                                                                });
+                                                            }
+                                                            qcReportCheckMail(
+                                                              "cmt",
+                                                              "qc",
+                                                              gender_title,
+                                                              application.name,
+                                                              application.application_id,
+                                                              attachments,
+                                                              toArr,
+                                                              ccArr
+                                                            )
+                                                              .then(() => {
+                                                                console.log(`Step 36`);
+
+                                                                return res
+                                                                  .status(200)
+                                                                  .json({
+                                                                    status: true,
+                                                                    message: `CMT Application ${currentCMTApplication &&
+                                                                      Object.keys(
+                                                                        currentCMTApplication
+                                                                      ).length > 0
+                                                                      ? "updated"
+                                                                      : "created"
+                                                                      } successfully and mail sent.`,
+                                                                    token: newToken,
+                                                                  });
+                                                              })
+                                                              .catch((emailError) => {
+                                                                console.error(
+                                                                  "Error sending email:",
+                                                                  emailError
+                                                                );
+                                                                console.log(`Step 37`);
+
+                                                                return res
+                                                                  .status(200)
+                                                                  .json({
+                                                                    status: true,
+                                                                    message: `CMT Application ${currentCMTApplication &&
+                                                                      Object.keys(
+                                                                        currentCMTApplication
+                                                                      ).length > 0
+                                                                      ? "updated"
+                                                                      : "created"
+                                                                      } successfully but failed to send mail.`,
+                                                                    token: newToken,
+                                                                  });
+                                                              });
+                                                            console.log(`Step 38`);
+                                                          });
+                                                      } else {
+                                                        ClientMasterTrackerModel.updateReportCompletedStatus(
+                                                          {
+                                                            is_report_completed: 0,
+                                                            report_completed_at: null,
+                                                            application_id: application_id
+                                                          },
+                                                          async (err, result) => {
+                                                            if (err) {
+                                                              console.error(
+                                                                "Error updating data QC:",
+                                                                err
+                                                              );
+                                                              return res.status(500).json({
+                                                                status: false,
+                                                                message:
+                                                                  "An error occurred while updating data QC. Please try again.",
+                                                                token: newToken,
+                                                              });
+                                                            }
+                                                            console.log(`Step 39`);
 
                                                             return res
                                                               .status(200)
@@ -1995,71 +2053,13 @@ exports.generateReport = (req, res) => {
                                                                   ).length > 0
                                                                   ? "updated"
                                                                   : "created"
-                                                                  } successfully and mail sent.`,
-                                                                token: newToken,
-                                                              });
-                                                          })
-                                                          .catch((emailError) => {
-                                                            console.error(
-                                                              "Error sending email:",
-                                                              emailError
-                                                            );
-                                                            console.log(`Step 37`);
-
-                                                            return res
-                                                              .status(200)
-                                                              .json({
-                                                                status: true,
-                                                                message: `CMT Application ${currentCMTApplication &&
-                                                                  Object.keys(
-                                                                    currentCMTApplication
-                                                                  ).length > 0
-                                                                  ? "updated"
-                                                                  : "created"
-                                                                  } successfully but failed to send mail.`,
+                                                                  } successfully.`,
                                                                 token: newToken,
                                                               });
                                                           });
-                                                        console.log(`Step 38`);
-                                                      });
-                                                  } else {
-                                                    ClientMasterTrackerModel.updateReportCompletedStatus(
-                                                      {
-                                                        is_report_completed: 0,
-                                                        report_completed_at: null,
-                                                        application_id: application_id
-                                                      },
-                                                      async (err, result) => {
-                                                        if (err) {
-                                                          console.error(
-                                                            "Error updating data QC:",
-                                                            err
-                                                          );
-                                                          return res.status(500).json({
-                                                            status: false,
-                                                            message:
-                                                              "An error occurred while updating data QC. Please try again.",
-                                                            token: newToken,
-                                                          });
-                                                        }
-                                                        console.log(`Step 39`);
 
-                                                        return res
-                                                          .status(200)
-                                                          .json({
-                                                            status: true,
-                                                            message: `CMT Application ${currentCMTApplication &&
-                                                              Object.keys(
-                                                                currentCMTApplication
-                                                              ).length > 0
-                                                              ? "updated"
-                                                              : "created"
-                                                              } successfully.`,
-                                                            token: newToken,
-                                                          });
-                                                      });
-
-                                                  }
+                                                      }
+                                                    });
                                                 } else {
                                                   ClientMasterTrackerModel.updateReportCompletedStatus(
                                                     {
