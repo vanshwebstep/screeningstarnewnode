@@ -1768,6 +1768,25 @@ exports.generateReport = (req, res) => {
                                                 ) {
                                                   console.log(`Step 29`);
 
+                                                  const pdfTargetDirectory = `uploads/customers/${currentCustomer.client_unique_id}/client-applications/${application.application_id}/final-reports`;
+                                                  const pdfFileName =
+                                                    `${application.application_id}-${application.name}-${(application.employee_id?.trim() || "NA")}-${(report_type.replace(/_/g, " ").toUpperCase())}.pdf`
+                                                      .replace(/\s+/g, "-")
+                                                      .toLowerCase();
+
+                                                  const pdfPath =
+                                                    await generatePDF(
+                                                      application_id,
+                                                      branch_id,
+                                                      pdfFileName,
+                                                      pdfTargetDirectory
+                                                    );
+                                                  attachments +=
+                                                    (attachments
+                                                      ? ","
+                                                      : "") +
+                                                    `${imageHost}/${pdfPath}`;
+
                                                   if (verified === "yes") {
                                                     console.log(`Step 30`);
 
@@ -1845,24 +1864,7 @@ exports.generateReport = (req, res) => {
                                                             )}-${String(
                                                               today.getDate()
                                                             ).padStart(2, "0")}`;
-                                                            const pdfTargetDirectory = `uploads/customers/${currentCustomer.client_unique_id}/client-applications/${application.application_id}/final-reports`;
-                                                            const pdfFileName =
-                                                              `${application.application_id}-${application.name}-${(application.employee_id?.trim() || "NA")}-${(report_type.replace(/_/g, " ").toUpperCase())}.pdf`
-                                                                .replace(/\s+/g, "-")
-                                                                .toLowerCase();
 
-                                                            const pdfPath =
-                                                              await generatePDF(
-                                                                application_id,
-                                                                branch_id,
-                                                                pdfFileName,
-                                                                pdfTargetDirectory
-                                                              );
-                                                            attachments +=
-                                                              (attachments
-                                                                ? ","
-                                                                : "") +
-                                                              `${imageHost}/${pdfPath}`;
 
                                                             // Send email notification
                                                             finalReportMail(
