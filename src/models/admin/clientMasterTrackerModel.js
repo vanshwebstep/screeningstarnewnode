@@ -884,6 +884,146 @@ const Customer = {
   },
 
   applicationByID: async (application_id, branch_id, callback) => {
+    try {
+      // Fetch holidays
+      const holidaysQuery = `
+        SELECT id AS holiday_id, title AS holiday_title, date AS holiday_date 
+        FROM holidays;
+      `;
+      const holidayResults = await sequelize.query(holidaysQuery, {
+        type: QueryTypes.SELECT,
+      });
+
+      const holidayDates = holidayResults.map(holiday =>
+        moment(holiday.holiday_date).startOf("day")
+      );
+
+      // Fetch weekends
+      const weekendsQuery = `
+        SELECT weekends 
+        FROM company_info 
+        WHERE status = 1;
+      `;
+      const weekendResults = await sequelize.query(weekendsQuery, {
+        type: QueryTypes.SELECT,
+      });
+
+      const weekends = weekendResults[0]?.weekends
+        ? JSON.parse(weekendResults[0].weekends)
+        : [];
+      const weekendsSet = new Set(weekends.map(day => day.toLowerCase()));
+
+      // Main query
+      let sql = `
+        SELECT 
+          ca.*, 
+          c.name AS customer_name,
+          b.name AS branch_name, 
+          ca.id AS main_id,
+          ca.is_highlight, 
+          cmt.first_insufficiency_marks,
+          cmt.first_insuff_date,
+          cm.custom_logo,
+          cm.custom_template,
+          cm.custom_address,
+          cm.client_spoc_name,
+          cm.tat_days,
+          cmt.deadline_date,
+          cmt.first_insuff_reopened_date,
+          cmt.second_insufficiency_marks,
+          cmt.second_insuff_date,
+          cmt.second_insuff_reopened_date,
+          cmt.third_insufficiency_marks,
+          cmt.third_insuff_date,
+          cmt.third_insuff_reopened_date,
+          cmt.final_verification_status,
+          cmt.dob,
+          cmt.is_verify,
+          cmt.qc_done_by,
+          cmt.report_date,
+          cmt.case_upload,
+          cmt.report_type,
+          cmt.delay_reason,
+          cmt.report_status,
+          cmt.overall_status,
+          cmt.initiation_date,
+          cmt.report_generate_by,
+          qc_admin.name AS qc_done_by_name,
+          report_admin.name AS report_generated_by_name
+        FROM 
+          \`client_applications\` ca
+        LEFT JOIN \`customers\` c ON c.id = ca.customer_id
+        LEFT JOIN \`customer_metas\` cm ON cm.customer_id = ca.customer_id
+        LEFT JOIN \`branches\` b ON b.id = ca.branch_id
+        LEFT JOIN \`cmt_applications\` cmt ON ca.id = cmt.client_application_id
+        LEFT JOIN \`admins\` qc_admin ON qc_admin.id = cmt.qc_done_by
+        LEFT JOIN \`admins\` report_admin ON report_admin.id = cmt.report_generate_by
+        WHERE 
+          ca.id = ? 
+          AND ca.branch_id = ? 
+          AND ca.is_data_qc = 1 
+          AND ca.is_deleted != 1 
+          AND c.is_deleted != 1
+        ORDER BY 
+          ca.created_at DESC, 
+          ca.is_highlight DESC;
+      `;
+
+      const params = [application_id, branch_id];
+      const results = await sequelize.query(sql, {
+        replacements: params,
+        type: QueryTypes.SELECT,
+      });
+
+      const formattedResults = await Promise.all(
+        results.map(async (result) => {
+          let report_completed_status = null;
+
+          const createdAtMoment = moment(result.created_at);
+          const tatDays = parseInt(result.tat_days || 0, 10);
+
+          if (result.is_report_completed && result.report_completed_at) {
+            report_completed_status = evaluateTatProgress(
+              createdAtMoment,
+              tatDays,
+              holidayDates,
+              weekendsSet
+            );
+          }
+
+          const newDeadlineDate = calculateDueDate(
+            createdAtMoment,
+            tatDays,
+            holidayDates,
+            weekendsSet
+          );
+
+          const actualCalendarDays = getActualCalendarDays(
+            createdAtMoment,
+            tatDays,
+            holidayDates,
+            weekendsSet
+          );
+
+          return {
+            ...result,
+            created_at: new Date(result.created_at).toISOString(),
+            new_deadline_date: newDeadlineDate,
+            tat_days: actualCalendarDays,
+            report_completed_status,
+          };
+        })
+      );
+
+      callback(null, formattedResults);
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+      callback(err, null);
+    }
+  },
+
+  /*
+  applicationByID: async (application_id, branch_id, callback) => {
 
     const sql =
       "SELECT * FROM `client_applications` WHERE `id` = ? AND `branch_id` = ? AND `is_deleted` != 1 ORDER BY `created_at` DESC";
@@ -894,6 +1034,7 @@ const Customer = {
 
     callback(null, results[0] || null); // Return single application or null if not found
   },
+  */
 
   annexureData: async (client_application_id, db_table, callback) => {
 

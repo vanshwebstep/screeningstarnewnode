@@ -101,11 +101,11 @@ exports.list = (req, res) => {
 
 exports.test = async (req, res) => {
   try {
-    const client_application_id = 124;
-    const client_unique_id = "GQ-INDV";
-    const application_id = "GQ-INDV-1";
-    const branch_id = "63";
-    const name = "Rohit Sisodia";
+    const client_application_id = 185;
+    const client_unique_id = "SS-SSSPL";
+    const application_id = "SS-SSSPL-3";
+    const branch_id = "77";
+    const name = "09110603185";
 
     const today = new Date();
     const formattedDate = `${today.getFullYear()}-${String(
