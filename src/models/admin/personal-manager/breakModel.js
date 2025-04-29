@@ -87,6 +87,20 @@ const Break = {
 
             const first_login_time = firstLoginResult ? firstLoginResult.first_login_time : null;
 
+            const lastLogoutQuery = `
+                SELECT created_at AS last_logout_time
+                FROM \`${adminLoginLogsTableName}\`
+                WHERE admin_id = ? AND action = 'logout' AND DATE(created_at) = CURRENT_DATE()
+                ORDER BY id DESC
+                LIMIT 1
+            `;
+            const [lastLogoutResult] = await sequelize.query(lastLogoutQuery, {
+                replacements: [admin_id],
+                type: QueryTypes.SELECT,
+            });
+
+            const last_logout_time = lastLogoutResult ? lastLogoutResult.last_logout_time : null;
+
             // 2. Get all distinct break types
             const distinctTypesQuery = `
                 SELECT DISTINCT type
@@ -118,6 +132,7 @@ const Break = {
                 admin_id,
                 date: new Date().toISOString().slice(0, 10), // for consistency in response
                 first_login_time,
+                last_logout_time,
                 break_times: breakTimes,
             };
 
