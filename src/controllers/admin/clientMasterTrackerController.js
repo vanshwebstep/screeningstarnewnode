@@ -1847,12 +1847,10 @@ exports.generateReport = (req, res) => {
                                                             ).padStart(2, "0")}`;
                                                             const pdfTargetDirectory = `uploads/customers/${currentCustomer.client_unique_id}/client-applications/${application.application_id}/final-reports`;
                                                             const pdfFileName =
-                                                              `${application.name}_${formattedDate}.pdf`
-                                                                .replace(
-                                                                  /\s+/g,
-                                                                  "-"
-                                                                )
+                                                              `${application.application_id}-${application.name}-${(application.employee_id?.trim() || "NA")}-${(report_type.replace(/_/g, " ").toUpperCase())}.pdf`
+                                                                .replace(/\s+/g, "-")
                                                                 .toLowerCase();
+
                                                             const pdfPath =
                                                               await generatePDF(
                                                                 application_id,
@@ -2779,9 +2777,10 @@ exports.upload = async (req, res) => {
                                 ).padStart(2, "0")}`;
                                 const pdfTargetDirectory = `uploads/customers/${customerCode}/client-applications/${application.application_id}/final-reports`;
                                 const pdfFileName =
-                                  `${application.name}_${formattedDate}.pdf`
+                                  `${application.application_id}-${application.name}-${(application.employee_id?.trim() || "NA")}-${(report_type.replace(/_/g, " ").toUpperCase())}.pdf`
                                     .replace(/\s+/g, "-")
                                     .toLowerCase();
+
                                 const pdfPath = await generatePDF(
                                   appId,
                                   branchId,
