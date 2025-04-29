@@ -115,7 +115,7 @@ exports.view = (req, res) => {
     const {
         admin_id,
         _token,
-    } = req.body;
+    } = req.query;
 
     let missingFields = [];
     if (!admin_id || admin_id === "") missingFields.push("Admin ID");
