@@ -23,6 +23,7 @@ const fs = require("fs");
 const path = require("path");
 const { generatePDF } = require("../../utils/finalReportPdf");
 const { candidateFormPDF } = require("../../utils/candidateFormPDF");
+const { candidateDAVFromPDF } = require("../../utils/candidateDAVFromPDF");
 const { cdfDataPDF } = require("../../utils/cefDataPDF");
 const { candidateDigitalConsent } = require("../../utils/candidateDigitalConsent");
 const { upload, saveImage, saveImages } = require("../../utils/cloudImageSave");
@@ -116,6 +117,51 @@ exports.test = async (req, res) => {
       .replace(/\s+/g, "-")
       .toLowerCase();
     const pdfPath = await candidateFormPDF(
+      candidate_application_id,
+      branch_id,
+      customer_id,
+      pdfFileName,
+      pdfTargetDirectory
+    );
+    // If successful, return the result
+    res.json({
+      status: true,
+      message: "PDF generated successfully",
+      pdfPath,
+    });
+  } catch (error) {
+    console.error("Error:", error.message);
+
+    // Return error response
+    res.status(500).json({
+      status: false,
+      message: "Failed to generate PDF",
+      error: error.message,
+    });
+  }
+};
+
+exports.testDavPdf = async (req, res) => {
+  try {
+    const candidate_application_id = 113;
+    const client_unique_id = "GQ-INDV";
+    const application_id = "GQ-INDV-1";
+    const branch_id = 86;
+    const customer_id = 72;
+    const name = "kalia";
+
+    const today = new Date();
+    const formattedDate = `${today.getFullYear()}-${String(
+      today.getMonth() + 1
+    ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+    // Generate the PDF
+    const pdfTargetDirectory = `uploads/customers/${client_unique_id}/client-applications/${application_id}/final-reports`;
+
+    const pdfFileName = `${name}_${formattedDate}.pdf`
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+    const pdfPath = await candidateDAVFromPDF(
       candidate_application_id,
       branch_id,
       customer_id,
