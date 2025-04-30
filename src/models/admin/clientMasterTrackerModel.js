@@ -1015,7 +1015,12 @@ const Customer = {
         })
       );
 
-      callback(null, formattedResults);
+      if (formattedResults && formattedResults.length > 0) {
+        callback(null, formattedResults[0]);
+      } else {
+        callback(new Error("No results found"), null);
+      }
+
     } catch (err) {
       console.error("Error fetching applications:", err);
       callback(err, null);
