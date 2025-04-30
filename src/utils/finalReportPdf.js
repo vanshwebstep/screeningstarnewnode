@@ -335,17 +335,16 @@ module.exports = {
             ClientMasterTrackerModel.applicationByID(
                 client_applicaton_id,
                 branch_id,
-                async (err, application) => {
+                async (err, applicationInfo) => {
                     if (err) {
                         console.error("Database error:", err);
                         return reject(new Error(`Database error: ${err.message}`));
                     }
 
-                    if (!application) {
+                    if (!applicationInfo) {
                         return reject(new Error("Application not found"));
                     }
 
-                    const applicationInfo = application[0];
                     console.log(`applicationInfo - `, applicationInfo);
                     const companyName = applicationInfo.customer_name;
                     console.log(`applicationInfo - `, applicationInfo);
