@@ -2073,7 +2073,7 @@ const Customer = {
       const addColumnPromises = missingColumns.map((column) => {
         return new Promise(async (resolve, reject) => {
           const alterTableSql = `ALTER TABLE \`${db_table}\` ADD COLUMN \`${column}\` LONGTEXT`;
-          await sequelize.query(sql, {
+          await sequelize.query(alterTableSql, {
             type: QueryTypes.RAW,
           });
           resolve();
