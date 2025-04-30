@@ -136,8 +136,6 @@ const dav = {
         callback
       );
     }
-
-
   },
 
   insertOrUpdateEntry: async (

@@ -258,7 +258,7 @@ exports.submit = (req, res) => {
                   }
 
                   sendNotificationEmails(
-                    candidateAppId,
+                    application_id,
                     exists.name,
                     branch_id,
                     customer_id,
