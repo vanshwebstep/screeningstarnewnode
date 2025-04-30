@@ -346,6 +346,7 @@ module.exports = {
                     }
 
                     const applicationInfo = application[0];
+                    console.log(`applicationInfo - `, applicationInfo);
                     const companyName = applicationInfo.customer_name;
                     console.log(`applicationInfo - `, applicationInfo);
 
