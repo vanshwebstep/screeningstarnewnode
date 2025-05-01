@@ -4,59 +4,49 @@ const { QueryTypes } = require("sequelize");
 const dav = {
 
   isApplicationExist: async (app_id, branch_id, customer_id, callback) => {
-    const sql = `
-      SELECT 
-        ca.*, 
-        c.name AS company_name, 
-        dav.is_submitted AS dav_submitted
-      FROM candidate_applications ca
-      INNER JOIN customers c ON c.id = ca.customer_id
-      LEFT JOIN dav_applications dav ON dav.candidate_application_id = ca.id
-      WHERE ca.id = ?
-        AND ca.branch_id = ?
-        AND ca.customer_id = ?
-        AND ca.is_submitted = 0
-        AND (dav.id IS NULL OR dav.is_submitted = 0);
-    `;
+    try {
+      // Step 1: Check if application exists in candidate_applications
+      const appSql = `
+        SELECT *
+        FROM candidate_applications
+        WHERE id = ? AND branch_id = ? AND customer_id = ?;
+      `;
 
-    const results = await sequelize.query(sql, {
-      replacements: [app_id, branch_id, customer_id],
-      type: QueryTypes.SELECT,
-    });
+      const appResults = await sequelize.query(appSql, {
+        replacements: [app_id, branch_id, customer_id],
+        type: QueryTypes.SELECT,
+      });
 
-    if (results.length === 0) {
-      return callback(null, { status: false, message: "Application not found" });
-    }
-
-    const application = results[0];
-
-    // You still need to check the reminder_sent logic
-    if (application.reminder_sent === 3) {
-      const lastReminderDate = new Date(
-        Math.max(
-          new Date(application.cef_last_reminder_sent_at).getTime(),
-          new Date(application.dav_last_reminder_sent_at).getTime()
-        )
-      );
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const expirationDate = new Date(today);
-      expirationDate.setDate(today.getDate() - 1);
-
-      if (lastReminderDate <= expirationDate) {
-        const updateSQL = `UPDATE candidate_applications SET status = 2 WHERE id = ?`;
-        await sequelize.query(updateSQL, {
-          replacements: [app_id],
-          type: QueryTypes.UPDATE,
-        });
-        return;
+      if (appResults.length === 0) {
+        return callback(null, { status: false, message: "Application not found in candidate_applications" });
       }
-    }
 
-    // Finally return success with application data
-    return callback(null, { status: true, message: "Application exists", data: application });
+      const application = appResults[0];
+
+      // Step 2: Check for corresponding dav_applications
+      const davSql = `
+        SELECT is_submitted
+        FROM dav_applications
+        WHERE candidate_application_id = ?
+      `;
+
+      const davResults = await sequelize.query(davSql, {
+        replacements: [application.id],
+        type: QueryTypes.SELECT,
+      });
+
+      if (davResults.length === 0 || davResults[0].is_submitted === 0) {
+        // Valid case
+        return callback(null, { status: true, message: "Valid application", data: application });
+      }
+
+      // Else, submitted in DAV
+      return callback(null, { status: false, message: "DAV application already submitted" });
+
+    } catch (error) {
+      console.error("Error checking application existence:", error);
+      return callback(error, null);
+    }
   },
 
   getDAVApplicationById: async (candidate_application_id, callback) => {
@@ -147,31 +137,31 @@ const dav = {
   ) => {
     try {
       const checkEntrySql = "SELECT * FROM dav_applications WHERE candidate_application_id = ?";
-  
+
       const entryResults = await sequelize.query(checkEntrySql, {
         replacements: [candidate_application_id],
         type: QueryTypes.SELECT,
       });
-  
+
       if (entryResults.length > 0) {
         // Entry exists, update it
         personal_information.branch_id = branch_id;
         personal_information.customer_id = customer_id;
         personal_information.is_submitted = 1; // ✅ Always set is_submitted=1 on update
-  
+
         const updateFields = Object.keys(personal_information)
           .map(key => `${key} = ?`)
           .join(", ");
-  
+
         const updateValues = Object.values(personal_information);
-  
+
         const updateSql = `UPDATE dav_applications SET ${updateFields} WHERE candidate_application_id = ?`;
-  
+
         await sequelize.query(updateSql, {
           replacements: [...updateValues, candidate_application_id],
           type: QueryTypes.UPDATE,
         });
-  
+
         callback(null, { message: "Updated successfully" });
       } else {
         // Entry does not exist, insert a new one
@@ -182,26 +172,26 @@ const dav = {
           customer_id,
           is_submitted: 1, // ✅ Always set is_submitted=1 on insert too
         };
-  
+
         const indexes = Object.keys(replacements);
         const values = Object.values(replacements);
-  
+
         const insertSql = `INSERT INTO dav_applications (${indexes.join(', ')}) VALUES (${indexes.map(() => '?').join(', ')})`;
-  
+
         const insertResult = await sequelize.query(insertSql, {
           replacements: values,
           type: QueryTypes.INSERT,
         });
-  
+
         const insertId = insertResult[0];
-  
+
         callback(null, { insertId });
       }
     } catch (error) {
       console.error("Error in insertOrUpdateEntry:", error);
       callback(error);
     }
-  },  
+  },
 
   updateImages: async (dav_id, candidate_application_id, imagesArr, dbColumn, callback) => {
     try {
@@ -215,7 +205,7 @@ const dav = {
       // Define SQL query for updating images
       const sql = `
         UPDATE \`dav_applications\`
-        SET \`${dbColumn}\` = ?
+        SET \`${dbColumn}\` = ?, \`is_submitted\` = 1
         WHERE \`id\` = ? AND \`candidate_application_id\` = ?
       `;
 
@@ -238,12 +228,17 @@ const dav = {
         type: QueryTypes.UPDATE,
       });
 
-      callback(null, { status: true, message: "Images updated successfully", affectedRows: results[1] });
+      callback(null, {
+        status: true,
+        message: "Images updated successfully",
+        affectedRows: results[1],
+      });
     } catch (error) {
       console.error("Error updating images:", error);
       callback(error, null);
     }
   },
+
 
 };
 
