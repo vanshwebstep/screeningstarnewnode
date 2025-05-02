@@ -1384,6 +1384,11 @@ exports.upload = async (req, res) => {
                                   token: newToken,
                                 });
                               }
+
+                              const toAdminArr = adminResult.map((admin) => ({
+                                name: admin.name,
+                                email: admin.email,
+                              }));
                               const { branch, customer } = emailData;
 
                               // Prepare recipient and CC lists
@@ -1524,8 +1529,8 @@ exports.upload = async (req, res) => {
                                                   serviceNames,
                                                   newAttachedDocsString,
                                                   appHost,
-                                                  toArr,
-                                                  ccArr
+                                                  toAdminArr,
+                                                  []
                                                 );
 
                                                 if (!res.headersSent) {
