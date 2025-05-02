@@ -8,7 +8,7 @@ const generateToken = () => crypto.randomBytes(32).toString("hex");
 const getTokenExpiry = () => new Date(Date.now() + 3600000);
 
 const common = {
-  isBranchTokenValid:async (_token, sub_user_id, branch_id, callback) => {
+  isBranchTokenValid: async (_token, sub_user_id, branch_id, callback) => {
     if (typeof callback !== "function") {
       console.error("Callback is not a function");
       return;
@@ -56,68 +56,68 @@ const common = {
       return callback({ status: false, message: "Invalid query" }, null);
     }
 
-      const results = await sequelize.query(sql, {
-        replacements: queryParams, // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
+    const results = await sequelize.query(sql, {
+      replacements: queryParams, // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
 
-        if (results.length === 0) {
-          return callback(
-            { status: false, message: `${currentRole} not found` },
-            null
-          );
+    if (results.length === 0) {
+      return callback(
+        { status: false, message: `${currentRole} not found` },
+        null
+      );
+    }
+
+    const currentToken = results[0].login_token;
+    const tokenExpiry = new Date(results[0].token_expiry);
+    const currentTime = new Date();
+
+    // Check if the provided token matches the stored token
+    if (_token !== currentToken) {
+      return callback(
+        { status: false, message: "Invalid token provided" },
+        null
+      );
+    }
+
+    // If the token hasn't expired
+    if (tokenExpiry > currentTime) {
+      return callback(null, { status: true, message: "Token is valid" });
+    } else {
+      return callback(null, { status: true, message: "Token is valid" });
+      // If the token has expired, refresh it
+      const newToken = generateToken();
+      const newTokenExpiry = getTokenExpiry();
+
+      // Use the correct table depending on whether it's a sub-user or branch
+      const updateSql = sub_user_id
+        ? `UPDATE \`branch_sub_users\` SET \`login_token\` = ?, \`token_expiry\` = ? WHERE \`id\` = ?`
+        : `UPDATE \`branches\` SET \`login_token\` = ?, \`token_expiry\` = ? WHERE \`id\` = ?`;
+
+      connection.query(
+        updateSql,
+        [newToken, newTokenExpiry, sub_user_id || branch_id],
+        (updateErr) => {
+          // Release connection after updating
+
+          if (updateErr) {
+            console.error("Error updating token:", updateErr);
+            return callback(
+              { status: false, message: "Error updating token" },
+              null
+            );
+          }
+
+          callback(null, {
+            status: true,
+            message: "Token was expired and has been refreshed",
+            newToken,
+          });
         }
+      );
+    }
 
-        const currentToken = results[0].login_token;
-        const tokenExpiry = new Date(results[0].token_expiry);
-        const currentTime = new Date();
 
-        // Check if the provided token matches the stored token
-        if (_token !== currentToken) {
-          return callback(
-            { status: false, message: "Invalid token provided" },
-            null
-          );
-        }
-
-        // If the token hasn't expired
-        if (tokenExpiry > currentTime) {
-          return callback(null, { status: true, message: "Token is valid" });
-        } else {
-          return callback(null, { status: true, message: "Token is valid" });
-          // If the token has expired, refresh it
-          const newToken = generateToken();
-          const newTokenExpiry = getTokenExpiry();
-
-          // Use the correct table depending on whether it's a sub-user or branch
-          const updateSql = sub_user_id
-            ? `UPDATE \`branch_sub_users\` SET \`login_token\` = ?, \`token_expiry\` = ? WHERE \`id\` = ?`
-            : `UPDATE \`branches\` SET \`login_token\` = ?, \`token_expiry\` = ? WHERE \`id\` = ?`;
-
-          connection.query(
-            updateSql,
-            [newToken, newTokenExpiry, sub_user_id || branch_id],
-            (updateErr) => {
-               // Release connection after updating
-
-              if (updateErr) {
-                console.error("Error updating token:", updateErr);
-                return callback(
-                  { status: false, message: "Error updating token" },
-                  null
-                );
-              }
-
-              callback(null, {
-                status: true,
-                message: "Token was expired and has been refreshed",
-                newToken,
-              });
-            }
-          );
-        }
-     
-   
   },
 
 
@@ -134,18 +134,18 @@ const common = {
       console.error("Callback is not a function 5");
       return;
     }
-  
+
     const insertSql = `
       INSERT INTO \`branch_login_logs\` (\`branch_id\`, \`action\`, \`result\`, \`error\`, \`client_ip\`, \`client_ip_type\`, \`created_at\`)
       VALUES (?, ?, ?, ?, ?, ?, NOW())
     `;
-  
+
     try {
       await sequelize.query(insertSql, {
-        replacements: [branch_id, action, result, error, ipAddress, ipType], 
+        replacements: [branch_id, action, result, error, ipAddress, ipType],
         type: QueryTypes.INSERT, // Change from SELECT to INSERT
       });
-  
+
       callback(null, {
         status: true,
         message: "Branch login log entry added successfully",
@@ -171,19 +171,19 @@ const common = {
       console.error("Callback is not a function");
       return;
     }
-  
+
     const insertSql = `
       INSERT INTO \`branch_activity_logs\` 
       (\`branch_id\`, \`module\`, \`action\`, \`result\`, \`update\`, \`error\`, \`client_ip\`, \`client_ip_type\`, \`created_at\`)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `;
-  
+
     try {
       const [insertedRows, metadata] = await sequelize.query(insertSql, {
         replacements: [branch_id, module, action, result, update, error, ipAddress, ipType],
         type: QueryTypes.INSERT,
       });
-  
+
       callback(null, {
         status: true,
         message: "Branch activity log entry added successfully",
@@ -196,54 +196,54 @@ const common = {
       });
     }
   },
-  
 
-  isBranchAuthorizedForAction: async(branch_id, action, callback) => {
+
+  isBranchAuthorizedForAction: async (branch_id, action, callback) => {
     const sql = `
       SELECT \`permissions\`
       FROM \`branches\`
       WHERE \`id\` = ?
     `;
 
-      const results = await sequelize.query(sql, {
-        replacements: [branch_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
+    const results = await sequelize.query(sql, {
+      replacements: [branch_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length === 0) {
+      return callback({ status: false, message: "Branch not found" }, null);
+    }
+
+    const permissionsRaw = results[0].permissions;
+
+    // Check if permissions field is empty or null
+    if (!permissionsRaw) {
+      console.error("Permissions field is empty");
+      return callback({
+        status: false,
+        message: "Access Denied",
       });
-        if (results.length === 0) {
-          return callback({ status: false, message: "Branch not found" }, null);
-        }
+    }
+    const permissionsJson = JSON.parse(permissionsRaw);
+    const permissions =
+      typeof permissionsJson === "string"
+        ? JSON.parse(permissionsJson)
+        : permissionsJson;
 
-        const permissionsRaw = results[0].permissions;
+    // Check if the action type exists in the permissions object
+    if (!permissions[action]) {
+      console.error("Action type not found in permissions");
+      return callback({
+        status: false,
+        message: "Access Denied",
+      });
+    }
+    return callback({
+      status: true,
+      message: "Authorization Successful",
+    });
+  },
 
-        // Check if permissions field is empty or null
-        if (!permissionsRaw) {
-          console.error("Permissions field is empty");
-          return callback({
-            status: false,
-            message: "Access Denied",
-          });
-        }
-        const permissionsJson = JSON.parse(permissionsRaw);
-        const permissions =
-          typeof permissionsJson === "string"
-            ? JSON.parse(permissionsJson)
-            : permissionsJson;
-
-        // Check if the action type exists in the permissions object
-        if (!permissions[action]) {
-          console.error("Action type not found in permissions");
-          return callback({
-            status: false,
-            message: "Access Denied",
-          });
-        }
-        return callback({
-          status: true,
-          message: "Authorization Successful",
-        });
-    },
-
-  getBranchandCustomerEmailsForNotification:async (branch_id, callback) => {
+  getBranchandCustomerEmailsForNotification: async (branch_id, callback) => {
     if (typeof callback !== "function") {
       console.error("Callback is not a function 7");
       return;
@@ -256,44 +256,44 @@ const common = {
       WHERE \`id\` = ?
     `;
 
-      const branchResults = await sequelize.query(branchSql, {
-        replacements: [branch_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        
-        if (branchResults.length === 0) {
-          
-          return callback({ status: false, message: "Branch not found" }, null);
-        }
+    const branchResults = await sequelize.query(branchSql, {
+      replacements: [branch_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
 
-        const branch = branchResults[0];
-        const customerId = branch.customer_id;
+    if (branchResults.length === 0) {
 
-        // Second query to get customer email from the customers table
-        const customerSql = `
+      return callback({ status: false, message: "Branch not found" }, null);
+    }
+
+    const branch = branchResults[0];
+    const customerId = branch.customer_id;
+
+    // Second query to get customer email from the customers table
+    const customerSql = `
           SELECT \`emails\`, \`name\`
           FROM \`customers\`
           WHERE \`id\` = ?
         `;
-        const customerResults = await sequelize.query(customerSql, {
-          replacements: [customerId], // Positional replacements using ?
-          type: QueryTypes.SELECT,
-        });
-          if (customerResults.length === 0) {
-            return callback(
-              { status: false, message: "Customer not found" },
-              null
-            );
-          }
-          const customer = customerResults[0];
-          callback(null, {
-            status: true,
-            message: "Emails retrieved successfully",
-            branch,
-            customer,
-          });
-       
-    },
+    const customerResults = await sequelize.query(customerSql, {
+      replacements: [customerId], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (customerResults.length === 0) {
+      return callback(
+        { status: false, message: "Customer not found" },
+        null
+      );
+    }
+    const customer = customerResults[0];
+    callback(null, {
+      status: true,
+      message: "Emails retrieved successfully",
+      branch,
+      customer,
+    });
+
+  },
 
   getCustomerNameByBranchID: async (branch_id, callback) => {
     if (typeof callback !== "function") {
@@ -307,50 +307,50 @@ const common = {
       FROM \`branches\`
       WHERE \`id\` = ?
     `;
- 
-      const branchResults = await sequelize.query(branchSql, {
-        replacements: [branch_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-       
-        if (branchResults.length === 0) {
-          
-          return callback({ status: false, message: "Branch not found" }, null);
-        }
 
-        const branch = branchResults[0];
-        const customerId = branch.customer_id;
+    const branchResults = await sequelize.query(branchSql, {
+      replacements: [branch_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
 
-        // Second query to get customer name from the customers table
-        const customerSql = `
+    if (branchResults.length === 0) {
+
+      return callback({ status: false, message: "Branch not found" }, null);
+    }
+
+    const branch = branchResults[0];
+    const customerId = branch.customer_id;
+
+    // Second query to get customer name from the customers table
+    const customerSql = `
           SELECT \`name\`
           FROM \`customers\`
           WHERE \`id\` = ? AND is_deleted != 1
         `;
-        const customerResults = await sequelize.query(customerSql, {
-          replacements: [customerId], // Positional replacements using ?
-          type: QueryTypes.SELECT,
-        });
+    const customerResults = await sequelize.query(customerSql, {
+      replacements: [customerId], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
 
-          if (customerResults.length === 0) {
-            return callback(
-              { status: false, message: "Customer not found" },
-              null
-            );
-          }
+    if (customerResults.length === 0) {
+      return callback(
+        { status: false, message: "Customer not found" },
+        null
+      );
+    }
 
-          const customer = customerResults[0];
+    const customer = customerResults[0];
 
-          // Return the branch ID and customer name
-          callback(null, {
-            status: true,
-            message: "Customer name retrieved successfully",
-            customer_name: customer.name,
-            branch_id: branch_id,
-          });
-       
-      
- 
+    // Return the branch ID and customer name
+    callback(null, {
+      status: true,
+      message: "Customer name retrieved successfully",
+      customer_name: customer.name,
+      branch_id: branch_id,
+    });
+
+
+
   },
 
   reportReadylist: async (branch_id, callback) => {
@@ -394,93 +394,91 @@ const common = {
       type: QueryTypes.SELECT,
     });
 
-      
-          const finalResults = {};
 
-          applicationResults.forEach((row) => {
-            const customerId = row.customer_id;
+    const finalResults = {};
 
-            // Initialize customer if it doesn't exist
-            if (!finalResults[customerId]) {
-              finalResults[customerId] = {
-                customer_id: row.customer_id,
-                customer_name: row.customer_name,
-                customer_unique_id: row.customer_unique_id,
-                branches: [],
-              };
-            }
+    applicationResults.forEach((row) => {
+      const customerId = row.customer_id;
 
-            // Find the branch in the customer's branches array
-            let branch = finalResults[customerId].branches.find(
-              (b) => b.branch_id === row.branch_id
-            );
+      // Initialize customer if it doesn't exist
+      if (!finalResults[customerId]) {
+        finalResults[customerId] = {
+          customer_id: row.customer_id,
+          customer_name: row.customer_name,
+          customer_unique_id: row.customer_unique_id,
+          branches: [],
+        };
+      }
 
-            // If branch doesn't exist, create and add it
-            if (!branch) {
-              branch = {
-                branch_id: row.branch_id,
-                branch_name: row.branch_name,
-                applications: [],
-              };
-              finalResults[customerId].branches.push(branch);
-            }
+      // Find the branch in the customer's branches array
+      let branch = finalResults[customerId].branches.find(
+        (b) => b.branch_id === row.branch_id
+      );
 
-            // Add the application to the branch
-            branch.applications.push({
-              id: row.client_application_id,
-              application_id: row.application_id,
-              application_name: row.application_name,
-              application_created_at: row.application_created_at,
-              report_date: row.report_date,
-              report_generate_by: row.report_generator_name,
-              qc_done_by: row.qc_done_by_name,
-              is_priority: row.is_priority,
-            });
-          });
+      // If branch doesn't exist, create and add it
+      if (!branch) {
+        branch = {
+          branch_id: row.branch_id,
+          branch_name: row.branch_name,
+          applications: [],
+        };
+        finalResults[customerId].branches.push(branch);
+      }
 
-          // Convert finalResults object to an array
-          const resultArray = Object.values(finalResults);
+      // Add the application to the branch
+      branch.applications.push({
+        id: row.client_application_id,
+        application_id: row.application_id,
+        application_name: row.application_name,
+        application_created_at: row.application_created_at,
+        report_date: row.report_date,
+        report_generate_by: row.report_generator_name,
+        qc_done_by: row.qc_done_by_name,
+        is_priority: row.is_priority,
+      });
+    });
 
-          
-          // Return the final structured data as an array
-          return callback(null, resultArray);
-       
-  
+    // Convert finalResults object to an array
+    const resultArray = Object.values(finalResults);
+
+
+    // Return the final structured data as an array
+    return callback(null, resultArray);
+
+
   },
 
-  escalationMatrix:async (branchId, callback) => {
+  escalationMatrix: async (branchId, callback) => {
     const fetchCustomerIdQuery = `SELECT customer_id FROM \`branches\` WHERE \`id\` = ?`;
     const fetchEscalationDetailsQuery = `
-      SELECT first_level_matrix_name, first_level_matrix_designation, 
-             first_level_matrix_mobile, first_level_matrix_email 
+      SELECT client_spoc_name, client_spoc_desgn, 
+             client_spoc_mobile, client_spoc_email 
       FROM \`customer_metas\` WHERE \`customer_id\` = ?`;
 
-      
-      const customerResults = await sequelize.query(fetchCustomerIdQuery, {
-        replacements: [branchId], 
-        type: QueryTypes.SELECT,
-      });
-       
-        if (customerResults.length === 0) {
-          
-          return callback(new Error("No customer associated with the provided branch ID."), null);
-        }
 
-        const customerId = customerResults[0].customer_id;
+    const customerResults = await sequelize.query(fetchCustomerIdQuery, {
+      replacements: [branchId],
+      type: QueryTypes.SELECT,
+    });
 
-        const escalationResults = await sequelize.query(fetchEscalationDetailsQuery, {
-          replacements: [customerId], // Positional replacements using ?
-          type: QueryTypes.SELECT,
-        });
+    if (customerResults.length === 0) {
 
-          if (escalationResults.length === 0) {
-            return callback(new Error("No escalation details found for the given customer ID."), null);
-          }
+      return callback(new Error("No customer associated with the provided branch ID."), null);
+    }
 
-          const escalationDetails = escalationResults[0];
-          return callback(null, escalationDetails);
-     
-  
+    const customerId = customerResults[0].customer_id;
+
+    const escalationResults = await sequelize.query(fetchEscalationDetailsQuery, {
+      replacements: [customerId], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+
+    if (escalationResults.length === 0) {
+      return callback(new Error("No escalation details found for the given customer ID."), null);
+    }
+
+    const escalationDetails = escalationResults[0];
+    return callback(null, escalationDetails);
   },
 };
 
