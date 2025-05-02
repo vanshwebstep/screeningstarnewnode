@@ -1796,10 +1796,9 @@ exports.generateReport = (req, res) => {
                                                       console.log(`Step 29`);
 
                                                       const pdfTargetDirectory = `uploads/customers/${currentCustomer.client_unique_id}/client-applications/${application.application_id}/final-reports`;
-                                                      const pdfFileName =
-                                                        `${application.application_id}-${application.name}-${(application.employee_id?.trim() || "NA")}-${(report_type.replace(/_/g, " ").toUpperCase())}.pdf`
-                                                          .replace(/\s+/g, "-")
-                                                          .toLowerCase();
+                                                      const pdfFileName = `${application.application_id.toUpperCase()}-${application.name.replace(/\b\w/g, char => char.toUpperCase())}-${(application.employee_id?.trim() || "NA").toUpperCase()}-${report_type.replace(/_/g, " ").replace(/\b\w/g, char => char.toUpperCase())}.pdf`
+                                                        .replace(/\s+/g, "-")
+                                                        .toLowerCase();
 
                                                       const pdfPath =
                                                         await generatePDF(
@@ -1808,11 +1807,7 @@ exports.generateReport = (req, res) => {
                                                           pdfFileName,
                                                           pdfTargetDirectory
                                                         );
-                                                      attachments +=
-                                                        (attachments
-                                                          ? ","
-                                                          : "") +
-                                                        `${imageHost}/${pdfPath}`;
+                                                      let newAttachments = `${imageHost}/${pdfPath}`;
 
                                                       if (verified === "yes") {
                                                         console.log(`Step 30`);
@@ -1878,7 +1873,7 @@ exports.generateReport = (req, res) => {
                                                               final_report_date,
                                                               report_type,
                                                               mainJson.overall_status,
-                                                              attachments,
+                                                              newAttachments,
                                                               toArr,
                                                               ccArr
                                                             )
@@ -1976,7 +1971,7 @@ exports.generateReport = (req, res) => {
                                                               gender_title,
                                                               application.name,
                                                               application.application_id,
-                                                              attachments,
+                                                              newAttachments,
                                                               toArr,
                                                               ccArr
                                                             )
