@@ -1538,8 +1538,11 @@ exports.update = (req, res) => {
         });
       }
 
+      console.log(`firstEmailInArr - `, firstEmailInArr);
+
       areEmailsUsedForUpdate(firstEmailInArr, customer_id)
         .then(({ areAnyUsed, message }) => {
+          console.log({ areAnyUsed, message });
           if (areAnyUsed) {
             console.log("Email(s) already used:", message);
             return res.status(400).json({
