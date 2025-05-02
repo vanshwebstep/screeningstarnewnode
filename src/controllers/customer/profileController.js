@@ -86,18 +86,26 @@ const areEmailsUsed = (emails) => {
 
 const areEmailsUsedForUpdate = (emails, customer_id) => {
   return new Promise((resolve, reject) => {
+    console.log("Starting areEmailsUsedForUpdate...");
+    console.log("Input emails:", emails);
+    console.log("Customer ID:", customer_id);
+
     // Validate inputs
     if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      console.error("Validation failed: Emails are missing or invalid.");
       return reject(new Error("Missing required field: Emails"));
     }
 
     // Check each email
-    const emailCheckPromises = emails.map((email) => {
+    const emailCheckPromises = emails.map((email, index) => {
+      console.log(`Checking email [${index}]:`, email);
       return new Promise((resolve, reject) => {
         Branch.isEmailUsedForUpdate(email, customer_id, (err, isUsed) => {
           if (err) {
+            console.error(`Error for email "${email}":`, err);
             return reject(err);
           }
+          console.log(`Result for "${email}": isUsed =`, isUsed);
           resolve({ email, isUsed });
         });
       });
@@ -106,15 +114,16 @@ const areEmailsUsedForUpdate = (emails, customer_id) => {
     // Wait for all email checks to complete
     Promise.all(emailCheckPromises)
       .then((results) => {
-        // Filter out emails that are in use
+        console.log("All email checks completed. Results:", results);
+
         const usedEmails = results
           .filter((result) => result.isUsed)
           .map((result) => result.email);
 
-        // Determine if any emails are used
         const areAnyUsed = usedEmails.length > 0;
+        console.log("Used emails:", usedEmails);
+        console.log("Are any used?:", areAnyUsed);
 
-        // Create the response message if any emails are used
         let message = "";
         if (areAnyUsed) {
           const emailCount = usedEmails.length;
@@ -124,14 +133,12 @@ const areEmailsUsedForUpdate = (emails, customer_id) => {
           } else if (emailCount === 2) {
             message = `${usedEmails[0]} and ${usedEmails[1]} are already used.`;
           } else {
-            const lastEmail = usedEmails.pop(); // Remove the last email for formatting
-            message = `${usedEmails.join(
-              ", "
-            )} and ${lastEmail} are already used.`;
+            const lastEmail = usedEmails.pop();
+            message = `${usedEmails.join(", ")} and ${lastEmail} are already used.`;
           }
+          console.log("Generated message:", message);
         }
 
-        // Resolve with a boolean and the message
         resolve({ areAnyUsed, message });
       })
       .catch((err) => {
@@ -1541,7 +1548,6 @@ exports.update = (req, res) => {
               token: result.newToken,
             });
           }
-
 
           Customer.getCustomerById(customer_id, (err, currentCustomer) => {
             if (err) {
