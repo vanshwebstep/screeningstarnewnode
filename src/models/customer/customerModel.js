@@ -441,7 +441,6 @@ const Customer = {
 
     const updateAllServiceTitles = async () => {
       for (const customerData of results) {
-        console.log('customerData 1', customerData)
 
         let servicesData;
         try {
@@ -757,7 +756,6 @@ const Customer = {
       type: QueryTypes.SELECT,
     });
     const customerData = results[0];
-    console.log('customerData 2', customerData)
     let servicesData;
     servicesData = JSON.parse(customerData?.services);
 

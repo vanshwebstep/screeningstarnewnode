@@ -160,8 +160,6 @@ exports.listByCustomerId = (req, res) => {
 };
 
 exports.applicationListByBranch = (req, res) => {
-  console.log("Received request with query:", req.query);
-
   const { filter_status, branch_id, admin_id, _token, status } = req.query;
 
   let missingFields = [];
@@ -173,17 +171,14 @@ exports.applicationListByBranch = (req, res) => {
     missingFields.push("Token");
 
   if (missingFields.length > 0) {
-    console.log("Missing required fields:", missingFields);
     return res.status(400).json({
       status: false,
       message: `Missing required fields: ${missingFields.join(", ")}`,
     });
   }
 
-  console.log("Checking admin authorization for action: data_management");
   const action = "data_management";
   AdminCommon.isAdminAuthorizedForAction(admin_id, action, (result) => {
-    console.log("Admin authorization result:", result);
     if (!result.status) {
       return res.status(403).json({
         status: false,
@@ -192,7 +187,6 @@ exports.applicationListByBranch = (req, res) => {
       });
     }
 
-    console.log("Fetching branch details for Branch ID:", branch_id);
     Branch.getBranchById(branch_id, (err, currentBranch) => {
       if (err) {
         console.error("Database error during branch retrieval:", err);
@@ -203,31 +197,26 @@ exports.applicationListByBranch = (req, res) => {
       }
 
       if (!currentBranch) {
-        console.log("Branch not found for ID:", branch_id);
         return res.status(404).json({
           status: false,
           message: "Branch not found.",
         });
       }
 
-      console.log("Verifying admin token for Admin ID:", admin_id);
       AdminCommon.isAdminTokenValid(_token, admin_id, (err, result) => {
         if (err) {
           console.error("Error checking token validity:", err);
           return res.status(500).json({ status: false, err, message: err.message });
         }
 
-        console.log("Admin token verification result:", result);
         if (!result.status) {
           return res.status(401).json({ status: false, err: result, message: result.message });
         }
 
         const newToken = result.newToken;
-        console.log("Token verified. Proceeding with data retrieval...");
 
         const statusValue = status && status !== "undefined" ? status : null;
 
-        console.log("Fetching application list for Branch ID:", branch_id, "with Status:", statusValue);
         DataManagement.applicationListByBranch(filter_status, branch_id, statusValue, (err, result) => {
           if (err) {
             console.error("Database error while fetching applications:", err);
@@ -239,7 +228,6 @@ exports.applicationListByBranch = (req, res) => {
             });
           }
 
-          console.log("Fetched", result.length, "records successfully.");
           res.json({
             status: true,
             message: "Branches tracker fetched successfully",
@@ -674,7 +662,6 @@ exports.submit = (req, res) => {
                       return obj;
                     }, {});
 
-                  console.log(`mainJson - `, mainJson);
                   // Check if the required keys are all filled
                   const hasEmptyRequiredFields = requiredKeys.some(
                     (key) => !mainJson[key] || mainJson[key] === ""

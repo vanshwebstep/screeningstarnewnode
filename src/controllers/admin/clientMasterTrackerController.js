@@ -448,7 +448,6 @@ exports.applicationByID = (req, res) => {
             });
           }
 
-          console.log(`application - `, application);
           if (application.is_data_qc !== 1) {
             console.warn("Application Data QC is not done yet 3");
             return res.status(404).json({
@@ -522,7 +521,6 @@ exports.applicationByID = (req, res) => {
                         token: newToken,
                       });
                     } else {
-                      console.log(`CMTApplicationData - `, CMTApplicationData);
                       return res.json({
                         status: true,
                         message: "Application fetched successfully 2",

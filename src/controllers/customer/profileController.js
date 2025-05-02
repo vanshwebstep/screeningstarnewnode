@@ -977,7 +977,6 @@ exports.upload = async (req, res) => {
                 db_column,
                 savedImagePaths,
                 (err, result) => {
-                  // console.log(`Customer Result Upload - `, result);
                   if (err) {
                     console.error(
                       "Database error while creating customer:",

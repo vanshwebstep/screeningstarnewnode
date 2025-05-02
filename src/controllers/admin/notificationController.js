@@ -25,17 +25,14 @@ exports.index = async (req, res) => {
 
     const tatDelayAction = "tat_reminder";
     const newApplicationsAction = "admin_manager";
-    console.log(`adminId - `, adminId);
 
     // Wrap authorization checks in promises
     const isAuthorized = (adminId, action) =>
       new Promise((resolve, reject) => {
         Common.isAdminAuthorizedForAction(adminId, action, (authResult) => {
           if (!authResult.status) {
-            console.log("authResult (False) - ", authResult);
             reject(new Error(authResult.message || "Unauthorized action")); // Reject the promise with an error
           } else {
-            console.log(`True`);
             resolve(authResult.status); // Resolve the promise with the status
           }
         });
@@ -116,17 +113,13 @@ exports.view = async (req, res) => {
     const tatDelayAction = "tat_reminder";
     const newApplicationsAction = "admin_manager";
 
-    console.log(`adminId (Not.) - `, adminId);
-
     // Helper function to perform authorization check
     const isAuthorized = (adminId, action) => {
       return new Promise((resolve, reject) => {
         Common.isAdminAuthorizedForAction(adminId, action, (authResult) => {
           if (!authResult.status) {
-            console.log("Authorization Failed:", authResult);
             reject(new Error(authResult.message || "Unauthorized action"));
           } else {
-            console.log("Authorization Passed");
             resolve(authResult.status);
           }
         });
