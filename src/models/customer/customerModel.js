@@ -764,7 +764,7 @@ const Customer = {
 
       let customerData = results[0];
 
-      console.log(`customerData - `, customerData);
+      // console.log(`customerData - `, customerData);
       // Parse services JSON safely
       let servicesData;
       try {
@@ -773,7 +773,7 @@ const Customer = {
         return callback(parseError, null);
       }
 
-      console.log(`servicesData - `, servicesData);
+      // console.log(`servicesData - `, servicesData);
 
       // Update service titles
       for (const group of servicesData) {
