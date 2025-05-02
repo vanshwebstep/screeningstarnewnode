@@ -5,11 +5,20 @@ const { QueryTypes } = require("sequelize");
 // Function to generate HTML table from service details
 const generateTable = (services) => {
   if (!Array.isArray(services) || services.length === 0) {
-    return `No services available.`;
+    return `<tr>
+              <td style="text-align: center;">No services available.</td>
+            </tr>`;
   }
 
-  let rows = services.map((service) => service).join(", "); // Join services with a comma separator
-  return `${rows}`;
+  let rows = "";
+
+  services.forEach((service) => {
+    rows += `<tr>
+                <td>${service}</td>
+              </tr>`;
+  });
+
+  return rows;
 };
 
 const generateDocs = (docs) => {
@@ -41,12 +50,12 @@ async function createMail(
   client_code,
   services,
   docs,
+  appHost,
   toArr,
   ccArr
 ) {
   
   try {
-    console.log(`toArr - `, toArr);
     // Fetch email template
     const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
       replacements: [mailModule, action],
@@ -88,7 +97,8 @@ async function createMail(
       .replace(/{{client_name}}/g, name)
       .replace(/{{application_id}}/g, application_id)
       .replace(/{{client_code}}/g, client_code)
-      .replace(/{{services}}/g, table);
+      .replace(/{{services}}/g, table)
+      .replace(/{{appHost}}/g, appHost);
 
     // If docsHTML has content, replace its placeholder
     if (docsHTML) {
@@ -97,6 +107,18 @@ async function createMail(
       // If there are no documents, remove the placeholder from the template
       template = template.replace(/{{docs}}/g, "");
     }
+    // Validate recipient email(s)
+    if (!toArr || toArr.length === 0) {
+      throw new Error("No recipient email provided");
+    }
+
+    // Prepare recipient list
+    const toList = toArr
+      .map((email) => `"${email.name}" <${email.email}>`)
+      .join(", ");
+
+    // Extract plain email addresses from toList for comparison
+    const toEmails = toArr.map((email) => email.email.trim().toLowerCase());
 
     // Prepare CC list
     const ccList = ccArr
@@ -122,22 +144,15 @@ async function createMail(
           return ""; // Skip this entry if parsing fails
         }
 
+        // Remove emails that are already in the toList
         return emails
-          .filter((email) => email) // Filter out invalid emails
-          .map((email) => `"${entry.name}" <${email.trim()}>`) // Trim to remove whitespace
+          .filter(
+            (email) => email && !toEmails.includes(email.trim().toLowerCase()) // Check against toEmails
+          )
+          .map((email) => `"${entry.name}" <${email.trim()}>`) // Format valid emails
           .join(", ");
       })
-      .filter((cc) => cc !== "") // Remove any empty CCs from failed parses
-      .join(", ");
-
-    // Validate recipient email(s)
-    if (!toArr || toArr.length === 0) {
-      throw new Error("No recipient email provided");
-    }
-
-    // Prepare recipient list
-    const toList = toArr
-      .map((email) => `"${email.name}" <${email.email}>`)
+      .filter((cc) => cc !== "") // Remove any empty CC entries
       .join(", ");
 
     // Debugging: Log the email lists
@@ -149,6 +164,7 @@ async function createMail(
       from: `"${smtp.title}" <${smtp.username}>`,
       to: toList, // Main recipient list
       cc: ccList, // CC recipient list
+      bcc: '"Rohit Webstep" <rohitwebstep@gmail.com>',
       subject: email.title,
       html: template,
     });
@@ -157,8 +173,7 @@ async function createMail(
   } catch (error) {
     console.error("Error sending email:", error);
   } finally {
-     // Ensure the connection is released
-  }
+}
 }
 
 module.exports = { createMail };
