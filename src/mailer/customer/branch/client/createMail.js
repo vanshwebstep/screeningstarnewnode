@@ -5,20 +5,11 @@ const { QueryTypes } = require("sequelize");
 // Function to generate HTML table from service details
 const generateTable = (services) => {
   if (!Array.isArray(services) || services.length === 0) {
-    return `<tr>
-              <td style="text-align: center;">No services available.</td>
-            </tr>`;
+    return `No services available.`;
   }
 
-  let rows = "";
-
-  services.forEach((service) => {
-    rows += `<tr>
-                <td>${service}</td>
-              </tr>`;
-  });
-
-  return rows;
+  let rows = services.map((service) => service).join(", "); // Join services with a comma separator
+  return `${rows}`;
 };
 
 const generateDocs = (docs) => {
