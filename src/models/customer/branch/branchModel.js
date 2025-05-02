@@ -150,6 +150,27 @@ const Branch = {
 
   },
 
+  isEmailUsedForUpdate: async (email, customer_id, callback) => {
+    try {
+      const branchQuery = `
+        SELECT COUNT(*) AS count
+        FROM branches
+        WHERE email = ? AND customer_id != ?
+      `;
+
+      const result = await sequelize.query(branchQuery, {
+        replacements: [email, customer_id],
+        type: QueryTypes.SELECT,
+      });
+
+      const isUsed = result.count > 0; // If count > 0, email exists
+      return callback(null, isUsed);
+    } catch (err) {
+      console.error("Database query error:", err);
+      return callback({ message: "Database query error", error: err }, null);
+    }
+  },
+  
   listByCustomerID: async (customer_id, callback) => {
 
     const sql = `SELECT * FROM \`branches\` WHERE \`customer_id\` = ?`;
