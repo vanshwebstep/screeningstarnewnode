@@ -46,6 +46,7 @@ async function createMail(
 ) {
   
   try {
+    console.log(`toArr - `, toArr);
     // Fetch email template
     const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
       replacements: [mailModule, action],
