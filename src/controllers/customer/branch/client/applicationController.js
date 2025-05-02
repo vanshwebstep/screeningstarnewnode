@@ -1373,7 +1373,7 @@ exports.upload = async (req, res) => {
                                 token: newToken,
                               });
                             }
-                            console.log(`currentClientApplicationNew - `, newAttachedDocsString);
+                            console.log(`currentClientApplicationNew - `, currentClientApplicationNew);
                             let newAttachedDocsString = "";
                             if (
                               currentClientApplicationNew.attach_documents &&
