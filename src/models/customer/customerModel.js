@@ -601,87 +601,71 @@ const Customer = {
   },
 
   basicInfoByID: async (customer_id, callback) => {
-    const sql = `
-      SELECT 
-        customers.client_unique_id,
-        customers.name, 
-        customers.profile_picture, 
-        customers.emails, 
-        customers.mobile, 
-        customers.services,
-        customers.id, 
-        customer_metas.address,
-        customer_metas.gst_number,
-        customer_metas.id AS meta_id,
-        customer_metas.visible_fields
-      FROM 
-        customers
-      LEFT JOIN 
-        customer_metas 
-      ON 
-        customers.id = customer_metas.customer_id
-      WHERE 
-        customers.id = ?
-        AND customers.is_deleted != 1
-    `;
-
-
     try {
-      const results = await new Promise((resolve, reject) => {
-        connection.query(sql, [customer_id], (err, results) => {
-          if (err) reject(err);
-          resolve(results);
-        });
+      // Fetch basic customer info
+      const sql = `
+        SELECT 
+          customers.client_unique_id,
+          customers.name, 
+          customers.profile_picture, 
+          customers.emails, 
+          customers.mobile, 
+          customers.services, 
+          customers.id, 
+          customer_metas.address,
+          customer_metas.gst_number,
+          customer_metas.contact_person_name,
+          customer_metas.tat_days,
+          customers.status,
+          customer_metas.id AS meta_id
+        FROM 
+          customers
+        LEFT JOIN 
+          customer_metas 
+        ON 
+          customers.id = customer_metas.customer_id
+        WHERE 
+          customers.id = ?
+      `;
+
+      const results = await sequelize.query(sql, {
+        type: QueryTypes.SELECT,
+        replacements: [customer_id],
       });
 
-      if (results.length === 0) {
-
+      if (!results.length) {
         return callback(null, { message: "No customer data found" });
       }
 
-      const customerData = results[0];
-      customerData.client_spoc_details = null;
+      let customerData = results[0];
+
+      // Parse services JSON safely
       let servicesData;
       try {
         servicesData = JSON.parse(customerData.services);
       } catch (parseError) {
-
         return callback(parseError, null);
       }
 
-      const updateServiceTitles = async () => {
-        try {
-          for (const group of servicesData) {
-            for (const service of group.services) {
-              const serviceSql = `SELECT title FROM services WHERE id = ?`;
-              const [rows] = await new Promise((resolve, reject) => {
-                connection.query(
-                  serviceSql,
-                  [service.serviceId],
-                  (err, results) => {
-                    if (err) return reject(err);
-                    resolve(results);
-                  }
-                );
-              });
+      // Update service titles
+      for (const group of servicesData) {
+        const serviceSql = `SELECT title FROM services WHERE id = ?`;
 
-              if (rows && rows.title) {
-                service.serviceTitle = rows.title;
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Error updating service titles:", err);
-        } finally {
+        const serviceResult = await sequelize.query(serviceSql, {
+          type: QueryTypes.SELECT,
+          replacements: [group.serviceId],
+        });
 
-          customerData.services = JSON.stringify(servicesData);
-          callback(null, customerData);
+        if (serviceResult.length && serviceResult[0].title) {
+          group.serviceTitle = serviceResult[0].title;
         }
-      };
+      }
 
-      await updateServiceTitles();
+      // Attach updated service titles
+      customerData.services = JSON.stringify(servicesData);
+      callback(null, customerData);
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Database query error:", err);
       callback(err, null);
     }
   },
