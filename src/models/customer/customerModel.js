@@ -773,6 +773,8 @@ const Customer = {
         return callback(parseError, null);
       }
 
+      console.log(`servicesData - `, servicesData);
+
       // Update service titles
       for (const group of servicesData) {
         const serviceSql = `SELECT title FROM services WHERE id = ?`;
