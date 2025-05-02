@@ -749,47 +749,50 @@ const Customer = {
   },
 
   getCustomerById: async (id, callback) => {
-    const sql = "SELECT C.*, CM.tat_days, CM.visible_fields, CM.custom_template, CM.custom_logo, CM.custom_address FROM `customers` C INNER JOIN `customer_metas` CM ON CM.customer_id = C.id WHERE C.`id` = ? AND C.is_deleted != 1";
+    try {
+      // Fetch basic customer details
+      const sql = "SELECT * FROM `customers` WHERE `id` = ?";
 
-    const results = await sequelize.query(sql, {
-      replacements: [id],
-      type: QueryTypes.SELECT,
-    });
-    const customerData = results[0];
-    let servicesData;
-    servicesData = JSON.parse(customerData?.services);
+      const results = await sequelize.query(sql, {
+        type: QueryTypes.SELECT,
+        replacements: [id],
+      });
 
-    const updateServiceTitles = async () => {
-      try {
-        for (const group of servicesData) {
-          for (const service of group.services) {
-            const serviceSql = `SELECT title FROM services WHERE id = ?`;
-            const [rows] = await new Promise(async (resolve, reject) => {
-              const results = await sequelize.query(serviceSql, {
-                replacements: [service.serviceId],
-                type: QueryTypes.SELECT,
-              });
-
-              resolve(results);
-
-            });
-
-            if (rows && rows.title) {
-              service.serviceTitle = rows.title;
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error updating service titles:", err);
-      } finally {
-        customerData.services = JSON.stringify(servicesData);
-        callback(null, customerData);
+      if (!results.length) {
+        return callback(null, { message: "No customer data found" });
       }
-    };
 
-    updateServiceTitles();
+      let customerData = results[0];
 
+      // Parse services JSON safely
+      let servicesData;
+      try {
+        servicesData = JSON.parse(customerData.services);
+      } catch (parseError) {
+        return callback(parseError, null);
+      }
 
+      // Update service titles
+      for (const group of servicesData) {
+        const serviceSql = `SELECT title FROM services WHERE id = ?`;
+
+        const serviceResult = await sequelize.query(serviceSql, {
+          type: QueryTypes.SELECT,
+          replacements: [group.serviceId],
+        });
+
+        if (serviceResult.length && serviceResult[0].title) {
+          group.serviceTitle = serviceResult[0].title;
+        }
+      }
+
+      // Attach updated service titles
+      customerData.services = JSON.stringify(servicesData);
+      callback(null, customerData);
+    } catch (err) {
+      console.error("Database query error:", err);
+      callback(err, null);
+    }
   },
 
   getActiveCustomerById: async (id, callback) => {
