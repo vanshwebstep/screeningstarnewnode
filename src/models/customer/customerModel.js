@@ -610,14 +610,12 @@ const Customer = {
           customers.profile_picture, 
           customers.emails, 
           customers.mobile, 
-          customers.services, 
+          customers.services,
           customers.id, 
           customer_metas.address,
           customer_metas.gst_number,
-          customer_metas.contact_person_name,
-          customer_metas.tat_days,
-          customers.status,
-          customer_metas.id AS meta_id
+          customer_metas.id AS meta_id,
+          customer_metas.visible_fields
         FROM 
           customers
         LEFT JOIN 
@@ -626,6 +624,7 @@ const Customer = {
           customers.id = customer_metas.customer_id
         WHERE 
           customers.id = ?
+          AND customers.is_deleted != 1
       `;
 
       const results = await sequelize.query(sql, {
@@ -663,6 +662,8 @@ const Customer = {
 
       // Attach updated service titles
       customerData.services = JSON.stringify(servicesData);
+
+      console.log(`customerData - `, customerData);
       callback(null, customerData);
     } catch (err) {
       console.error("Database query error:", err);
