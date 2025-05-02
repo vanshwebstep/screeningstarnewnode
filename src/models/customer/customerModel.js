@@ -777,15 +777,16 @@ const Customer = {
 
       // Update service titles
       for (const group of servicesData) {
-        const serviceSql = `SELECT title FROM services WHERE id = ?`;
+        for (const service of group.services) {
+          const serviceSql = `SELECT title FROM services WHERE id = ?`;
+          const serviceResult = await sequelize.query(serviceSql, {
+            type: QueryTypes.SELECT,
+            replacements: [service.serviceId],
+          });
 
-        const serviceResult = await sequelize.query(serviceSql, {
-          type: QueryTypes.SELECT,
-          replacements: [group.serviceId],
-        });
-
-        if (serviceResult.length && serviceResult[0].title) {
-          group.serviceTitle = serviceResult[0].title;
+          if (serviceResult.length && serviceResult[0].title) {
+            service.serviceTitle = serviceResult[0].title;
+          }
         }
       }
 
