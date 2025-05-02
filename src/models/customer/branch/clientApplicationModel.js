@@ -255,13 +255,13 @@ const clientApplication = {
 
     Promise.all(cmtPromises)
       .then(() => {
+        // Sort finalResults by created_at DESC to ensure correct order
+        finalResults.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         callback(null, finalResults);
       })
       .catch((err) => {
         callback(err, null);
       });
-
-
   },
 
   checkUniqueEmpId: async (clientUniqueEmpId, callback) => {
