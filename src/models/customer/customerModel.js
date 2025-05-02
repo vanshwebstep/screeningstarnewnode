@@ -751,7 +751,7 @@ const Customer = {
   getCustomerById: async (id, callback) => {
     try {
       // Fetch basic customer details
-      const sql = "SELECT * FROM `customers` WHERE `id` = ?";
+      const sql = "SELECT C.*, CM.tat_days, CM.visible_fields, CM.custom_template, CM.custom_logo, CM.custom_address FROM `customers` C INNER JOIN `customer_metas` CM ON CM.customer_id = C.id WHERE C.`id` = ? AND C.is_deleted != 1";
 
       const results = await sequelize.query(sql, {
         type: QueryTypes.SELECT,
@@ -764,6 +764,7 @@ const Customer = {
 
       let customerData = results[0];
 
+      console.log(`customerData - `, customerData);
       // Parse services JSON safely
       let servicesData;
       try {

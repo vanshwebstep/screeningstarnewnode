@@ -2181,7 +2181,7 @@ exports.delete = (req, res) => {
             console.error("Database error during customer retrieval:", err);
             return res.status(500).json({
               status: false,
-              message: "Failed to retrieve customer. Please try again.",
+              message: err.message || "Failed to retrieve customer. Please try again.",
               token: newToken,
             });
           }
