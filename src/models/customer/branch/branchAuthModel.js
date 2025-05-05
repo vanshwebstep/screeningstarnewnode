@@ -124,65 +124,65 @@ const Branch = {
 
   },
 
-  validatePassword: async(email, password, type, callback) => {
-      let sql;
-      if (type === "branch") {
-        sql = `
+  validatePassword: async (email, password, type, callback) => {
+    let sql;
+    if (type === "branch") {
+      sql = `
         SELECT \`id\`
         FROM \`branches\`
         WHERE \`email\` = ?
         AND (\`password\` = MD5(?) OR \`password\` = ?)
       `;
-      } else if (type === "sub_user") {
-        sql = `
+    } else if (type === "sub_user") {
+      sql = `
         SELECT \`id\`
         FROM \`branch_sub_users\`
         WHERE \`email\` = ?
         AND (\`password\` = MD5(?) OR \`password\` = ?)
       `;
-      } else {
-        return callback(
-          { message: "Undefined user trying to login", error: err },
-          null
-        );
-      }
-      const results = await sequelize.query(sql, {
-        replacements: [email, password, password], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        if (results.length > 0) {
-          return callback(null, true);
-        } else {
-          return callback(null, false);
-        }
-    
+    } else {
+      return callback(
+        { message: "Undefined user trying to login", error: err },
+        null
+      );
+    }
+    const results = await sequelize.query(sql, {
+      replacements: [email, password, password], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length > 0) {
+      return callback(null, true);
+    } else {
+      return callback(null, false);
+    }
+
   },
 
-  updatePassword:async (new_password, branch_id, callback) => {
-      const sql = `UPDATE \`branches\` SET \`password\` = MD5(?), \`reset_password_token\` = null, \`login_token\` = null, \`token_expiry\` = null, \`password_token_expiry\` = null WHERE \`id\` = ?`;
-      const results = await sequelize.query(sql, {
-        replacements: [new_password, branch_id], // Positional replacements using ?
-        type: QueryTypes.UPDATE,
-      });
+  updatePassword: async (new_password, branch_id, callback) => {
+    const sql = `UPDATE \`branches\` SET \`password\` = MD5(?), \`reset_password_token\` = null, \`login_token\` = null, \`token_expiry\` = null, \`password_token_expiry\` = null WHERE \`id\` = ?`;
+    const results = await sequelize.query(sql, {
+      replacements: [new_password, branch_id], // Positional replacements using ?
+      type: QueryTypes.UPDATE,
+    });
 
-      
-        if (results.affectedRows === 0) {
-          return callback(
-            {
-              message:
-                "Branch not found or password not updated. Please check the provided details.",
-            },
-            null
-          );
-        }
 
-        callback(null, {
-          message: "Password updated successfully.",
-          affectedRows: results.affectedRows,
-        });
+    if (results.affectedRows === 0) {
+      return callback(
+        {
+          message:
+            "Branch not found or password not updated. Please check the provided details.",
+        },
+        null
+      );
+    }
+
+    callback(null, {
+      message: "Password updated successfully.",
+      affectedRows: results.affectedRows,
+    });
   },
 
-  updateOTP: async(branch_id, type, otp, otp_expiry, callback) => {
+  updateOTP: async (branch_id, type, otp, otp_expiry, callback) => {
     // Determine which table to update based on the type
     const table = type === "branch" ? "branches" : "branch_sub_users";
 
@@ -192,194 +192,195 @@ const Branch = {
         SET \`otp\` = ?, \`otp_expiry\` = ?, \`reset_password_token\` = NULL, \`login_token\` = NULL, \`token_expiry\` = NULL, \`password_token_expiry\` = NULL
         WHERE \`id\` = ?
     `;
-      const results = await sequelize.query(sql, {
-        replacements: [otp, otp_expiry, branch_id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-            if (results.affectedRows === 0) {
-            return callback(
-              {
-                message:
-                  "Branch or sub-user not found or OTP not updated. Please check the provided details.",
-              },
-              null
-            );
-          }
+    const results = await sequelize.query(sql, {
+      replacements: [otp, otp_expiry, branch_id],
+      type: QueryTypes.UPDATE,
+    });
 
-          callback(null, {
-            message: "OTP updated successfully.",
-            affectedRows: results.affectedRows,
-          });
-      },
+    if (results.affectedRows === 0) {
+      return callback(
+        {
+          message:
+            "Branch or sub-user not found or OTP not updated. Please check the provided details.",
+        },
+        null
+      );
+    }
+
+    callback(null, {
+      message: "OTP updated successfully.",
+      affectedRows: results.affectedRows,
+    });
+  },
 
   updateToken: async (id, token, tokenExpiry, type, callback) => {
-      
-      let sql;
-      if (type === "branch") {
-        sql = `
+
+    let sql;
+    if (type === "branch") {
+      sql = `
         UPDATE \`branches\`
         SET \`login_token\` = ?, \`token_expiry\` = ?
         WHERE \`id\` = ?
       `;
-      } else if (type === "sub_user") {
-        sql = `
+    } else if (type === "sub_user") {
+      sql = `
         UPDATE \`branch_sub_users\`
         SET \`login_token\` = ?, \`token_expiry\` = ?
         WHERE \`id\` = ?
       `;
-      } else {
-        return callback(
-          { message: "Undefined user trying to login", error: err },
-          null
-        );
-      }
-      const results = await sequelize.query(sql, {
-        replacements: [token, tokenExpiry, id], // Positional replacements using ?
-        type: QueryTypes.UPDATE,
-      });
+    } else {
+      return callback(
+        { message: "Undefined user trying to login", error: err },
+        null
+      );
+    }
+    const results = await sequelize.query(sql, {
+      replacements: [token, tokenExpiry, id], // Positional replacements using ?
+      type: QueryTypes.UPDATE,
+    });
 
-        if (results.affectedRows === 0) {
-          return callback(
-            {
-              message:
-                "Token update failed. Branch not found or no changes made.",
-            },
-            null
-          );
-        }
+    if (results.affectedRows === 0) {
+      return callback(
+        {
+          message:
+            "Token update failed. Branch not found or no changes made.",
+        },
+        null
+      );
+    }
 
-        callback(null, results);
-      
-   
+    callback(null, results);
+
+
   },
 
 
   validateLogin: async (id, callback) => {
-     
-      const sql = `
+
+    const sql = `
         SELECT \`login_token\`, \`token_expiry\`
         FROM \`branches\`
         WHERE \`id\` = ?
       `;
 
-      const results = await sequelize.query(sql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        if (results.length === 0) {
-          return callback({ message: "Branch not found" }, null);
-        }
+    const results = await sequelize.query(sql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length === 0) {
+      return callback({ message: "Branch not found" }, null);
+    }
 
-        callback(null, results);
-      
-   
+    callback(null, results);
+
+
   },
 
   // Clear login token and token expiry
-  logout:async  (sub_user_id, branch_id, callback) => {
-      if (sub_user_id && sub_user_id.trim() !== "") {
-        const sql = `
+  logout: async (sub_user_id, branch_id, callback) => {
+    if (sub_user_id && sub_user_id.trim() !== "") {
+      const sql = `
                 UPDATE \`branch_sub_users\`
                 SET \`login_token\` = NULL, \`token_expiry\` = NULL
                 WHERE \`id\` = ? AND \`branch_id\` = ?
             `;
-            const results = await sequelize.query(sql, {
-              replacements: [sub_user_id, branch_id], // Positional replacements using ?
-              type: QueryTypes.UPDATE,
-            });
+      const results = await sequelize.query(sql, {
+        replacements: [sub_user_id, branch_id], // Positional replacements using ?
+        type: QueryTypes.UPDATE,
+      });
 
-          if (results.affectedRows === 0) {
-            return callback(
-              {
-                message:
-                  "Token clear failed. Sub-user not found or no changes made.",
-              },
-              null
-            );
-          }
+      if (results.affectedRows === 0) {
+        return callback(
+          {
+            message:
+              "Token clear failed. Sub-user not found or no changes made.",
+          },
+          null
+        );
+      }
 
-          return callback(null, results);
-       
-      } else {
-        // If sub_user_id is null or empty, update the branches table
-        const sql = `
+      return callback(null, results);
+
+    } else {
+      // If sub_user_id is null or empty, update the branches table
+      const sql = `
                 UPDATE \`branches\`
                 SET \`login_token\` = NULL, \`token_expiry\` = NULL
                 WHERE \`id\` = ?
             `;
-            const results = await sequelize.query(sql, {
-              replacements: [branch_id], // Positional replacements using ?
-              type: QueryTypes.UPDATE,
-            });
-          if (results.affectedRows === 0) {
-            return callback(
-              {
-                message:
-                  "Token clear failed. Branch not found or no changes made.",
-              },
-              null
-            );
-          }
-
-          return callback(null, results);
-        
+      const results = await sequelize.query(sql, {
+        replacements: [branch_id], // Positional replacements using ?
+        type: QueryTypes.UPDATE,
+      });
+      if (results.affectedRows === 0) {
+        return callback(
+          {
+            message:
+              "Token clear failed. Branch not found or no changes made.",
+          },
+          null
+        );
       }
- 
+
+      return callback(null, results);
+
+    }
+
   },
 
   findById: async (sub_user_id, branch_id, callback) => {
-      
-      let sql = "";
-      let queryParams = [];
 
-      // Build SQL query based on the presence of sub_user_id
-      if (sub_user_id && sub_user_id.trim() !== "") {
-        sql = `
+    let sql = "";
+    let queryParams = [];
+
+    // Build SQL query based on the presence of sub_user_id
+    if (sub_user_id && sub_user_id.trim() !== "") {
+      sql = `
           SELECT \`id\`, \`customer_id\`, \`email\`, \`status\`, \`login_token\`, \`token_expiry\`
           FROM \`branch_sub_users\`
           WHERE \`branch_id\` = ? AND \`id\` = ?
         `;
-        queryParams = [branch_id, sub_user_id];
-      } else {
-        sql = `
+      queryParams = [branch_id, sub_user_id];
+    } else {
+      sql = `
           SELECT \`id\`, \`customer_id\`, \`name\`, \`email\`, \`status\`, \`login_token\`, \`token_expiry\`
           FROM \`branches\`
           WHERE \`id\` = ?
         `;
-        queryParams = [branch_id];
-      }
+      queryParams = [branch_id];
+    }
 
-      const results = await sequelize.query(sql, {
-        replacements: queryParams, // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        if (results.length === 0) {
-          return callback({ message: "Branch or sub_user not found" }, null);
-        }
+    const results = await sequelize.query(sql, {
+      replacements: queryParams, // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length === 0) {
+      return callback({ message: "Branch or sub_user not found" }, null);
+    }
 
-        // Return the first result (should be one result if ID is unique)
-        callback(null, results[0]);
-     
-   
+    // Return the first result (should be one result if ID is unique)
+    callback(null, results[0]);
+
+
   },
 
-  isBranchActive:async  (id, callback) => {
-      
-      const sql = `
+  isBranchActive: async (id, callback) => {
+
+    const sql = `
         SELECT \`status\`
         FROM \`branches\`
         WHERE \`id\` = ?
       `;
-      const results = await sequelize.query(sql, {
-        replacements: [id], // Positional replacements using ?
-        type: QueryTypes.SELECT,
-      });
-        if (results.length === 0) {
-          return callback({ message: "Branch not found" }, null);
-        }
+    const results = await sequelize.query(sql, {
+      replacements: [id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+    if (results.length === 0) {
+      return callback({ message: "Branch not found" }, null);
+    }
 
-        const isActive = results[0].status == 1;
-        callback(null, { isActive }); 
+    const isActive = results[0].status == 1;
+    callback(null, { isActive });
   },
 
   isBranchSubUserActive: async (id, callback) => {
