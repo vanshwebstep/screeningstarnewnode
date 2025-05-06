@@ -21,6 +21,15 @@ const clientApplication = {
         callback(null, { applications, services });
     },
 
+    getById: async (id, callback) => {
+        const sql = `SELECT * FROM \`case_allocations\` WHERE \`id\` = ?`;
+        const results = await sequelize.query(sql, {
+            replacements: [id], // Positional replacements using ?
+            type: QueryTypes.SELECT,
+        });
+        callback(null, results[0]);
+    },
+
     create: async (data, callback) => {
 
         const tableName = "case_allocations";
@@ -121,6 +130,84 @@ const clientApplication = {
             });
 
 
+    },
+
+    update: async (id, data, callback) => {
+        const tableName = "case_allocations";
+
+        // Filter out undefined, null, or empty values
+        const filteredInformation = Object.fromEntries(
+            Object.entries(data).filter(
+                ([key, value]) => value !== undefined && value !== null && value !== ''
+            )
+        );
+
+        console.log(`filteredInformation - `, filteredInformation);
+
+        const columns = Object.keys(filteredInformation);
+        const values = Object.values(filteredInformation);
+
+        const checkTableSql = `
+            SELECT COUNT(*) AS tableCount
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE() AND table_name = ?
+        `;
+
+        try {
+            const tableResults = await sequelize.query(checkTableSql, {
+                replacements: [tableName],
+                type: QueryTypes.SELECT,
+            });
+
+            const tableExists = tableResults[0].tableCount > 0;
+
+            if (!tableExists) {
+                const createTableSql = `
+                    CREATE TABLE \`case_allocations\` (
+                        \`id\` int NOT NULL AUTO_INCREMENT,
+                        \`admin_id\` int NOT NULL,
+                        \`created_at\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        \`updated_at\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (\`id\`),
+                        KEY \`case_allocation_fk_admin_id\` (\`admin_id\`),
+                        CONSTRAINT \`case_allocation_fk_admin_id\` FOREIGN KEY (\`admin_id\`) REFERENCES \`admins\` (\`id\`) ON DELETE CASCADE ON UPDATE RESTRICT
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                `;
+                await sequelize.query(createTableSql, { type: QueryTypes.RAW });
+            }
+
+            const columnResults = await sequelize.query(`SHOW COLUMNS FROM \`${tableName}\``, {
+                type: QueryTypes.SELECT,
+            });
+
+            const existingColumns = columnResults.map((column) => column.Field);
+            const missingColumns = columns.filter((column) => !existingColumns.includes(column));
+
+            for (const column of missingColumns) {
+                const alterTableSql = `
+                    ALTER TABLE \`${tableName}\`
+                    ADD COLUMN \`${column}\` TEXT
+                `;
+                await sequelize.query(alterTableSql, { type: QueryTypes.RAW });
+            }
+
+            // Now build the update statement
+            const updateSql = `
+                UPDATE \`${tableName}\`
+                SET ${columns.map((col) => `\`${col}\` = ?`).join(", ")}
+                WHERE id = ?
+            `;
+
+            const results = await sequelize.query(updateSql, {
+                replacements: [...values, id], // Add `id` at the end for WHERE clause
+                type: QueryTypes.UPDATE,
+            });
+
+            callback(null, results);
+        } catch (err) {
+            console.error("Database query error: Ensure table/columns", err);
+            callback(err, null);
+        }
     },
 
     list: async (callback) => {
