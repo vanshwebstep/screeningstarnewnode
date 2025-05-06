@@ -562,6 +562,7 @@ exports.list = (req, res) => {
 
             const newToken = result.newToken;
 
+
             CaseAllocation.list((err, result) => {
                 if (err) {
                     console.error("Database error:", err);
@@ -572,17 +573,32 @@ exports.list = (req, res) => {
 
                 const { caseAllocations, services } = result;
 
-                return res.json({
-                    status: true,
-                    message: "Case allocations and services fetched successfully",
-                    data: {
-                        caseAllocations,
-                        services,
-                    },
-                    totalResults: {
-                        caseAllocations: caseAllocations.length,
-                        services: services.length,
-                    },
+                CaseAllocation.applicationForCaseAllocation((err, result) => {
+                    if (err) {
+                        console.error("Database error:", err);
+                        return res.status(500).json({
+                            status: false,
+                            error: err,
+                            message: err.message || "An error occurred while fetching applications",
+                            token: newToken
+                        });
+                    }
+
+                    const { applications } = result;
+                    return res.json({
+                        status: true,
+                        message: "Case allocations and services fetched successfully",
+                        data: {
+                            caseAllocations,
+                            services,
+                            applications
+                        },
+                        totalResults: {
+                            caseAllocations: caseAllocations.length,
+                            services: services.length,
+                            applications: applications.length
+                        },
+                    });
                 });
             });
         });
