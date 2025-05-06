@@ -1381,12 +1381,15 @@ exports.generateReport = (req, res) => {
                 "permanent_state",
               ];
 
+              /*
               // Remove keys in keysToDelete from mainJsonRaw
               Object.keys(mainJsonRaw).forEach((key) => {
                 if (keysToDelete.includes(key)) {
                   delete mainJsonRaw[key];
                 }
               });
+              */
+
               const mainJson = mainJsonRaw;
               // Declare changes outside the conditional block
               const changes = {};
