@@ -511,26 +511,40 @@ exports.applicationByID = (req, res) => {
                       });
                     }
 
-                    if (!CMTApplicationData) {
-                      return res.json({
-                        status: true,
-                        message: "Application fetched successfully 1",
-                        application,
-                        branchInfo: currentBranch,
-                        customerInfo: currentCustomer,
-                        token: newToken,
-                      });
-                    } else {
-                      return res.json({
-                        status: true,
-                        message: "Application fetched successfully 2",
-                        application,
-                        CMTData: CMTApplicationData,
-                        branchInfo: currentBranch,
-                        customerInfo: currentCustomer,
-                        token: newToken,
-                      });
-                    }
+                    Admin.list((err, admins) => {
+                      if (err) {
+                        console.error("Database error:", err);
+                        return res.status(500).json({
+                          status: false,
+                          err,
+                          message: err.message,
+                          token: newToken,
+                        });
+                      }
+
+                      if (!CMTApplicationData) {
+                        return res.json({
+                          status: true,
+                          message: "Application fetched successfully 1",
+                          application,
+                          branchInfo: currentBranch,
+                          customerInfo: currentCustomer,
+                          admins,
+                          token: newToken,
+                        });
+                      } else {
+                        return res.json({
+                          status: true,
+                          message: "Application fetched successfully 2",
+                          application,
+                          CMTData: CMTApplicationData,
+                          branchInfo: currentBranch,
+                          customerInfo: currentCustomer,
+                          admins,
+                          token: newToken,
+                        });
+                      }
+                    });
                   }
                 );
               });
