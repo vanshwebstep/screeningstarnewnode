@@ -2148,7 +2148,7 @@ const Customer = {
             jsonData.rows.forEach((row) => {
               row.inputs.forEach((input) => {
                 if (input.type === "file") {
-                  dbTableFileInputs[dbTable].push(input.name);
+                  dbTableFileInputs[dbTable].push(input.name.replace(/\s+/g, ""));
                 }
               });
             });
