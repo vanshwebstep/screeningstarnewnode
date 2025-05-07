@@ -604,3 +604,92 @@ exports.list = (req, res) => {
         });
     });
 };
+
+exports.delete = (req, res) => {
+    const { ipAddress, ipType } = getClientIpAddress(req);
+
+    const { id, admin_id, _token } = req.query;
+
+    let missingFields = [];
+    if (!id || id === "") missingFields.push("Service ID");
+    if (!admin_id || admin_id === "") missingFields.push("Admin ID");
+    if (!_token || _token === "") missingFields.push("Token");
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            status: false,
+            message: `Missing required fields: ${missingFields.join(", ")}`,
+        });
+    }
+    const action = "client_overview";
+    Common.isAdminAuthorizedForAction(admin_id, action, (result) => {
+        if (!result.status) {
+            // Check the status returned by the authorization function
+            return res.status(403).json({
+                status: false,
+                message: result.message, // Return the message from the authorization function
+            });
+        }
+        Common.isAdminTokenValid(_token, admin_id, (err, result) => {
+            if (err) {
+                console.error("Error checking token validity:", err);
+                return res.status(500).json(err);
+            }
+
+            if (!result.status) {
+                return res.status(401).json({ status: false, message: result.message });
+            }
+
+            const newToken = result.newToken;
+
+            CaseAllocation.getById(id, (err, currentClientAllowcation) => {
+                if (err) {
+                    console.error("Error fetching Client Allowcation data:", err);
+                    return res.status(500).json({
+                        status: false,
+                        message: err.message,
+                        token: newToken,
+                    });
+                }
+
+                CaseAllocation.delete(id, (err, result) => {
+                    if (err) {
+                        console.error("Database error:", err);
+                        Common.adminActivityLog(
+                            ipAddress,
+                            ipType,
+                            admin_id,
+                            "CaseAllocation",
+                            "Delete",
+                            "0",
+                            JSON.stringify({ id, ...currentClientAllowcation }),
+                            err,
+                            () => { }
+                        );
+                        return res
+                            .status(500)
+                            .json({ status: false, message: err.message, token: newToken });
+                    }
+
+                    Common.adminActivityLog(
+                        ipAddress,
+                        ipType,
+                        admin_id,
+                        "CaseAllocation",
+                        "Delete",
+                        "1",
+                        JSON.stringify(currentClientAllowcation),
+                        null,
+                        () => { }
+                    );
+
+                    return res.json({
+                        status: true,
+                        message: "Allocation deleted successfully",
+                        token: newToken,
+                    });
+                });
+            });
+        });
+    });
+};

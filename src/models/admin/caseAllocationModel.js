@@ -229,6 +229,21 @@ const clientApplication = {
 
     },
 
+    delete: async (id, callback) => {
+        const sql = `
+          DELETE FROM \`case_allocations\`
+          WHERE \`id\` = ?
+        `;
+
+
+        const results = await sequelize.query(sql, {
+            replacements: [id], // Positional replacements using ?
+            type: QueryTypes.DELETE,
+        });
+        callback(null, results);
+
+    },
+
 };
 
 module.exports = clientApplication;
