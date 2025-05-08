@@ -261,6 +261,37 @@ const Customer = {
 
   },
 
+  updateByData: async (data, customerId, callback) => {
+    try {
+      // Extract keys and values from the data object
+      const keys = Object.keys(data);
+      const values = Object.values(data);
+
+      if (keys.length === 0) {
+        return callback(new Error("No data provided to update."));
+      }
+
+      // Build SET clause dynamically like: "column1 = ?, column2 = ?"
+      const setClause = keys.map((key) => `\`${key}\` = ?`).join(", ");
+
+      // Final SQL query
+      const sql = `UPDATE \`customers\` SET ${setClause} WHERE \`id\` = ?`;
+
+      // Push customerId as the last parameter for WHERE clause
+      values.push(customerId);
+
+      // Execute the query
+      const results = await sequelize.query(sql, {
+        replacements: values,
+        type: QueryTypes.UPDATE,
+      });
+
+      callback(null, results);
+    } catch (error) {
+      callback(error);
+    }
+  },
+
   createCustomerMeta: async (metaData, callback) => {
     const sqlCustomerMetas = `
       INSERT INTO \`customer_metas\` (
