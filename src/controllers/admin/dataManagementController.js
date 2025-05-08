@@ -436,6 +436,7 @@ exports.submit = (req, res) => {
     customer_id,
     application_id,
     updated_json,
+    basic_entry,
     data_qc,
     send_mail,
   } = req.body;
@@ -453,6 +454,7 @@ exports.submit = (req, res) => {
     application_id,
     updated_json,
     data_qc,
+    basic_entry
   };
 
   const missingFields = Object.keys(requiredFields)
@@ -649,8 +651,8 @@ exports.submit = (req, res) => {
                             });
                           }
 
-                          DataManagement.updateDataQC(
-                            { application_id, data_qc },
+                          DataManagement.updateBasicEntry(
+                            { application_id, basic_entry },
                             (err, result) => {
                               if (err) {
                                 console.error("Error updating data QC:", err);
@@ -661,161 +663,174 @@ exports.submit = (req, res) => {
                                   token: newToken,
                                 });
                               }
-
-                              const { mainJsonRaw, annexureRawJson } =
-                                flattenJsonWithAnnexure(updated_json);
-
-                              const allowedKeys = [
-                                "month_year",
-                                "initiation_date",
-                                "client_organization_name",
-                                "verification_purpose",
-                                "employee_id",
-                                "client_organization_code",
-                                "client_applicant_name",
-                                "contact_number",
-                                "contact_number2",
-                                "father_name",
-                                "dob",
-                                "client_applicant_gender",
-                                "marital_status",
-                                "address",
-                                "landmark",
-                                "residence_mobile_number",
-                                "state",
-                                "permanent_address",
-                                "permanent_sender_name",
-                                "permanent_receiver_name",
-                                "permanent_landmark",
-                                "permanent_pin_code",
-                                "permanent_state",
-                                "spouse_name",
-                                "Nationality",
-                                "QC_Date",
-                                "QC_Analyst_Name",
-                                "Data_Entry_Analyst_Name",
-                                "Date_of_Data",
-                                "insuff",
-                                "address_house_no",
-                                "address_floor",
-                                "address_cross",
-                                "address_street",
-                                "address_main",
-                                "address_area",
-                                "address_locality",
-                                "address_city",
-                                "address_landmark",
-                                "address_taluk",
-                                "address_district",
-                                "address_state",
-                                "address_pin_code",
-                                "permanent_address_house_no",
-                                "permanent_address_floor",
-                                "permanent_address_cross",
-                                "permanent_address_street",
-                                "permanent_address_main",
-                                "permanent_address_area",
-                                "permanent_address_locality",
-                                "permanent_address_city",
-                                "permanent_address_landmark",
-                                "permanent_address_taluk",
-                                "permanent_address_district",
-                                "permanent_address_state",
-                                "permanent_address_pin_code",
-                              ];
-
-                              const requiredKeys = [
-                                "month_year",
-                                "verification_purpose",
-                                "client_applicant_name",
-                              ];
-
-                              const mainJson = Object.keys(mainJsonRaw)
-                                .filter((key) => allowedKeys.includes(key))
-                                .reduce((obj, key) => {
-                                  obj[key] = mainJsonRaw[key];
-                                  return obj;
-                                }, {});
-
-                              /*
-                            // Check if the required keys are all filled
-                            const hasEmptyRequiredFields = requiredKeys.some(
-                              (key) => !mainJson[key] || mainJson[key] === ""
-                            );
-            
-                            if (hasEmptyRequiredFields) {
-                              return res.status(400).json({
-                                status: false,
-                                message: "Please ensure required fields are filled.",
-                                token: newToken,
-                              });
-                            }
-                              */
-
-                              const changes = {};
-                              let logStatus = "create";
-
-                              if (
-                                currentCMTApplication &&
-                                Object.keys(currentCMTApplication).length > 0
-                              ) {
-                                logStatus = "update";
-                                Object.keys(mainJson).forEach((key) => {
-                                  if (currentCMTApplication[key] !== mainJson[key]) {
-                                    changes[key] = {
-                                      old: currentCMTApplication[key],
-                                      new: mainJson[key],
-                                    };
-                                  }
-                                });
-                              }
-
-                              DataManagement.submit(
-                                mainJson,
-                                application_id,
-                                branch_id,
-                                customer_id,
-                                (err, cmtResult) => {
+                              DataManagement.updateDataQC(
+                                { application_id, data_qc },
+                                (err, result) => {
                                   if (err) {
-                                    console.error("Error updating application data:", err);
+                                    console.error("Error updating data QC:", err);
                                     return res.status(500).json({
                                       status: false,
                                       message:
-                                        "Failed to process the application. Please try again later.",
+                                        "An error occurred while updating data QC. Please try again.",
                                       token: newToken,
                                     });
                                   }
 
-                                  AdminCommon.adminActivityLog(
-                                    ipAddress,
-                                    ipType,
-                                    admin_id,
-                                    "Data Management",
-                                    logStatus,
-                                    "1",
-                                    JSON.stringify({ application_id, ...changes }),
-                                    err,
-                                    () => { }
-                                  );
+                                  const { mainJsonRaw, annexureRawJson } =
+                                    flattenJsonWithAnnexure(updated_json);
+
+                                  const allowedKeys = [
+                                    "month_year",
+                                    "initiation_date",
+                                    "client_organization_name",
+                                    "verification_purpose",
+                                    "employee_id",
+                                    "client_organization_code",
+                                    "client_applicant_name",
+                                    "contact_number",
+                                    "contact_number2",
+                                    "father_name",
+                                    "dob",
+                                    "client_applicant_gender",
+                                    "marital_status",
+                                    "address",
+                                    "landmark",
+                                    "residence_mobile_number",
+                                    "state",
+                                    "permanent_address",
+                                    "permanent_sender_name",
+                                    "permanent_receiver_name",
+                                    "permanent_landmark",
+                                    "permanent_pin_code",
+                                    "permanent_state",
+                                    "spouse_name",
+                                    "Nationality",
+                                    "QC_Date",
+                                    "QC_Analyst_Name",
+                                    "Data_Entry_Analyst_Name",
+                                    "Date_of_Data",
+                                    "insuff",
+                                    "address_house_no",
+                                    "address_floor",
+                                    "address_cross",
+                                    "address_street",
+                                    "address_main",
+                                    "address_area",
+                                    "address_locality",
+                                    "address_city",
+                                    "address_landmark",
+                                    "address_taluk",
+                                    "address_district",
+                                    "address_state",
+                                    "address_pin_code",
+                                    "permanent_address_house_no",
+                                    "permanent_address_floor",
+                                    "permanent_address_cross",
+                                    "permanent_address_street",
+                                    "permanent_address_main",
+                                    "permanent_address_area",
+                                    "permanent_address_locality",
+                                    "permanent_address_city",
+                                    "permanent_address_landmark",
+                                    "permanent_address_taluk",
+                                    "permanent_address_district",
+                                    "permanent_address_state",
+                                    "permanent_address_pin_code",
+                                  ];
+
+                                  const requiredKeys = [
+                                    "month_year",
+                                    "verification_purpose",
+                                    "client_applicant_name",
+                                  ];
+
+                                  const mainJson = Object.keys(mainJsonRaw)
+                                    .filter((key) => allowedKeys.includes(key))
+                                    .reduce((obj, key) => {
+                                      obj[key] = mainJsonRaw[key];
+                                      return obj;
+                                    }, {});
 
                                   /*
-                                  return res.status(200).json({
-                                    status: true,
-                                    message: `Application ${logStatus === "update" ? "updated" : "created"
-                                      } successfully.`,
-                                    token: newToken,
-                                  });
-                                  */
-
-                                  return res.status(200).json({
-                                    status: true,
-                                    message: data_qc == 1 ? `QC Successfully Cleared` : `Basic Entry Updated Successfully.`,
+                                // Check if the required keys are all filled
+                                const hasEmptyRequiredFields = requiredKeys.some(
+                                  (key) => !mainJson[key] || mainJson[key] === ""
+                                );
+                
+                                if (hasEmptyRequiredFields) {
+                                  return res.status(400).json({
+                                    status: false,
+                                    message: "Please ensure required fields are filled.",
                                     token: newToken,
                                   });
                                 }
+                                  */
+
+                                  const changes = {};
+                                  let logStatus = "create";
+
+                                  if (
+                                    currentCMTApplication &&
+                                    Object.keys(currentCMTApplication).length > 0
+                                  ) {
+                                    logStatus = "update";
+                                    Object.keys(mainJson).forEach((key) => {
+                                      if (currentCMTApplication[key] !== mainJson[key]) {
+                                        changes[key] = {
+                                          old: currentCMTApplication[key],
+                                          new: mainJson[key],
+                                        };
+                                      }
+                                    });
+                                  }
+
+                                  DataManagement.submit(
+                                    mainJson,
+                                    application_id,
+                                    branch_id,
+                                    customer_id,
+                                    (err, cmtResult) => {
+                                      if (err) {
+                                        console.error("Error updating application data:", err);
+                                        return res.status(500).json({
+                                          status: false,
+                                          message:
+                                            "Failed to process the application. Please try again later.",
+                                          token: newToken,
+                                        });
+                                      }
+
+                                      AdminCommon.adminActivityLog(
+                                        ipAddress,
+                                        ipType,
+                                        admin_id,
+                                        "Data Management",
+                                        logStatus,
+                                        "1",
+                                        JSON.stringify({ application_id, ...changes }),
+                                        err,
+                                        () => { }
+                                      );
+
+                                      /*
+                                      return res.status(200).json({
+                                        status: true,
+                                        message: `Application ${logStatus === "update" ? "updated" : "created"
+                                          } successfully.`,
+                                        token: newToken,
+                                      });
+                                      */
+
+                                      return res.status(200).json({
+                                        status: true,
+                                        message: data_qc == 1 ? `QC Successfully Cleared` : `Basic Entry Updated Successfully.`,
+                                        token: newToken,
+                                      });
+                                    }
+                                  );
+                                }
                               );
-                            }
-                          );
+                            });
                         });
                     }
                   );

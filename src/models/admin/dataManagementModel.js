@@ -664,6 +664,49 @@ const Customer = {
 
   },
 
+  updateBasicEntry: async (data, callback) => {
+    const { application_id, basic_entry } = data;
+
+    try {
+      // Step 1: Check if 'is_basic_entry' column exists
+      const checkColumnSQL = `
+        SELECT COUNT(*) as count
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = 'client_applications' 
+          AND COLUMN_NAME = 'is_basic_entry'
+          AND TABLE_SCHEMA = DATABASE()
+      `;
+
+      const [columnCheckResult] = await sequelize.query(checkColumnSQL, {
+        type: QueryTypes.SELECT,
+      });
+
+      // Step 2: Add column if it does not exist
+      if (columnCheckResult.count === 0) {
+        const addColumnSQL = `
+          ALTER TABLE \`client_applications\`
+          ADD COLUMN \`is_basic_entry\` VARCHAR(255) DEFAULT NULL
+        `;
+        await sequelize.query(addColumnSQL);
+      }
+
+      // Step 3: Proceed with update
+      const updateSQL = `
+        UPDATE \`client_applications\` 
+        SET \`is_basic_entry\` = ?
+        WHERE \`id\` = ?
+      `;
+      const results = await sequelize.query(updateSQL, {
+        replacements: [basic_entry, application_id],
+        type: QueryTypes.UPDATE,
+      });
+
+      callback(null, results);
+    } catch (error) {
+      callback(error, null);
+    }
+  },
+
   updateDataQC: async (data, callback) => {
     const { application_id, data_qc } = data;
 
