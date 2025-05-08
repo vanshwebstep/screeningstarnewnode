@@ -404,6 +404,39 @@ exports.generateReport = (req, res) => {
     });
   }
 
+  function flattenJsonWithAnnexure(jsonObj) {
+    let result = {};
+    let annexureResult = {};
+
+    function recursiveFlatten(obj, isAnnexure = false) {
+      for (let key in obj) {
+        if (
+          typeof obj[key] === "object" &&
+          obj[key] !== null &&
+          !Array.isArray(obj[key])
+        ) {
+          if (key === "annexure") {
+            isAnnexure = true;
+            annexureResult = {};
+          }
+          recursiveFlatten(obj[key], isAnnexure);
+          if (isAnnexure && key !== "annexure") {
+            if (typeof obj[key] === "object" && obj[key] !== null) {
+              annexureResult[key] = obj[key];
+            }
+          }
+        } else {
+          if (!isAnnexure) {
+            result[key] = obj[key];
+          }
+        }
+      }
+    }
+
+    recursiveFlatten(jsonObj);
+    return { mainJsonRaw: result, annexureRawJson: annexureResult };
+  }
+
   const action = "team_management";
 
   AdminCommon.isAdminAuthorizedForAction(admin_id, action, (AuthResult) => {
