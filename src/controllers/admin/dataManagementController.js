@@ -428,6 +428,10 @@ exports.submit = (req, res) => {
   const {
     admin_id,
     _token,
+    client_applicant_gender,
+    client_applicant_name,
+    client_organization_name,
+    client_organization_code,
     branch_id,
     customer_id,
     application_id,
@@ -440,6 +444,10 @@ exports.submit = (req, res) => {
   const requiredFields = {
     admin_id,
     _token,
+    client_applicant_gender,
+    client_applicant_name,
+    client_organization_name,
+    client_organization_code,
     branch_id,
     customer_id,
     application_id,
@@ -561,185 +569,258 @@ exports.submit = (req, res) => {
             });
           }
 
-          DataManagement.getCMTApplicationById(
-            application_id,
-            (err, currentCMTApplication) => {
+          Customer.checkUniqueIdForUpdate(
+            customer_id,
+            client_organization_code,
+            (err, exists) => {
               if (err) {
-                console.error("Application retrieval error:", err);
+                console.error("Error checking unique ID:", err);
                 return res.status(500).json({
                   status: false,
-                  message:
-                    "Unable to retrieve application data. Please try again.",
+                  message: "Internal server error",
                   token: newToken,
                 });
               }
 
-              DataManagement.updateDataQC(
-                { application_id, data_qc },
-                (err, result) => {
+              if (exists) {
+                return res.status(400).json({
+                  status: false,
+                  message: `Client Unique ID '${client_unique_id}' already exists.`,
+                  token: newToken,
+                });
+              }
+
+              Customer.updateByData(
+                {
+                  name: client_organization_name,
+                  client_unique_id: client_organization_code
+                },
+                customer_id,
+                (err, customerUpdateByData) => {
+                  console.log(`Step 4`);
+
                   if (err) {
-                    console.error("Error updating data QC:", err);
+                    console.error(
+                      "Database error during CMT Application retrieval:",
+                      err
+                    );
                     return res.status(500).json({
                       status: false,
                       message:
-                        "An error occurred while updating data QC. Please try again.",
+                        "Failed to retrieve CMT Application. Please try again.",
                       token: newToken,
                     });
                   }
+                  console.log(`Step 3`);
 
-                  const { mainJsonRaw, annexureRawJson } =
-                    flattenJsonWithAnnexure(updated_json);
 
-                  const allowedKeys = [
-                    "month_year",
-                    "initiation_date",
-                    "client_organization_name",
-                    "verification_purpose",
-                    "employee_id",
-                    "client_organization_code",
-                    "client_applicant_name",
-                    "contact_number",
-                    "contact_number2",
-                    "father_name",
-                    "dob",
-                    "client_applicant_gender",
-                    "marital_status",
-                    "address",
-                    "landmark",
-                    "residence_mobile_number",
-                    "state",
-                    "permanent_address",
-                    "permanent_sender_name",
-                    "permanent_receiver_name",
-                    "permanent_landmark",
-                    "permanent_pin_code",
-                    "permanent_state",
-                    "spouse_name",
-                    "Nationality",
-                    "QC_Date",
-                    "QC_Analyst_Name",
-                    "Data_Entry_Analyst_Name",
-                    "Date_of_Data",
-                    "insuff",
-                    "address_house_no",
-                    "address_floor",
-                    "address_cross",
-                    "address_street",
-                    "address_main",
-                    "address_area",
-                    "address_locality",
-                    "address_city",
-                    "address_landmark",
-                    "address_taluk",
-                    "address_district",
-                    "address_state",
-                    "address_pin_code",
-                    "permanent_address_house_no",
-                    "permanent_address_floor",
-                    "permanent_address_cross",
-                    "permanent_address_street",
-                    "permanent_address_main",
-                    "permanent_address_area",
-                    "permanent_address_locality",
-                    "permanent_address_city",
-                    "permanent_address_landmark",
-                    "permanent_address_taluk",
-                    "permanent_address_district",
-                    "permanent_address_state",
-                    "permanent_address_pin_code",
-                  ];
-
-                  const requiredKeys = [
-                    "month_year",
-                    "verification_purpose",
-                    "client_applicant_name",
-                  ];
-
-                  const mainJson = Object.keys(mainJsonRaw)
-                    .filter((key) => allowedKeys.includes(key))
-                    .reduce((obj, key) => {
-                      obj[key] = mainJsonRaw[key];
-                      return obj;
-                    }, {});
-
-                  // Check if the required keys are all filled
-                  const hasEmptyRequiredFields = requiredKeys.some(
-                    (key) => !mainJson[key] || mainJson[key] === ""
-                  );
-
-                  if (hasEmptyRequiredFields) {
-                    return res.status(400).json({
-                      status: false,
-                      message: "Please ensure required fields are filled.",
-                      token: newToken,
-                    });
-                  }
-                  const changes = {};
-                  let logStatus = "create";
-
-                  if (
-                    currentCMTApplication &&
-                    Object.keys(currentCMTApplication).length > 0
-                  ) {
-                    logStatus = "update";
-                    Object.keys(mainJson).forEach((key) => {
-                      if (currentCMTApplication[key] !== mainJson[key]) {
-                        changes[key] = {
-                          old: currentCMTApplication[key],
-                          new: mainJson[key],
-                        };
-                      }
-                    });
-                  }
-
-                  DataManagement.submit(
-                    mainJson,
+                  DataManagement.getCMTApplicationById(
                     application_id,
-                    branch_id,
-                    customer_id,
-                    (err, cmtResult) => {
+                    (err, currentCMTApplication) => {
                       if (err) {
-                        console.error("Error updating application data:", err);
+                        console.error("Application retrieval error:", err);
                         return res.status(500).json({
                           status: false,
                           message:
-                            "Failed to process the application. Please try again later.",
+                            "Unable to retrieve application data. Please try again.",
                           token: newToken,
                         });
                       }
 
-                      AdminCommon.adminActivityLog(
-                        ipAddress,
-                        ipType,
-                        admin_id,
-                        "Data Management",
-                        logStatus,
-                        "1",
-                        JSON.stringify({ application_id, ...changes }),
-                        err,
-                        () => { }
-                      );
+                      ClientApplication.updateByData(
+                        {
+                          name: client_applicant_name,
+                          gender: client_applicant_gender
+                        },
+                        application_id,
+                        (err, applicationClientApplication) => {
+                          console.log(`Step 4`);
 
-                      /*
-                      return res.status(200).json({
-                        status: true,
-                        message: `Application ${logStatus === "update" ? "updated" : "created"
-                          } successfully.`,
-                        token: newToken,
-                      });
-                      */
+                          if (err) {
+                            console.error(
+                              "Database error during CMT Application retrieval:",
+                              err
+                            );
+                            return res.status(500).json({
+                              status: false,
+                              message:
+                                "Failed to retrieve CMT Application. Please try again.",
+                              token: newToken,
+                            });
+                          }
 
-                      return res.status(200).json({
-                        status: true,
-                        message: data_qc == 1 ? `QC Successfully Cleared` : `Basic Entry Updated Successfully.`,
-                        token: newToken,
-                      });
+                          DataManagement.updateDataQC(
+                            { application_id, data_qc },
+                            (err, result) => {
+                              if (err) {
+                                console.error("Error updating data QC:", err);
+                                return res.status(500).json({
+                                  status: false,
+                                  message:
+                                    "An error occurred while updating data QC. Please try again.",
+                                  token: newToken,
+                                });
+                              }
+
+                              const { mainJsonRaw, annexureRawJson } =
+                                flattenJsonWithAnnexure(updated_json);
+
+                              const allowedKeys = [
+                                "month_year",
+                                "initiation_date",
+                                "client_organization_name",
+                                "verification_purpose",
+                                "employee_id",
+                                "client_organization_code",
+                                "client_applicant_name",
+                                "contact_number",
+                                "contact_number2",
+                                "father_name",
+                                "dob",
+                                "client_applicant_gender",
+                                "marital_status",
+                                "address",
+                                "landmark",
+                                "residence_mobile_number",
+                                "state",
+                                "permanent_address",
+                                "permanent_sender_name",
+                                "permanent_receiver_name",
+                                "permanent_landmark",
+                                "permanent_pin_code",
+                                "permanent_state",
+                                "spouse_name",
+                                "Nationality",
+                                "QC_Date",
+                                "QC_Analyst_Name",
+                                "Data_Entry_Analyst_Name",
+                                "Date_of_Data",
+                                "insuff",
+                                "address_house_no",
+                                "address_floor",
+                                "address_cross",
+                                "address_street",
+                                "address_main",
+                                "address_area",
+                                "address_locality",
+                                "address_city",
+                                "address_landmark",
+                                "address_taluk",
+                                "address_district",
+                                "address_state",
+                                "address_pin_code",
+                                "permanent_address_house_no",
+                                "permanent_address_floor",
+                                "permanent_address_cross",
+                                "permanent_address_street",
+                                "permanent_address_main",
+                                "permanent_address_area",
+                                "permanent_address_locality",
+                                "permanent_address_city",
+                                "permanent_address_landmark",
+                                "permanent_address_taluk",
+                                "permanent_address_district",
+                                "permanent_address_state",
+                                "permanent_address_pin_code",
+                              ];
+
+                              const requiredKeys = [
+                                "month_year",
+                                "verification_purpose",
+                                "client_applicant_name",
+                              ];
+
+                              const mainJson = Object.keys(mainJsonRaw)
+                                .filter((key) => allowedKeys.includes(key))
+                                .reduce((obj, key) => {
+                                  obj[key] = mainJsonRaw[key];
+                                  return obj;
+                                }, {});
+
+                              /*
+                            // Check if the required keys are all filled
+                            const hasEmptyRequiredFields = requiredKeys.some(
+                              (key) => !mainJson[key] || mainJson[key] === ""
+                            );
+            
+                            if (hasEmptyRequiredFields) {
+                              return res.status(400).json({
+                                status: false,
+                                message: "Please ensure required fields are filled.",
+                                token: newToken,
+                              });
+                            }
+                              */
+
+                              const changes = {};
+                              let logStatus = "create";
+
+                              if (
+                                currentCMTApplication &&
+                                Object.keys(currentCMTApplication).length > 0
+                              ) {
+                                logStatus = "update";
+                                Object.keys(mainJson).forEach((key) => {
+                                  if (currentCMTApplication[key] !== mainJson[key]) {
+                                    changes[key] = {
+                                      old: currentCMTApplication[key],
+                                      new: mainJson[key],
+                                    };
+                                  }
+                                });
+                              }
+
+                              DataManagement.submit(
+                                mainJson,
+                                application_id,
+                                branch_id,
+                                customer_id,
+                                (err, cmtResult) => {
+                                  if (err) {
+                                    console.error("Error updating application data:", err);
+                                    return res.status(500).json({
+                                      status: false,
+                                      message:
+                                        "Failed to process the application. Please try again later.",
+                                      token: newToken,
+                                    });
+                                  }
+
+                                  AdminCommon.adminActivityLog(
+                                    ipAddress,
+                                    ipType,
+                                    admin_id,
+                                    "Data Management",
+                                    logStatus,
+                                    "1",
+                                    JSON.stringify({ application_id, ...changes }),
+                                    err,
+                                    () => { }
+                                  );
+
+                                  /*
+                                  return res.status(200).json({
+                                    status: true,
+                                    message: `Application ${logStatus === "update" ? "updated" : "created"
+                                      } successfully.`,
+                                    token: newToken,
+                                  });
+                                  */
+
+                                  return res.status(200).json({
+                                    status: true,
+                                    message: data_qc == 1 ? `QC Successfully Cleared` : `Basic Entry Updated Successfully.`,
+                                    token: newToken,
+                                  });
+                                }
+                              );
+                            }
+                          );
+                        });
                     }
                   );
-                }
-              );
-            }
-          );
+                });
+            });
         });
       });
     });
