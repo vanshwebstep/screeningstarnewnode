@@ -6,14 +6,14 @@ const hashPassword = (password) =>
   crypto.createHash("md5").update(password).digest("hex");
 
 const Customer = {
-  applicationListByBranch: async(
+  applicationListByBranch: async (
     filter_status,
     branch_id,
     filter_month,
     callback
   ) => {
 
-      let sql = `
+    let sql = `
       SELECT 
           ca.*, 
           ca.id AS main_id,
@@ -52,187 +52,188 @@ const Customer = {
         WHERE 
           ca.\`branch_id\` = ? AND ca.\`is_data_qc\` = 1 AND ca.is_deleted != 1`;
 
-      const params = [branch_id]; // Start with branch_id
+    const params = [branch_id]; // Start with branch_id
 
-      // Add filter for status if provided
-      if (filter_status?.trim()) {
-        sql += ` AND ca.\`status\` = ?`;
-        params.push(filter_status);
-      }
+    // Add filter for status if provided
+    if (filter_status?.trim()) {
+      sql += ` AND ca.\`status\` = ?`;
+      params.push(filter_status);
+    }
 
-      // Add filter for month if provided
-      if (filter_month?.trim()) {
-        sql += ` AND ca.\`created_at\` LIKE ?`;
-        params.push(`${filter_month}%`);
-      }
+    // Add filter for month if provided
+    if (filter_month?.trim()) {
+      sql += ` AND ca.\`created_at\` LIKE ?`;
+      params.push(`${filter_month}%`);
+    }
 
-      sql += ` ORDER BY ca.\`created_at\` DESC, ca.\`is_highlight\` DESC;`;
+    sql += ` ORDER BY ca.\`created_at\` DESC, ca.\`is_highlight\` DESC;`;
 
-      try {
-        const results = await new Promise(async(resolve, reject) => {
-          const rows = await sequelize.query(sql, {
-            replacements: params, // Positional replacements using ?
-            type: QueryTypes.SELECT,
-          });
-            resolve(rows);
-        
+    try {
+      const results = await new Promise(async (resolve, reject) => {
+        const rows = await sequelize.query(sql, {
+          replacements: params, // Positional replacements using ?
+          type: QueryTypes.SELECT,
         });
-        const cmtPromises = results.map(async (clientApp) => {
-          const servicesResult = { annexure_attachments: {} };
-          const servicesIds = clientApp.services?.split(",") || [];
+        resolve(rows);
 
-          if (servicesIds.length) {
-            const servicesTitles = await new Promise(async(resolve, reject) => {
-              const servicesQuery =
-                "SELECT title FROM `services` WHERE id IN (?)";
+      });
+      const cmtPromises = results.map(async (clientApp) => {
+        const servicesResult = { annexure_attachments: {} };
+        const servicesIds = clientApp.services?.split(",") || [];
 
-                const rows = await sequelize.query(servicesQuery, {
-                  replacements: servicesIds, // Positional replacements using ?
-                  type: QueryTypes.SELECT,
-                });
-                resolve(rows.map((row) => row.title));
+        if (servicesIds.length) {
+          const servicesTitles = await new Promise(async (resolve, reject) => {
+            const servicesQuery =
+              "SELECT title FROM `services` WHERE id IN (?)";
+
+            const rows = await sequelize.query(servicesQuery, {
+              replacements: servicesIds, // Positional replacements using ?
+              type: QueryTypes.SELECT,
             });
+            resolve(rows.map((row) => row.title));
+          });
 
-            clientApp.serviceNames = servicesTitles;
-          }
+          clientApp.serviceNames = servicesTitles;
+        }
 
-          const dbTableFileInputs = {};
-          const dbTableColumnLabel = {};
-          const dbTableWithHeadings = {};
+        const dbTableFileInputs = {};
+        const dbTableColumnLabel = {};
+        const dbTableWithHeadings = {};
 
-          await Promise.all(
-            servicesIds.map(async (service) => {
-              const reportFormQuery =
-                "SELECT `json` FROM `report_forms` WHERE `service_id` = ?";
-              const result = await new Promise(async(resolve, reject) => {
-                const rows = await sequelize.query(reportFormQuery, {
-                  replacements: [service], // Positional replacements using ?
-                  type: QueryTypes.SELECT,
-                });
-             
-                  resolve(rows);
-               
+        await Promise.all(
+          servicesIds.map(async (service) => {
+            const reportFormQuery =
+              "SELECT `json` FROM `report_forms` WHERE `service_id` = ?";
+            const result = await new Promise(async (resolve, reject) => {
+              const rows = await sequelize.query(reportFormQuery, {
+                replacements: [service], // Positional replacements using ?
+                type: QueryTypes.SELECT,
               });
 
-              if (result.length) {
-                const jsonData = JSON.parse(result[0].json);
-                const dbTable = jsonData.db_table;
-                const heading = jsonData.heading;
+              resolve(rows);
 
-                if (dbTable && heading) dbTableWithHeadings[dbTable] = heading;
+            });
 
-                if (!dbTableFileInputs[dbTable])
-                  dbTableFileInputs[dbTable] = [];
+            if (result.length) {
+              const jsonData = JSON.parse(result[0].json);
+              const dbTable = jsonData.db_table;
+              const heading = jsonData.heading;
 
-                jsonData.rows.forEach((row) => {
-                  const inputLabel = row.label;
-                  row.inputs.forEach((input) => {
-                    if (input.type === "file") {
-                      dbTableFileInputs[dbTable].push(input.name);
-                      dbTableColumnLabel[input.name] = inputLabel;
-                    }
-                  });
+              if (dbTable && heading) dbTableWithHeadings[dbTable] = heading;
+
+              if (!dbTableFileInputs[dbTable])
+                dbTableFileInputs[dbTable] = [];
+
+              jsonData.rows.forEach((row) => {
+                const inputLabel = row.label;
+                row.inputs.forEach((input) => {
+                  if (input.type === "file") {
+                    const inputName = input.name.replace(/\s+/g, "");
+                    dbTableFileInputs[dbTable].push(inputName);
+                    dbTableColumnLabel[inputName] = inputLabel;
+                  }
                 });
+              });
+            }
+          })
+        );
+
+        await Promise.all(
+          Object.entries(dbTableFileInputs).map(
+            async ([dbTable, fileInputNames]) => {
+              if (!fileInputNames.length) return;
+
+              const existingColumns = await new Promise(async (resolve, reject) => {
+                const describeQuery = `DESCRIBE ${dbTable}`;
+                const rows = await sequelize.query(describeQuery, {
+                  type: QueryTypes.SELECT,
+                });
+
+                resolve(rows.map((col) => col.Field));
+
+              });
+
+              const validColumns = fileInputNames.filter((col) =>
+                existingColumns.includes(col)
+              );
+
+              if (!validColumns.length) return;
+
+              const selectQuery = `SELECT ${validColumns.join(
+                ", "
+              )} FROM ${dbTable} WHERE client_application_id = ?`;
+              const rows = await new Promise(async (resolve, reject) => {
+                const rows = await sequelize.query(selectQuery, {
+                  replacements: [clientApp.main_id], // Positional replacements using ?
+                  type: QueryTypes.SELECT,
+                });
+                resolve(rows);
+              });
+
+              const updatedRows = rows
+                .map((row) => {
+                  const updatedRow = {};
+
+                  for (const [key, value] of Object.entries(row)) {
+                    if (
+                      value !== null &&
+                      value !== undefined &&
+                      value !== ""
+                    ) {
+                      updatedRow[dbTableColumnLabel[key] || key] = value;
+                    }
+                  }
+
+                  // Return updatedRow only if something was added
+                  if (Object.keys(updatedRow).length > 0) {
+                    return updatedRow;
+                  }
+                  return null;
+                })
+                .filter((row) => row !== null);
+
+              if (updatedRows.length > 0) {
+                servicesResult.annexure_attachments[
+                  dbTableWithHeadings[dbTable]
+                ] = updatedRows;
               }
-            })
-          );
+            }
+          )
+        );
 
-          await Promise.all(
-            Object.entries(dbTableFileInputs).map(
-              async ([dbTable, fileInputNames]) => {
-                if (!fileInputNames.length) return;
+        clientApp.service_data = servicesResult;
+      });
 
-                const existingColumns = await new Promise(async(resolve, reject) => {
-                  const describeQuery = `DESCRIBE ${dbTable}`;
-                  const rows = await sequelize.query(describeQuery, {
-                    type: QueryTypes.SELECT,
-                  });
-                
-                      resolve(rows.map((col) => col.Field));
-                
-                });
+      await Promise.all(cmtPromises);
+      callback(null, results);
+    } catch (error) {
+      console.error("Error processing data:", error);
+      callback(error, null);
+    }
 
-                const validColumns = fileInputNames.filter((col) =>
-                  existingColumns.includes(col)
-                );
-
-                if (!validColumns.length) return;
-
-                const selectQuery = `SELECT ${validColumns.join(
-                  ", "
-                )} FROM ${dbTable} WHERE client_application_id = ?`;
-                const rows = await new Promise(async(resolve, reject) => {
-                  const rows = await sequelize.query(selectQuery, {
-                    replacements: [clientApp.main_id], // Positional replacements using ?
-                    type: QueryTypes.SELECT,
-                  });
-                      resolve(rows);
-                });
-
-                const updatedRows = rows
-                  .map((row) => {
-                    const updatedRow = {};
-
-                    for (const [key, value] of Object.entries(row)) {
-                      if (
-                        value !== null &&
-                        value !== undefined &&
-                        value !== ""
-                      ) {
-                        updatedRow[dbTableColumnLabel[key] || key] = value;
-                      }
-                    }
-
-                    // Return updatedRow only if something was added
-                    if (Object.keys(updatedRow).length > 0) {
-                      return updatedRow;
-                    }
-                    return null;
-                  })
-                  .filter((row) => row !== null);
-
-                if (updatedRows.length > 0) {
-                  servicesResult.annexure_attachments[
-                    dbTableWithHeadings[dbTable]
-                  ] = updatedRows;
-                }
-              }
-            )
-          );
-
-          clientApp.service_data = servicesResult;
-        });
-
-        await Promise.all(cmtPromises);
-        callback(null, results);
-      } catch (error) {
-        console.error("Error processing data:", error);
-        callback(error, null);
-      }
-   
   },
 
-  upload:async (
+  upload: async (
     client_application_id,
     db_table,
     db_column,
     savedImagePaths,
     callback
   ) => {
-     
-      const checkTableSql = `
+
+    const checkTableSql = `
         SELECT COUNT(*) AS count 
         FROM information_schema.tables 
         WHERE table_schema = DATABASE() 
         AND table_name = ?`;
 
-        const tableResults = await sequelize.query(checkTableSql, {
-          replacements: [db_table], // Positional replacements using ?
-          type: QueryTypes.SELECT,
-        });
-       
-        if (tableResults[0].count === 0) {
-          const createTableSql = `
+    const tableResults = await sequelize.query(checkTableSql, {
+      replacements: [db_table], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+
+    if (tableResults[0].count === 0) {
+      const createTableSql = `
             CREATE TABLE \`${db_table}\` (
               \`id\` bigint(20) NOT NULL AUTO_INCREMENT,
               \`cmt_id\` bigint(20) DEFAULT NULL,
@@ -251,60 +252,60 @@ const Customer = {
               CONSTRAINT \`fk_${db_table}_customer_id\` FOREIGN KEY (\`customer_id\`) REFERENCES \`customers\` (\`id\`) ON DELETE CASCADE,
               CONSTRAINT \`fk_${db_table}_cmt_id\` FOREIGN KEY (\`cmt_id\`) REFERENCES \`cmt_applications\` (\`id\`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
-            await sequelize.query(createTableSql, {
-              type: QueryTypes.CREATE,
-            });
-            proceedToCheckColumns();
-        } else {
-          proceedToCheckColumns();
-        }
+      await sequelize.query(createTableSql, {
+        type: QueryTypes.CREATE,
+      });
+      proceedToCheckColumns();
+    } else {
+      proceedToCheckColumns();
+    }
 
-      async  function proceedToCheckColumns() {
-          const currentColumnsSql = `SHOW COLUMNS FROM \`${db_table}\``;
-          const results = await sequelize.query(currentColumnsSql, {
-            type: QueryTypes.SHOW,
+    async function proceedToCheckColumns() {
+      const currentColumnsSql = `SHOW COLUMNS FROM \`${db_table}\``;
+      const results = await sequelize.query(currentColumnsSql, {
+        type: QueryTypes.SHOW,
+      });
+
+      const existingColumns = results.map((row) => row.Field);
+      const expectedColumns = [db_column];
+
+      // Filter out missing columns
+      const missingColumns = expectedColumns.filter(
+        (field) => !existingColumns.includes(field)
+      );
+
+      const addColumnPromises = missingColumns.map((column) => {
+        return new Promise(async (resolve, reject) => {
+          const alterTableSql = `ALTER TABLE \`${db_table}\` ADD COLUMN \`${column}\` LONGTEXT`;
+          await sequelize.query(alterTableSql, {
+            type: QueryTypes.ALTER,
           });
-            
-            const existingColumns = results.map((row) => row.Field);
-            const expectedColumns = [db_column];
+          resolve();
+        });
+      });
 
-            // Filter out missing columns
-            const missingColumns = expectedColumns.filter(
-              (field) => !existingColumns.includes(field)
-            );
+      Promise.all(addColumnPromises)
+        .then(async () => {
+          const insertSql = `UPDATE \`${db_table}\` SET \`${db_column}\` = ? WHERE \`client_application_id\` = ?`;
+          const joinedPaths = savedImagePaths.join(", ");
+          const results = await sequelize.query(insertSql, {
+            replacements: [joinedPaths, client_application_id], // Positional replacements using ?
+            type: QueryTypes.UPDATE,
+          });
+          callback(true, results);
 
-            const addColumnPromises = missingColumns.map((column) => {
-              return new Promise(async(resolve, reject) => {
-                const alterTableSql = `ALTER TABLE \`${db_table}\` ADD COLUMN \`${column}\` LONGTEXT`;
-                 await sequelize.query(alterTableSql, {
-                  type: QueryTypes.ALTER,
-                });
-                    resolve();
-              });
-            });
 
-            Promise.all(addColumnPromises)
-              .then( async () => {
-                const insertSql = `UPDATE \`${db_table}\` SET \`${db_column}\` = ? WHERE \`client_application_id\` = ?`;
-                const joinedPaths = savedImagePaths.join(", ");
-                const results = await sequelize.query(insertSql, {
-                  replacements: [joinedPaths, client_application_id], // Positional replacements using ?
-                  type: QueryTypes.UPDATE,
-                });
-                    callback(true, results);
-                  
-               
-              })
-              .catch((columnErr) => {
-                console.error("Error adding columns:", columnErr);
-                callback(false, {
-                  error: "Error adding columns.",
-                  details: columnErr,
-                });
-              });
-       
-        }
-    },
+        })
+        .catch((columnErr) => {
+          console.error("Error adding columns:", columnErr);
+          callback(false, {
+            error: "Error adding columns.",
+            details: columnErr,
+          });
+        });
+
+    }
+  },
 };
 
 module.exports = Customer;
