@@ -371,12 +371,12 @@ exports.generateReport = (req, res) => {
     branch_id,
     customer_id,
     application_id,
+    updated_json,
     statuses,
     component_status,
     send_mail,
   } = req.body;
 
-  // Step 1: Validate required fields
   const requiredFields = {
     admin_id,
     _token,
@@ -386,13 +386,13 @@ exports.generateReport = (req, res) => {
     statuses,
   };
 
-  // Step 2: Normalize component_status to 0 or 1
   const componentStatusNum = (
     component_status === true ||
     component_status === 'true' ||
     component_status === 1 ||
     component_status === '1'
   ) ? 1 : 0;
+
   const missingFields = Object.keys(requiredFields)
     .filter((field) => !requiredFields[field] || requiredFields[field] === "")
     .map((field) => field.replace(/_/g, " "));
@@ -406,183 +406,189 @@ exports.generateReport = (req, res) => {
 
   const action = "team_management";
 
-  // Step 2: Authorization and token validation
   AdminCommon.isAdminAuthorizedForAction(admin_id, action, (AuthResult) => {
     if (!AuthResult.status) {
-      return res.status(403).json({
-        status: false,
-        message: AuthResult.message,
-      });
+      return res.status(403).json({ status: false, message: AuthResult.message });
     }
 
     AdminCommon.isAdminTokenValid(_token, admin_id, (err, TokenResult) => {
       if (err) {
-        console.error("Token validation error:", err);
         return res.status(500).json({
           status: false,
-          message: "Token validation failed. Please try again.",
+          message: "Token validation failed.",
         });
       }
 
       if (!TokenResult.status) {
-        return res.status(401).json({
-          status: false,
-          message: TokenResult.message,
-        });
+        return res.status(401).json({ status: false, message: TokenResult.message });
       }
 
       const newToken = TokenResult.newToken;
 
-      // Step 3: Validate Branch
       Branch.getBranchById(branch_id, (err, currentBranch) => {
-        if (err || !currentBranch) {
-          console.error("Branch retrieval error:", err || "Branch not found.");
+        if (err || !currentBranch || parseInt(currentBranch.customer_id) !== parseInt(customer_id)) {
           return res.status(404).json({
             status: false,
-            message: "Branch not found.",
+            message: "Branch not found or does not match customer ID.",
             token: newToken,
           });
         }
 
-        if (parseInt(currentBranch.customer_id) !== parseInt(customer_id)) {
-          return res.status(404).json({
-            status: false,
-            message: "Branch not found with matching customer ID.",
-            token: newToken,
-          });
-        }
-
-        // Step 4: Validate Customer
         Customer.getCustomerById(customer_id, (err, currentCustomer) => {
           if (err || !currentCustomer) {
-            console.error(
-              "Customer retrieval error:",
-              err || "Customer not found."
-            );
             return res.status(404).json({
               status: false,
               message: "Customer not found.",
               token: newToken,
             });
           }
-          Admin.findById(admin_id, (err, admin) => {
-            if (err) {
-              console.error("Database error:", err);
-              return res
-                .status(500)
-                .json({ status: false, message: err.message, token: newToken, });
-            }
 
-            // If no admin found, return a 404 response
-            if (!admin) {
+          Admin.findById(admin_id, (err, admin) => {
+            if (err || !admin) {
               return res.status(404).json({
                 status: false,
-                message: "Admin not found with the provided ID",
+                message: "Admin not found.",
                 token: newToken,
               });
             }
-            // Step 6: Determine Granted Service IDs
+
             let grantedServiceIds = [];
             let skippedIds = [];
-            if (admin.role === "team_management") {
-              // Step 5: Fetch Permissions
-              Permission.getPermissionByRole(
-                admin.role.trim() || null,
-                (err, currentPermission) => {
-                  if (err) {
-                    console.error("Permission retrieval error:", err);
-                    return res.status(500).json({
-                      status: false,
-                      message: "Failed to retrieve permissions.",
-                      token: newToken,
-                    });
+
+            const processStatuses = () => {
+              const updatePromises = statuses.map((statusItem) => {
+                return new Promise((resolve) => {
+                  const serviceId = Number(statusItem.service_id);
+                  const status = statusItem.status;
+
+                  if (!grantedServiceIds.includes(serviceId)) {
+                    skippedIds.push(serviceId);
+                    return resolve({ serviceId, status: "skipped" });
                   }
 
-                  if (currentPermission.role === "team_management") {
-                    if (currentPermission.service_ids) {
-                      grantedServiceIds = currentPermission.service_ids
-                        .split(",")
-                        .map((id) => Number(id.trim()))
-                        .filter((id) => !isNaN(id));
-                    }
-                  }
-                }
-              );
-            } else {
-              statuses.forEach((statusItem) => {
-                const serviceId = Number(statusItem.service_id);
-                if (!isNaN(serviceId)) {
-                  grantedServiceIds.push(serviceId);
-                }
-              });
-            }
+                  const { mainJsonRaw, annexureRawJson: annexure } = flattenJsonWithAnnexure(updated_json);
+                  const mainJson = mainJsonRaw;
 
-            // Step 7: Process Status Updates
-            const updatePromises = statuses.map((statusItem) => {
-              return new Promise((resolve) => {
-                const serviceId = Number(statusItem.service_id);
-                const status = statusItem.status;
-                if (grantedServiceIds.includes(serviceId)) {
-                  TeamManagement.updateStatusOfAnnexureByDBTable(
+                  ClientMasterTrackerModel.generateReport(
+                    mainJson,
                     application_id,
                     branch_id,
                     customer_id,
-                    status,
-                    statusItem.db_table,
-                    (err, result) => {
+                    (err, cmtResult) => {
                       if (err) {
-                        console.error(
-                          `Error updating status for Service ID ${serviceId}:`,
-                          err
-                        );
-                        resolve({ serviceId, status: "update_failed" });
-                      } else {
-                        console.log(
-                          `Status updated successfully for Service ID ${serviceId}:`,
-                          result
-                        );
-                        resolve({ serviceId, status: "updated" });
+                        return resolve({ serviceId, status: "update_failed" });
                       }
+
+                      const logStatus = "create";
+                      const logDataSuccess = JSON.stringify(mainJson);
+                      AdminCommon.adminActivityLog(
+                        req.ip,
+                        "ipv4",
+                        admin_id,
+                        "Client Master Tracker",
+                        logStatus,
+                        "1",
+                        logDataSuccess,
+                        null,
+                        () => { }
+                      );
+
+                      const annexurePromises = Object.keys(annexure || {}).map((key) => {
+                        return new Promise((resolveAnnexure) => {
+                          const db_table = key.replace(/-/g, "_").toLowerCase();
+                          const subJson = annexure[db_table];
+
+                          ClientMasterTrackerModel.createOrUpdateAnnexure(
+                            cmtResult.insertId,
+                            application_id,
+                            branch_id,
+                            customer_id,
+                            db_table,
+                            subJson,
+                            (err) => {
+                              if (err) {
+                                return resolveAnnexure({ serviceId, status: "update_failed" });
+                              }
+
+                              resolveAnnexure({ serviceId, status: "updated" });
+                            }
+                          );
+                        });
+                      });
+
+                      Promise.all(annexurePromises).then(() => {
+                        TeamManagement.updateStatusOfAnnexureByDBTable(
+                          application_id,
+                          branch_id,
+                          customer_id,
+                          status,
+                          statusItem.db_table,
+                          (err) => {
+                            if (err) {
+                              return resolve({ serviceId, status: "update_failed" });
+                            }
+
+                            resolve({ serviceId, status: "updated" });
+                          }
+                        );
+                      });
                     }
                   );
-                } else {
-                  console.log(`Service ID ${serviceId} - Status Denied.`);
-                  skippedIds.push(serviceId);
-                  resolve({ serviceId, status: "skipped" });
-                }
+                });
               });
-            });
 
-            // Step 8: Respond after processing all statuses
-            Promise.all(updatePromises).then((results) => {
+              Promise.all(updatePromises).then((results) => {
+                TeamManagement.updateComponentStatus(
+                  application_id,
+                  componentStatusNum,
+                  (err) => {
+                    if (err) {
+                      return res.status(500).json({
+                        status: false,
+                        message: "Failed to update component status.",
+                        token: newToken,
+                      });
+                    }
 
-              TeamManagement.updateComponentStatus(
-                application_id,
-                componentStatusNum,
-                (err, updateResult) => {
-                  if (err) {
-                    console.error("Error updating component status:", err);
-                    return res.status(500).json({
-                      status: false,
-                      message: "Failed to update component status.",
+                    res.status(200).json({
+                      status: true,
+                      message: "Statuses processed successfully.",
+                      updated_services: results.filter((r) => r.status === "updated"),
+                      skipped_service_ids: skippedIds,
+                      failed_updates: results.filter((r) => r.status === "update_failed"),
                       token: newToken,
                     });
                   }
+                );
+              });
+            };
 
-                  res.status(200).json({
-                    status: true,
-                    message: "Statuses processed successfully.",
-                    updated_services: results.filter((r) => r.status === "updated"),
-                    skipped_service_ids: skippedIds,
-                    failed_updates: results.filter(
-                      (r) => r.status === "update_failed"
-                    ),
+            if (admin.role === "team_management") {
+              Permission.getPermissionByRole(admin.role, (err, currentPermission) => {
+                if (err) {
+                  return res.status(500).json({
+                    status: false,
+                    message: "Permission retrieval failed.",
                     token: newToken,
                   });
                 }
-              );
 
-            });
+                if (currentPermission.service_ids) {
+                  grantedServiceIds = currentPermission.service_ids
+                    .split(",")
+                    .map((id) => parseInt(id.trim(), 10))
+                    .filter((id) => !isNaN(id));
+                }
+
+                processStatuses();
+              });
+            } else {
+              grantedServiceIds = statuses
+                .map((status) => Number(status.service_id))
+                .filter((id) => !isNaN(id));
+
+              processStatuses();
+            }
           });
         });
       });
