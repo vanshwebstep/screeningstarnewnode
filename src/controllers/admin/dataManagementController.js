@@ -593,16 +593,16 @@ exports.submit = (req, res) => {
                   const allowedKeys = [
                     "month_year",
                     "initiation_date",
-                    "organization_name",
+                    "client_organization_name",
                     "verification_purpose",
                     "employee_id",
-                    "client_code",
-                    "applicant_name",
+                    "client_organization_code",
+                    "client_applicant_name",
                     "contact_number",
                     "contact_number2",
                     "father_name",
                     "dob",
-                    "gender",
+                    "client_applicant_gender",
                     "marital_status",
                     "address",
                     "landmark",
@@ -652,7 +652,7 @@ exports.submit = (req, res) => {
                   const requiredKeys = [
                     "month_year",
                     "verification_purpose",
-                    "applicant_name",
+                    "client_applicant_name",
                   ];
 
                   const mainJson = Object.keys(mainJsonRaw)
