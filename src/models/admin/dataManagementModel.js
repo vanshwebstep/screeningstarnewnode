@@ -374,26 +374,10 @@ const Customer = {
     console.log("Final SQL Query:", sql);
     console.log("Final Query Parameters:", params);
 
-    const results = await sequelize.query(sql, {
-      replacements: params, // Positional replacements using ?
-      type: QueryTypes.SELECT,
-    });
-
-    callback(null, results);
-
-
-  },
-
-  applicationByID: async (application_id, branch_id, callback) => {
-    // Start a connection
-
-    // Use a parameterized query to prevent SQL injection
-    const sql =
-      "SELECT * FROM `client_applications` WHERE `id` = ? AND `branch_id` = ? AND `is_data_qc` = 0 AND is_deleted != 1 ORDER BY `created_at` DESC";
     try {
       const results = await new Promise(async (resolve, reject) => {
         const rows = await sequelize.query(sql, {
-          replacements: [application_id, branch_id], // Positional replacements using ?
+          replacements: params, // Positional replacements using ?
           type: QueryTypes.SELECT,
         });
         resolve(rows);
@@ -533,7 +517,23 @@ const Customer = {
       callback(error, null);
     }
 
+
+  },
+
+  applicationByID: async (application_id, branch_id, callback) => {
+    // Start a connection
+
+    // Use a parameterized query to prevent SQL injection
+    const sql =
+      "SELECT * FROM `client_applications` WHERE `id` = ? AND `branch_id` = ? AND `is_data_qc` = 0 AND is_deleted != 1 ORDER BY `created_at` DESC";
+    const results = await sequelize.query(sql, {
+      replacements: [application_id, branch_id], // Positional replacements using ?
+      type: QueryTypes.SELECT,
+    });
+
     callback(null, results[0] || null); // Return single application or null if not found
+
+
   },
 
   getCMTApplicationById: async (client_application_id, callback) => {
