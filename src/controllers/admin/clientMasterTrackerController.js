@@ -1747,6 +1747,22 @@ exports.generateReport = (req, res) => {
                                                     token: newToken,
                                                   });
                                                 }
+
+                                                if (data_qc == 0) {
+                                                  return res
+                                                    .status(200)
+                                                    .json({
+                                                      status: true,
+                                                      message: `CMT Application ${currentCMTApplication &&
+                                                        Object.keys(
+                                                          currentCMTApplication
+                                                        ).length > 0
+                                                        ? "updated"
+                                                        : "created"
+                                                        } successfully`,
+                                                      token: newToken,
+                                                    });
+                                                }
                                                 mainJson.is_verify =
                                                   mainJson.is_verify &&
                                                     mainJson.is_verify !== ""
