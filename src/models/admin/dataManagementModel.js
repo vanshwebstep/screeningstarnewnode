@@ -390,14 +390,150 @@ const Customer = {
     // Use a parameterized query to prevent SQL injection
     const sql =
       "SELECT * FROM `client_applications` WHERE `id` = ? AND `branch_id` = ? AND `is_data_qc` = 0 AND is_deleted != 1 ORDER BY `created_at` DESC";
-    const results = await sequelize.query(sql, {
-      replacements: [application_id, branch_id], // Positional replacements using ?
-      type: QueryTypes.SELECT,
-    });
+    try {
+      const results = await new Promise(async (resolve, reject) => {
+        const rows = await sequelize.query(sql, {
+          replacements: [application_id, branch_id], // Positional replacements using ?
+          type: QueryTypes.SELECT,
+        });
+        resolve(rows);
+
+      });
+      const cmtPromises = results.map(async (clientApp) => {
+        const servicesResult = { annexure_attachments: {} };
+        const servicesIds = clientApp.services?.split(",") || [];
+
+        if (servicesIds.length) {
+          const servicesTitles = await new Promise(async (resolve, reject) => {
+            const servicesQuery =
+              "SELECT title FROM `services` WHERE id IN (?)";
+
+            const rows = await sequelize.query(servicesQuery, {
+              replacements: servicesIds, // Positional replacements using ?
+              type: QueryTypes.SELECT,
+            });
+            resolve(rows.map((row) => row.title));
+          });
+
+          clientApp.serviceNames = servicesTitles;
+        }
+
+        const dbTableFileInputs = {};
+        const dbTableColumnLabel = {};
+        const dbTableWithHeadings = {};
+
+        await Promise.all(
+          servicesIds.map(async (service) => {
+            const reportFormQuery =
+              "SELECT `json` FROM `report_forms` WHERE `service_id` = ?";
+            const result = await new Promise(async (resolve, reject) => {
+              const rows = await sequelize.query(reportFormQuery, {
+                replacements: [service], // Positional replacements using ?
+                type: QueryTypes.SELECT,
+              });
+
+              resolve(rows);
+
+            });
+
+            if (result.length) {
+              const jsonData = JSON.parse(result[0].json);
+              const dbTable = jsonData.db_table;
+              const heading = jsonData.heading;
+
+              if (dbTable && heading) dbTableWithHeadings[dbTable] = heading;
+
+              if (!dbTableFileInputs[dbTable])
+                dbTableFileInputs[dbTable] = [];
+
+              jsonData.rows.forEach((row) => {
+                const inputLabel = row.label;
+                row.inputs.forEach((input) => {
+                  if (input.type === "file") {
+                    const inputName = input.name.replace(/\s+/g, "");
+                    dbTableFileInputs[dbTable].push(inputName);
+                    dbTableColumnLabel[inputName] = inputLabel;
+                  }
+                });
+              });
+            }
+          })
+        );
+
+        await Promise.all(
+          Object.entries(dbTableFileInputs).map(
+            async ([dbTable, fileInputNames]) => {
+              if (!fileInputNames.length) return;
+
+              const existingColumns = await new Promise(async (resolve, reject) => {
+                const describeQuery = `DESCRIBE ${dbTable}`;
+                const rows = await sequelize.query(describeQuery, {
+                  type: QueryTypes.SELECT,
+                });
+
+                resolve(rows.map((col) => col.Field));
+
+              });
+
+              const validColumns = fileInputNames.filter((col) =>
+                existingColumns.includes(col)
+              );
+
+              if (!validColumns.length) return;
+
+              const selectQuery = `SELECT ${validColumns.join(
+                ", "
+              )} FROM ${dbTable} WHERE client_application_id = ?`;
+              const rows = await new Promise(async (resolve, reject) => {
+                const rows = await sequelize.query(selectQuery, {
+                  replacements: [clientApp.main_id], // Positional replacements using ?
+                  type: QueryTypes.SELECT,
+                });
+                resolve(rows);
+              });
+
+              const updatedRows = rows
+                .map((row) => {
+                  const updatedRow = {};
+
+                  for (const [key, value] of Object.entries(row)) {
+                    if (
+                      value !== null &&
+                      value !== undefined &&
+                      value !== ""
+                    ) {
+                      updatedRow[dbTableColumnLabel[key] || key] = value;
+                    }
+                  }
+
+                  // Return updatedRow only if something was added
+                  if (Object.keys(updatedRow).length > 0) {
+                    return updatedRow;
+                  }
+                  return null;
+                })
+                .filter((row) => row !== null);
+
+              if (updatedRows.length > 0) {
+                servicesResult.annexure_attachments[
+                  dbTableWithHeadings[dbTable]
+                ] = updatedRows;
+              }
+            }
+          )
+        );
+
+        clientApp.service_data = servicesResult;
+      });
+
+      await Promise.all(cmtPromises);
+      callback(null, results);
+    } catch (error) {
+      console.error("Error processing data:", error);
+      callback(error, null);
+    }
 
     callback(null, results[0] || null); // Return single application or null if not found
-
-
   },
 
   getCMTApplicationById: async (client_application_id, callback) => {
