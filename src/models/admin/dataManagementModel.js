@@ -324,6 +324,7 @@ const Customer = {
                 cmt.third_insuff_date,
                 cmt.third_insuff_reopened_date,
                 cmt.overall_status,
+                cmt.initiation_date,
                 cmt.is_verify,
                 cmt.report_date,
                 cmt.report_status,
