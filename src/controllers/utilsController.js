@@ -110,10 +110,13 @@ exports.imageUrlToBase = async (req, res) => {
         continue;
       }
 
+      const fileName = path.basename(imageUrl);
+
       // Add image format, width, and height to the response
       base64Images.push({
-        imageUrl: img?.src,
-        base64: fileData.base64,
+        url: img?.src,
+        fileName,
+        base64: fileData?.base64,
         type: img?.format,
         width: img?.width,
         height: img?.height,
