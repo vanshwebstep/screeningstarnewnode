@@ -1211,7 +1211,6 @@ exports.generateReport = (req, res) => {
   const requiredFields = {
     admin_id,
     _token,
-    client_applicant_gender,
     client_applicant_name,
     client_organization_name,
     client_organization_code,
