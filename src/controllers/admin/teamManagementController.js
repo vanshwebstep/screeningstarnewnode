@@ -404,58 +404,42 @@ exports.generateReport = (req, res) => {
     });
   }
 
-  function flattenJsonWithAnnexure(jsonObj) {
+  const flattenJsonWithAnnexure = (jsonObj) => {
     let result = {};
     let annexureResult = {};
 
-    function recursiveFlatten(obj, isAnnexure = false) {
-      console.log("Entering recursiveFlatten:", { isAnnexure, obj });
-
+    const recursiveFlatten = (obj, isAnnexure = false) => {
       for (let key in obj) {
         const value = obj[key];
-        console.log(`Processing key: "${key}"`, { value, isAnnexure });
 
         if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-          console.log(`Key "${key}" is an object`);
-
           if (key === "annexure") {
             isAnnexure = true;
-            console.log("Found 'annexure' key, switching isAnnexure to true and resetting annexureResult");
             annexureResult = {};
           }
 
           recursiveFlatten(value, isAnnexure);
 
           if (isAnnexure && key !== "annexure") {
-            console.log(`Adding object to annexureResult: ${key}`);
             annexureResult[key] = value;
           }
-
         } else {
           if (!isAnnexure) {
-            console.log(`Adding primitive to result: ${key} = ${value}`);
             result[key] = value;
           } else {
-            console.log(`Adding primitive to annexureResult: ${key} = ${value}`);
             annexureResult[key] = value;
           }
         }
       }
-
-      console.log("Exiting recursiveFlatten:", { result, annexureResult });
-    }
+    };
 
     recursiveFlatten(jsonObj);
-
-    console.log("Final Output:");
-    console.log("Main JSON:", result);
-    console.log("Annexure JSON:", annexureResult);
 
     return {
       mainJsonRaw: result,
       annexureRawJson: annexureResult
     };
-  }
+  };
 
   const action = "team_management";
 
@@ -466,10 +450,7 @@ exports.generateReport = (req, res) => {
 
     AdminCommon.isAdminTokenValid(_token, admin_id, (err, TokenResult) => {
       if (err) {
-        return res.status(500).json({
-          status: false,
-          message: "Token validation failed.",
-        });
+        return res.status(500).json({ status: false, message: "Token validation failed." });
       }
 
       if (!TokenResult.status) {
@@ -478,17 +459,17 @@ exports.generateReport = (req, res) => {
 
       const newToken = TokenResult.newToken;
 
-      Branch.getBranchById(branch_id, (err, currentBranch) => {
-        if (err || !currentBranch || parseInt(currentBranch.customer_id) !== parseInt(customer_id)) {
+      Branch.getBranchById(branch_id, (err, branch) => {
+        if (err || !branch || parseInt(branch.customer_id) !== parseInt(customer_id)) {
           return res.status(404).json({
             status: false,
-            message: "Branch not found or does not match customer ID.",
+            message: "Branch not found or customer ID mismatch.",
             token: newToken,
           });
         }
 
-        Customer.getCustomerById(customer_id, (err, currentCustomer) => {
-          if (err || !currentCustomer) {
+        Customer.getCustomerById(customer_id, (err, customer) => {
+          if (err || !customer) {
             return res.status(404).json({
               status: false,
               message: "Customer not found.",
@@ -509,118 +490,109 @@ exports.generateReport = (req, res) => {
             let skippedIds = [];
 
             const processStatuses = () => {
-              const updatePromises = statuses.map((statusItem) => {
-                return new Promise((resolve) => {
-                  const serviceId = Number(statusItem.service_id);
-                  const status = statusItem.status;
+              const { mainJsonRaw, annexureRawJson: annexure } = flattenJsonWithAnnexure(updated_json);
+              const mainJson = mainJsonRaw;
 
-                  if (!grantedServiceIds.includes(serviceId)) {
-                    skippedIds.push(serviceId);
-                    return resolve({ serviceId, status: "skipped" });
-                  }
-
-                  console.log("Updated JSON:", updated_json);
-                  const { mainJsonRaw, annexureRawJson: annexure } = flattenJsonWithAnnexure(updated_json);
-
-                  console.log("Flattened JSON:", mainJsonRaw);
-                  const mainJson = mainJsonRaw;
-
-                  ClientMasterTrackerModel.generateReport(
-                    mainJson,
-                    application_id,
-                    branch_id,
-                    customer_id,
-                    (err, cmtResult) => {
-                      if (err) {
-                        return resolve({ serviceId, status: "update_failed" });
-                      }
-
-                      const logStatus = "create";
-                      const logDataSuccess = JSON.stringify(mainJson);
-                      AdminCommon.adminActivityLog(
-                        req.ip,
-                        "ipv4",
-                        admin_id,
-                        "Client Master Tracker",
-                        logStatus,
-                        "1",
-                        logDataSuccess,
-                        null,
-                        () => { }
-                      );
-
-                      const annexurePromises = Object.keys(annexure || {}).map((key) => {
-                        return new Promise((resolveAnnexure) => {
-                          const db_table = key.replace(/-/g, "_").toLowerCase();
-                          const subJson = annexure[db_table];
-
-                          ClientMasterTrackerModel.createOrUpdateAnnexure(
-                            cmtResult.insertId,
-                            application_id,
-                            branch_id,
-                            customer_id,
-                            db_table,
-                            subJson,
-                            (err) => {
-                              if (err) {
-                                return resolveAnnexure({ serviceId, status: "update_failed" });
-                              }
-
-                              resolveAnnexure({ serviceId, status: "updated" });
-                            }
-                          );
-                        });
-                      });
-
-                      Promise.all(annexurePromises).then(() => {
-                        TeamManagement.updateStatusOfAnnexureByDBTable(
-                          application_id,
-                          branch_id,
-                          customer_id,
-                          status,
-                          statusItem.db_table,
-                          (err) => {
-                            if (err) {
-                              return resolve({ serviceId, status: "update_failed" });
-                            }
-
-                            resolve({ serviceId, status: "updated" });
-                          }
-                        );
-                      });
-                    }
-                  );
-                });
-              });
-
-              Promise.all(updatePromises).then((results) => {
-                TeamManagement.updateComponentStatus(
-                  application_id,
-                  componentStatusNum,
-                  (err) => {
-                    if (err) {
-                      return res.status(500).json({
-                        status: false,
-                        message: "Failed to update component status.",
-                        token: newToken,
-                      });
-                    }
-
-                    res.status(200).json({
-                      status: true,
-                      message: "Statuses processed successfully.",
-                      updated_services: results.filter((r) => r.status === "updated"),
-                      skipped_service_ids: skippedIds,
-                      failed_updates: results.filter((r) => r.status === "update_failed"),
+              ClientMasterTrackerModel.generateReport(
+                mainJson,
+                application_id,
+                branch_id,
+                customer_id,
+                (err, cmtResult) => {
+                  if (err) {
+                    return res.status(500).json({
+                      status: false,
+                      message: "Failed to generate report.",
                       token: newToken,
                     });
                   }
-                );
-              });
+
+                  AdminCommon.adminActivityLog(
+                    req.ip,
+                    "ipv4",
+                    admin_id,
+                    "Client Master Tracker",
+                    "create",
+                    "1",
+                    JSON.stringify(mainJson),
+                    null,
+                    () => { }
+                  );
+
+                  const annexurePromises = Object.keys(annexure || {}).map((key) => {
+                    return new Promise((resolveAnnexure) => {
+                      const db_table = key.replace(/-/g, "_").toLowerCase();
+                      const subJson = annexure[db_table];
+
+                      ClientMasterTrackerModel.createOrUpdateAnnexure(
+                        cmtResult.insertId,
+                        application_id,
+                        branch_id,
+                        customer_id,
+                        db_table,
+                        subJson,
+                        (err) => {
+                          if (err) {
+                            return resolveAnnexure({ serviceId: key, status: "update_failed" });
+                          }
+                          resolveAnnexure({ serviceId: key, status: "updated" });
+                        }
+                      );
+                    });
+                  });
+
+                  const updatePromises = statuses.map((statusItem) => {
+                    return new Promise((resolve) => {
+                      const serviceId = Number(statusItem.service_id);
+                      const status = statusItem.status;
+
+                      if (!grantedServiceIds.includes(serviceId)) {
+                        skippedIds.push(serviceId);
+                        return resolve({ serviceId, status: "skipped" });
+                      }
+
+                      TeamManagement.updateStatusOfAnnexureByDBTable(
+                        application_id,
+                        branch_id,
+                        customer_id,
+                        status,
+                        statusItem.db_table,
+                        (err) => {
+                          if (err) {
+                            return resolve({ serviceId, status: "update_failed" });
+                          }
+                          resolve({ serviceId, status: "updated" });
+                        }
+                      );
+                    });
+                  });
+
+                  Promise.all([...annexurePromises, ...updatePromises]).then((results) => {
+                    TeamManagement.updateComponentStatus(application_id, componentStatusNum, (err) => {
+                      if (err) {
+                        return res.status(500).json({
+                          status: false,
+                          message: "Component status update failed.",
+                          token: newToken,
+                        });
+                      }
+
+                      res.status(200).json({
+                        status: true,
+                        message: "Report and statuses processed successfully.",
+                        updated_services: results.filter(r => r.status === "updated"),
+                        skipped_service_ids: skippedIds,
+                        failed_updates: results.filter(r => r.status === "update_failed"),
+                        token: newToken,
+                      });
+                    });
+                  });
+                }
+              );
             };
 
             if (admin.role === "team_management") {
-              Permission.getPermissionByRole(admin.role, (err, currentPermission) => {
+              Permission.getPermissionByRole(admin.role, (err, permission) => {
                 if (err) {
                   return res.status(500).json({
                     status: false,
@@ -629,19 +601,19 @@ exports.generateReport = (req, res) => {
                   });
                 }
 
-                if (currentPermission.service_ids) {
-                  grantedServiceIds = currentPermission.service_ids
+                if (permission.service_ids) {
+                  grantedServiceIds = permission.service_ids
                     .split(",")
-                    .map((id) => parseInt(id.trim(), 10))
-                    .filter((id) => !isNaN(id));
+                    .map(id => parseInt(id.trim(), 10))
+                    .filter(id => !isNaN(id));
                 }
 
                 processStatuses();
               });
             } else {
               grantedServiceIds = statuses
-                .map((status) => Number(status.service_id))
-                .filter((id) => !isNaN(id));
+                .map(status => Number(status.service_id))
+                .filter(id => !isNaN(id));
 
               processStatuses();
             }
@@ -651,6 +623,7 @@ exports.generateReport = (req, res) => {
     });
   });
 };
+
 
 exports.upload = async (req, res) => {
   // Use multer to handle the upload
