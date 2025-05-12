@@ -531,6 +531,10 @@ exports.generateReport = (req, res) => {
                           const db_table = key.replace(/-/g, "_").toLowerCase();
                           const subJson = annexure[db_table];
 
+                          console.log(`📌 Processing annexure key: "${key}"`);
+                          console.log(`🔁 Converted to DB table: "${db_table}"`);
+                          console.log(`📄 Payload for ${db_table}:`, subJson);
+
                           ClientMasterTrackerModel.createOrUpdateAnnexure(
                             cmtResult.insertId,
                             application_id,
@@ -540,9 +544,11 @@ exports.generateReport = (req, res) => {
                             subJson,
                             (err) => {
                               if (err) {
+                                console.error(`❌ Failed to update annexure for "${db_table}"`, err);
                                 return resolveAnnexure({ serviceId, status: "update_failed" });
                               }
 
+                              console.log(`✅ Successfully updated annexure: "${db_table}"`);
                               resolveAnnexure({ serviceId, status: "updated" });
                             }
                           );
