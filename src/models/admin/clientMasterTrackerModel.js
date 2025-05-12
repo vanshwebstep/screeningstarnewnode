@@ -1974,6 +1974,8 @@ const Customer = {
         type: QueryTypes.SELECT,
       });
 
+      console.log(`mainJson - `, mainJson);
+
       if (entryResults.length > 0) {
         // Update existing entry
         const updateSql = `UPDATE \`${db_table}\` SET ${Object.keys(mainJson)
