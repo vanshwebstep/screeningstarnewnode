@@ -409,36 +409,52 @@ exports.generateReport = (req, res) => {
     let annexureResult = {};
 
     function recursiveFlatten(obj, isAnnexure = false) {
+      console.log("Entering recursiveFlatten:", { isAnnexure, obj });
+
       for (let key in obj) {
-        if (
-          typeof obj[key] === "object" &&
-          obj[key] !== null &&
-          !Array.isArray(obj[key])
-        ) {
-          if (key === "insuffDetails") {
-            result[key] = obj[key];
-          } else {
-            if (key === "annexure") {
-              isAnnexure = true;
-              annexureResult = {};
-            }
-            recursiveFlatten(obj[key], isAnnexure);
-            if (isAnnexure && key !== "annexure") {
-              if (typeof obj[key] === "object" && obj[key] !== null) {
-                annexureResult[key] = obj[key];
-              }
-            }
+        const value = obj[key];
+        console.log(`Processing key: "${key}"`, { value, isAnnexure });
+
+        if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+          console.log(`Key "${key}" is an object`);
+
+          if (key === "annexure") {
+            isAnnexure = true;
+            console.log("Found 'annexure' key, switching isAnnexure to true and resetting annexureResult");
+            annexureResult = {};
           }
+
+          recursiveFlatten(value, isAnnexure);
+
+          if (isAnnexure && key !== "annexure") {
+            console.log(`Adding object to annexureResult: ${key}`);
+            annexureResult[key] = value;
+          }
+
         } else {
           if (!isAnnexure) {
-            result[key] = obj[key];
+            console.log(`Adding primitive to result: ${key} = ${value}`);
+            result[key] = value;
+          } else {
+            console.log(`Adding primitive to annexureResult: ${key} = ${value}`);
+            annexureResult[key] = value;
           }
         }
       }
+
+      console.log("Exiting recursiveFlatten:", { result, annexureResult });
     }
 
     recursiveFlatten(jsonObj);
-    return { mainJsonRaw: result, annexureRawJson: annexureResult };
+
+    console.log("Final Output:");
+    console.log("Main JSON:", result);
+    console.log("Annexure JSON:", annexureResult);
+
+    return {
+      mainJsonRaw: result,
+      annexureRawJson: annexureResult
+    };
   }
 
   const action = "team_management";
