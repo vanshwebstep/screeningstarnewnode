@@ -415,14 +415,18 @@ exports.generateReport = (req, res) => {
           obj[key] !== null &&
           !Array.isArray(obj[key])
         ) {
-          if (key === "annexure") {
-            isAnnexure = true;
-            annexureResult = {};
-          }
-          recursiveFlatten(obj[key], isAnnexure);
-          if (isAnnexure && key !== "annexure") {
-            if (typeof obj[key] === "object" && obj[key] !== null) {
-              annexureResult[key] = obj[key];
+          if (key === "insuffDetails") {
+            result[key] = obj[key];
+          } else {
+            if (key === "annexure") {
+              isAnnexure = true;
+              annexureResult = {};
+            }
+            recursiveFlatten(obj[key], isAnnexure);
+            if (isAnnexure && key !== "annexure") {
+              if (typeof obj[key] === "object" && obj[key] !== null) {
+                annexureResult[key] = obj[key];
+              }
             }
           }
         } else {
@@ -526,16 +530,10 @@ exports.generateReport = (req, res) => {
                         () => { }
                       );
 
-                      console.log("🧪 annexure before processing:", annexure);
-
                       const annexurePromises = Object.keys(annexure || {}).map((key) => {
                         return new Promise((resolveAnnexure) => {
                           const db_table = key.replace(/-/g, "_").toLowerCase();
                           const subJson = annexure[db_table];
-
-                          console.log(`📌 Processing annexure key: "${key}"`);
-                          console.log(`🔁 Converted to DB table: "${db_table}"`);
-                          console.log(`📄 Payload for ${db_table}:`, subJson);
 
                           ClientMasterTrackerModel.createOrUpdateAnnexure(
                             cmtResult.insertId,
@@ -546,11 +544,9 @@ exports.generateReport = (req, res) => {
                             subJson,
                             (err) => {
                               if (err) {
-                                console.error(`❌ Failed to update annexure for "${db_table}"`, err);
                                 return resolveAnnexure({ serviceId, status: "update_failed" });
                               }
 
-                              console.log(`✅ Successfully updated annexure: "${db_table}"`);
                               resolveAnnexure({ serviceId, status: "updated" });
                             }
                           );
