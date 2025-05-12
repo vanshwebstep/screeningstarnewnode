@@ -526,6 +526,8 @@ exports.generateReport = (req, res) => {
                         () => { }
                       );
 
+                      console.log("🧪 annexure before processing:", annexure);
+
                       const annexurePromises = Object.keys(annexure || {}).map((key) => {
                         return new Promise((resolveAnnexure) => {
                           const db_table = key.replace(/-/g, "_").toLowerCase();
