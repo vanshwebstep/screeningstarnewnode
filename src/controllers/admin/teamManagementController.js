@@ -519,7 +519,10 @@ exports.generateReport = (req, res) => {
                     return resolve({ serviceId, status: "skipped" });
                   }
 
+                  console.log("Updated JSON:", updated_json);
                   const { mainJsonRaw, annexureRawJson: annexure } = flattenJsonWithAnnexure(updated_json);
+
+                  console.log("Flattened JSON:", mainJsonRaw);
                   const mainJson = mainJsonRaw;
 
                   ClientMasterTrackerModel.generateReport(
