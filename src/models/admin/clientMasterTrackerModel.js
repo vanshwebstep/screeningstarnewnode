@@ -201,8 +201,8 @@ const Customer = {
               )
             )
             AND c.is_deleted != 1
-            AND (c.status = 1)
             AND a.is_deleted != 1
+            AND (c.status = 1)
     `;
             break;
           case 'qcStatusPendingCount':
@@ -214,14 +214,14 @@ const Customer = {
             client_applications a 
             JOIN customers c ON a.customer_id = c.id
             JOIN cmt_applications b ON a.id = b.client_application_id
-          WHERE
-            a.is_report_downloaded = '1'
-            AND LOWER(b.is_verify) = 'no'
-            AND a.status = 'completed'
+          where
+            a.is_report_downloaded='1'
+            AND LOWER(b.is_verify)='no'
+            AND a.status='completed'
             AND c.is_deleted != 1
             AND a.is_deleted != 1
-          ORDER BY 
-            b.id DESC;
+          order by 
+            b.id DESC
       `;
             break;
           case 'wipCount':
@@ -236,8 +236,10 @@ const Customer = {
                     WHERE 
                       c.status = 1
                       AND b.overall_status = 'wip'
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY 
+                      b.overall_status
               `;
             break;
           case 'insuffCount':
@@ -252,8 +254,10 @@ const Customer = {
                     WHERE 
                       c.status = 1
                       AND b.overall_status = 'insuff'
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY 
+                      b.overall_status
               `;
             break;
           case 'previousCompletedCount':
@@ -266,11 +270,13 @@ const Customer = {
               JOIN customers c ON a.customer_id = c.id
               JOIN cmt_applications b ON a.id = b.client_application_id 
             WHERE
-              b.overall_status = 'completed'
-              AND (b.report_date LIKE CONCAT('${yearMonth}', '%') OR b.report_date LIKE CONCAT('%', '${monthYear}'))
-              AND c.status = 1
+              b.overall_status IN ('completed')
+              AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
+              AND c.status=1
+              AND a.is_deleted != 1
               AND c.is_deleted != 1
-              AND a.is_deleted != 1;
+            GROUP BY
+              b.overall_status
       `;
             break;
           case 'stopcheckCount':
@@ -283,11 +289,13 @@ const Customer = {
                       JOIN customers c ON a.customer_id = c.id
                       JOIN cmt_applications b ON a.id = b.client_application_id 
                     WHERE
-                      b.overall_status = 'stopcheck'
-                      AND (b.report_date LIKE CONCAT('${yearMonth}', '%') OR b.report_date LIKE CONCAT('%', '${monthYear}'))
-                      AND c.status = 1
+                      b.overall_status IN ('stopcheck')
+                      AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
+                      AND c.status=1
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY
+                      b.overall_status
               `;
             break;
           case 'activeEmploymentCount':
@@ -300,11 +308,13 @@ const Customer = {
               JOIN customers c ON a.customer_id = c.id
               JOIN cmt_applications b ON a.id = b.client_application_id 
             WHERE
-              b.overall_status = 'active employment'
-              AND (b.report_date LIKE CONCAT('${yearMonth}', '%') OR b.report_date LIKE CONCAT('%', '${monthYear}'))
-              AND c.status = 1
+              b.overall_status IN ('active employment')
+              AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
+              AND c.status=1
+              AND a.is_deleted != 1
               AND c.is_deleted != 1
-              AND a.is_deleted != 1;
+            GROUP BY
+              b.overall_status
       `;
             break;
           case 'nilCount':
@@ -317,11 +327,13 @@ const Customer = {
                       JOIN customers c ON a.customer_id = c.id
                       JOIN cmt_applications b ON a.id = b.client_application_id 
                     WHERE
-                      b.overall_status = 'nil'
-                      AND (b.report_date LIKE CONCAT('${yearMonth}', '%') OR b.report_date LIKE CONCAT('%', '${monthYear}'))
-                      AND c.status = 1
+                      b.overall_status IN ('nil', '')
+                      AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
+                      AND c.status=1
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY
+                      b.overall_status
               `;
             break;
           case 'notDoableCount':
@@ -334,11 +346,13 @@ const Customer = {
                       JOIN customers c ON a.customer_id = c.id
                       JOIN cmt_applications b ON a.id = b.client_application_id 
                     WHERE
-                      b.overall_status = 'not doable'
-                      AND (b.report_date LIKE CONCAT('${yearMonth}', '%') OR b.report_date LIKE CONCAT('%', '${monthYear}'))
-                      AND c.status = 1
+                      b.overall_status IN ('not doable')
+                      AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
+                      AND c.status=1
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY
+                      b.overall_status
               `;
             break;
           case 'candidateDeniedCount':
@@ -351,11 +365,13 @@ const Customer = {
               JOIN customers c ON a.customer_id = c.id
               JOIN cmt_applications b ON a.id = b.client_application_id 
             WHERE
-              b.overall_status = 'candidate denied'
-              AND (b.report_date LIKE CONCAT('${yearMonth}', '%') OR b.report_date LIKE CONCAT('%', '${monthYear}'))
-              AND c.status = 1
+              b.overall_status IN ('candidate denied')
+              AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
+              AND c.status=1
+              AND a.is_deleted != 1
               AND c.is_deleted != 1
-              AND a.is_deleted != 1;
+            GROUP BY
+              b.overall_status
       `;
             break;
           case 'completedGreenCount':
@@ -370,10 +386,12 @@ const Customer = {
                     where
                       b.overall_status ='completed'
                       AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
-                      AND b.final_verification_status = 'GREEN'
-                      AND c.is_deleted != 1
+                      AND b.final_verification_status IN ('GREEN')
                       AND c.status=1
-                      AND a.is_deleted != 1;
+                      AND a.is_deleted != 1
+                      AND c.is_deleted != 1
+                    GROUP BY
+                      b.final_verification_status
               `;
             break;
           case 'completedRedCount':
@@ -388,10 +406,12 @@ const Customer = {
                     where
                       b.overall_status ='completed'
                       AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
-                      AND b.final_verification_status = 'RED'
+                      AND b.final_verification_status IN ('RED')
                       AND c.status=1
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY
+                      b.final_verification_status
               `;
             break;
           case 'completedYellowCount':
@@ -406,10 +426,12 @@ const Customer = {
                     where
                       b.overall_status ='completed'
                       AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
-                      AND b.final_verification_status  = 'YELLOW'
+                      AND b.final_verification_status IN ('YELLOW')
                       AND c.status=1
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY
+                      b.final_verification_status
               `;
             break;
           case 'completedPinkCount':
@@ -422,12 +444,14 @@ const Customer = {
                       JOIN customers c ON a.customer_id = c.id
                       JOIN cmt_applications b ON a.id = b.client_application_id 
                     where
-                      b.overall_status ='completed'
+                       b.overall_status ='completed'
                       AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
-                      AND b.final_verification_status = 'PINK'
+                      AND b.final_verification_status IN ('PINK')
                       AND c.status=1
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY
+                      b.final_verification_status
               `;
             break;
           case 'completedOrangeCount':
@@ -442,10 +466,12 @@ const Customer = {
                     where
                       b.overall_status ='completed'
                       AND (b.report_date LIKE '${yearMonth}-%' OR b.report_date LIKE '%-${monthYear}')
-                      AND b.final_verification_status = 'ORANGE'
+                      AND b.final_verification_status IN ('ORANGE')
                       AND c.status=1
+                      AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                      AND a.is_deleted != 1;
+                    GROUP BY
+                      b.final_verification_status
               `;
             break;
         }
@@ -1098,7 +1124,6 @@ const Customer = {
   },
 
   filterOptions: async (callback) => {
-
     const sql = `
         SELECT \`status\`, COUNT(*) AS \`count\` 
         FROM \`client_applications\` 
@@ -1109,8 +1134,6 @@ const Customer = {
       type: QueryTypes.SELECT,
     });
     callback(null, results);
-
-
   },
 
   filterOptionsForCustomers: async (callback) => {
@@ -1297,10 +1320,7 @@ const Customer = {
 
   },
 
-
   filterOptionsForApplicationListing: (customer_id, branch_id, callback) => {
-
-
     const now = new Date();
     const month = `${String(now.getMonth() + 1).padStart(2, '0')}`;
     const year = `${now.getFullYear()}`;
