@@ -238,8 +238,6 @@ const Customer = {
                       AND b.overall_status = 'wip'
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY 
-                      b.overall_status
               `;
             break;
           case 'insuffCount':
@@ -256,8 +254,6 @@ const Customer = {
                       AND b.overall_status = 'insuff'
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY 
-                      b.overall_status
               `;
             break;
           case 'previousCompletedCount':
@@ -275,8 +271,6 @@ const Customer = {
               AND c.status=1
               AND a.is_deleted != 1
               AND c.is_deleted != 1
-            GROUP BY
-              b.overall_status
       `;
             break;
           case 'stopcheckCount':
@@ -294,8 +288,6 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY
-                      b.overall_status
               `;
             break;
           case 'activeEmploymentCount':
@@ -313,8 +305,6 @@ const Customer = {
               AND c.status=1
               AND a.is_deleted != 1
               AND c.is_deleted != 1
-            GROUP BY
-              b.overall_status
       `;
             break;
           case 'nilCount':
@@ -332,8 +322,6 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY
-                      b.overall_status
               `;
             break;
           case 'notDoableCount':
@@ -351,8 +339,6 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY
-                      b.overall_status
               `;
             break;
           case 'candidateDeniedCount':
@@ -370,8 +356,6 @@ const Customer = {
               AND c.status=1
               AND a.is_deleted != 1
               AND c.is_deleted != 1
-            GROUP BY
-              b.overall_status
       `;
             break;
           case 'completedGreenCount':
@@ -390,8 +374,6 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY
-                      b.final_verification_status
               `;
             break;
           case 'completedRedCount':
@@ -410,8 +392,6 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY
-                      b.final_verification_status
               `;
             break;
           case 'completedYellowCount':
@@ -430,8 +410,6 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY
-                      b.final_verification_status
               `;
             break;
           case 'completedPinkCount':
@@ -450,8 +428,6 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY
-                      b.final_verification_status
               `;
             break;
           case 'completedOrangeCount':
@@ -470,8 +446,6 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1
                       AND c.is_deleted != 1
-                    GROUP BY
-                      b.final_verification_status
               `;
             break;
         }
