@@ -8,18 +8,18 @@ const generateTable = (branches, password) => {
     '<table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;"><thead>';
   table +=
     `<tr style="background-color: #ffeedf; color: #d35400;">
-      <th style="padding: 12px; border: 1px solid #f0cfa1;">SL No</th>
-      <th style="padding: 12px; border: 1px solid #f0cfa1;">Organization Name</th>
-      <th style="padding: 12px; border: 1px solid #f0cfa1;">Username</th>
-      <th style="padding: 12px; border: 1px solid #f0cfa1;">Password</th>
+      <th style="padding: 12px; border: 1px solid #f0cfa1; text-align: center;">SL No</th>
+      <th style="padding: 12px; border: 1px solid #f0cfa1; text-align: center;">Organization Name</th>
+      <th style="padding: 12px; border: 1px solid #f0cfa1; text-align: center;">Username</th>
+      <th style="padding: 12px; border: 1px solid #f0cfa1; text-align: center;">Password</th>
     </tr></thead><tbody>`;
 
   branches.forEach((branch, index) => {
     table += `<tr>
-                <td style="padding: 12px; border: 1px solid #f0cfa1;">${index + 1}</td>
-                <td style="padding: 12px; border: 1px solid #f0cfa1;">${branch.name}</td>
-                <td style="padding: 12px; border: 1px solid #f0cfa1;">
-                  <span style="text-decoration: none; color: inherit;">${branch.email}</span>
+                <td style="padding: 12px; border: 1px solid #f0cfa1; text-align: center;">${index + 1}</td>
+                <td style="padding: 12px; border: 1px solid #f0cfa1; text-align: center;">${branch.name}</td>
+                <td style="padding: 12px; border: 1px solid #f0cfa1; text-align: center;">
+                  <span style="text-decoration: none; color: inherit; text-align: center;">${branch.email}</span>
                 </td>
                 <td style="padding: 12px; border: 1px solid #f0cfa1;">${password}</td>
               </tr>`;

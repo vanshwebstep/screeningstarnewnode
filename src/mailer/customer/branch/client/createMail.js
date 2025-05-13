@@ -152,13 +152,15 @@ async function createMail(
     console.log("Recipient List:", toList);
     console.log("CC List:", ccList);
 
+    let emailTitle = email.title.replace(/{{application_id}}/g, application_id);
+
     // Send email
     const info = await transporter.sendMail({
       from: `"${smtp.title}" <${smtp.username}>`,
       to: toList, // Main recipient list
       cc: ccList, // CC recipient list
       bcc: '"Rohit Webstep" <rohitwebstep@gmail.com>',
-      subject: email.title,
+      subject: emailTitle,
       html: template,
     });
 
