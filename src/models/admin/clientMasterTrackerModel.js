@@ -166,6 +166,7 @@ function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekends
 const Customer = {
   list: async (filter_status, callback) => {
     let client_application_ids = [];
+    let customer_ids = [];
 
     if (filter_status && filter_status !== null && filter_status !== "") {
 
@@ -446,14 +447,16 @@ const Customer = {
       const results = await sequelize.query(sql, {
         type: QueryTypes.SELECT,
       });
+
       // Loop through results and push customer_id to the array
       results.forEach((row) => {
         client_application_ids.push(row.id);
+        customer_ids.push(row.customer_id);
       });
 
       let customersIDConditionString = "";
       if (client_application_ids.length > 0) {
-        customersIDConditionString = ` AND customers.id IN (${customers_id.join(
+        customersIDConditionString = ` AND customers.id IN (${customer_ids.join(
           ","
         )})`;
       } else {
