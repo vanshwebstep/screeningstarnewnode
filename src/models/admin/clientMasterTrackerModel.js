@@ -165,20 +165,25 @@ function evaluateTatProgress(startDate, tatDays = 0, holidayDates = [], weekends
 
 const Customer = {
   list: async (filter_status, callback) => {
-    let client_application_ids = [];
-    let customer_ids = [];
+    try {
 
-    if (filter_status && filter_status !== null && filter_status !== "") {
+      let client_application_ids_query_condition = '';
+      let customer_ids_query_condition = '';
 
       // Get the current date
       const now = new Date();
       const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
 
-      let sql = `SELECT customer_id FROM customers WHERE status = 1`;
-      switch (filter_status) {
-        case 'overallCount':
-          sql = `
+      let customer_ids = [];
+      let client_application_ids = [];
+
+      if (filter_status && filter_status !== null && filter_status !== "") {
+        let sql = `SELECT customer_id FROM customers WHERE status = 1`;
+
+        switch (filter_status) {
+          case 'overallCount':
+            sql = `
           SELECT DISTINCT
             a.id,
             a.customer_id
@@ -199,9 +204,9 @@ const Customer = {
             AND (c.status = 1)
             AND a.is_deleted != 1
     `;
-          break;
-        case 'qcStatusPendingCount':
-          sql = `
+            break;
+          case 'qcStatusPendingCount':
+            sql = `
           SELECT DISTINCT
             a.id,
             a.customer_id
@@ -218,9 +223,9 @@ const Customer = {
           ORDER BY 
             b.id DESC;
       `;
-          break;
-        case 'wipCount':
-          sql = `
+            break;
+          case 'wipCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -234,9 +239,9 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'insuffCount':
-          sql = `
+            break;
+          case 'insuffCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -250,9 +255,9 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'previousCompletedCount':
-          sql = `
+            break;
+          case 'previousCompletedCount':
+            sql = `
           SELECT DISTINCT
             a.id,
             a.customer_id
@@ -267,9 +272,9 @@ const Customer = {
               AND c.is_deleted != 1
               AND a.is_deleted != 1;
       `;
-          break;
-        case 'stopcheckCount':
-          sql = `
+            break;
+          case 'stopcheckCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -284,9 +289,9 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'activeEmploymentCount':
-          sql = `
+            break;
+          case 'activeEmploymentCount':
+            sql = `
           SELECT DISTINCT
             a.id,
             a.customer_id
@@ -301,9 +306,9 @@ const Customer = {
               AND c.is_deleted != 1
               AND a.is_deleted != 1;
       `;
-          break;
-        case 'nilCount':
-          sql = `
+            break;
+          case 'nilCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -318,9 +323,9 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'notDoableCount':
-          sql = `
+            break;
+          case 'notDoableCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -335,9 +340,9 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'candidateDeniedCount':
-          sql = `
+            break;
+          case 'candidateDeniedCount':
+            sql = `
           SELECT DISTINCT
             a.id,
             a.customer_id
@@ -352,9 +357,9 @@ const Customer = {
               AND c.is_deleted != 1
               AND a.is_deleted != 1;
       `;
-          break;
-        case 'completedGreenCount':
-          sql = `
+            break;
+          case 'completedGreenCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -370,9 +375,9 @@ const Customer = {
                       AND c.status=1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'completedRedCount':
-          sql = `
+            break;
+          case 'completedRedCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -388,9 +393,9 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'completedYellowCount':
-          sql = `
+            break;
+          case 'completedYellowCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -406,9 +411,9 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'completedPinkCount':
-          sql = `
+            break;
+          case 'completedPinkCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -424,9 +429,9 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-        case 'completedOrangeCount':
-          sql = `
+            break;
+          case 'completedOrangeCount':
+            sql = `
                   SELECT DISTINCT
                     a.id,
                     a.customer_id
@@ -442,235 +447,158 @@ const Customer = {
                       AND c.is_deleted != 1
                       AND a.is_deleted != 1;
               `;
-          break;
-      }
-      const results = await sequelize.query(sql, {
-        type: QueryTypes.SELECT,
-      });
-
-      // Loop through results and push customer_id to the array
-      results.forEach((row) => {
-        client_application_ids.push(row.id);
-        customer_ids.push(row.customer_id);
-      });
-
-      let customersIDConditionString = "";
-      if (client_application_ids.length > 0) {
-        customersIDConditionString = ` AND customers.id IN (${customer_ids.join(
-          ","
-        )})`;
-      } else {
-        return callback(null, []);
-      }
-      const finalSql = `
-         WITH BranchesCTE AS (
-                SELECT 
-                    b.id AS branch_id,
-                    b.customer_id
-                FROM 
-                    branches b
-            )
-            SELECT 
-                customers.client_unique_id,
-                customers.name,
-                customer_metas.tat_days,
-                customer_metas.single_point_of_contact,
-                customer_metas.client_spoc_name,
-                customers.id AS main_id,
-                COALESCE(branch_counts.branch_count, 0) AS branch_count,
-                COALESCE(application_counts.application_count, 0) AS application_count
-            FROM 
-                customers
-            LEFT JOIN 
-                customer_metas ON customers.id = customer_metas.customer_id
-            LEFT JOIN (
-                SELECT 
-                    customer_id, 
-                    COUNT(*) AS branch_count
-                FROM 
-                    branches
-                GROUP BY 
-                    customer_id
-            ) AS branch_counts ON customers.id = branch_counts.customer_id
-            LEFT JOIN (
-                SELECT 
-                    b.customer_id, 
-                    COUNT(ca.id) AS application_count,
-                    MAX(ca.created_at) AS latest_application_date
-                FROM 
-                    BranchesCTE b
-                INNER JOIN 
-                    client_applications ca ON b.branch_id = ca.branch_id
-                WHERE
-                  ca.is_data_qc = 1
-                  AND ca.id IN (${client_application_ids.join(",")})
-                  AND ca.is_deleted != 1
-                GROUP BY 
-                    b.customer_id
-            ) AS application_counts ON customers.id = application_counts.customer_id
-            WHERE 
-                customers.status = 1
-                AND customers.is_deleted != 1
-                AND COALESCE(application_counts.application_count, 0) > 0
-            ORDER BY 
-                application_counts.latest_application_date DESC;
-          `;
-
-      connection.query(finalSql, async (err, results) => {
-
-        // Always release the connection
-        if (err) {
-          console.error("Database query error: 38", err);
-          return callback(err, null);
+            break;
         }
 
-        for (const result of results) {
+        const results = await sequelize.query(sql, {
+          replacements: [filter_status],
+          type: QueryTypes.SELECT,
+        });
 
-          const headBranchApplicationsCountQuery = `SELECT COUNT(*) FROM \`client_applications\` ca INNER JOIN \`branches\` b ON ca.branch_id = b.id WHERE ca.customer_id = ? AND b.customer_id = ? AND b.is_head = ? AND ca.is_deleted != 1`;
-          const headBranchApplicationsCount = await new Promise(
-            (resolve, reject) => {
-              connection.query(
-                headBranchApplicationsCountQuery,
-                [result.main_id, result.main_id, 1], // Parameters passed correctly
-                (headBranchErr, headBranchResults) => {
-                  if (headBranchErr) {
-                    return reject(headBranchErr);
-                  }
-                  resolve(headBranchResults[0]["COUNT(*)"]); // Get the count result
-                }
-              );
-            }
-          );
-          // console.log(`rawResult - `, result);
-          result.head_branch_applications_count =
-            headBranchApplicationsCount;
-          // if (result.branch_count === 1) {
-          // Query client_spoc table to fetch names for these IDs
-          const headBranchQuery = `SELECT id, is_head FROM \`branches\` WHERE \`customer_id\` = ? AND \`is_head\` = ?`;
+        // Loop through results and push customer_id to the array
+        results.forEach((row) => {
+          client_application_ids.push(row.id);
+          customer_ids.push(row.customer_id);
+        });
 
-          try {
-            const headBranchID = await new Promise((resolve, reject) => {
-              connection.query(
-                headBranchQuery,
-                [result.main_id, 1], // Properly pass query parameters as an array
-                (headBranchErr, headBranchResults) => {
-                  if (headBranchErr) {
-                    return reject(headBranchErr);
-                  }
-                  resolve(
-                    headBranchResults.length > 0
-                      ? headBranchResults[0].id
-                      : null
-                  );
-                }
-              );
-            });
+        // Generate client_application_ids query condition if the array is not empty
 
-            // Attach head branch id and application count to the current result
-            result.head_branch_id = headBranchID;
-          } catch (headBranchErr) {
-            console.error(
-              "Error fetching head branch id or applications count:",
-              headBranchErr
-            );
-            result.head_branch_id = null;
-            result.head_branch_applications_count = 0;
-          }
-          // }
+        if (client_application_ids.length > 0) {
+          client_application_ids_query_condition = `WHERE ca.id IN (${client_application_ids.join(",")})`;
         }
-        // console.log(`results - `, results);
-        callback(null, results);
-      });
 
-    } else {
+        // Generate customer_ids query condition if the array is not empty
+        if (customer_ids.length > 0) {
+          customer_ids_query_condition = `AND customers.id IN (${customer_ids.join(",")})`;
+        }
+      }
       // If no filter_status is provided, proceed with the final SQL query without filters
-      const finalSql = `
-         WITH BranchesCTE AS (
-              SELECT 
-                  b.id AS branch_id,
-                  b.customer_id
-              FROM 
-                  branches b
-          )
-          SELECT 
-              customers.client_unique_id,
-              customers.name,
-              customer_metas.tat_days,
-              customer_metas.single_point_of_contact,
-              customer_metas.client_spoc_name,
-              customers.id AS main_id,
-              COALESCE(branch_counts.branch_count, 0) AS branch_count,
-              COALESCE(application_counts.application_count, 0) AS application_count
-          FROM 
-              customers
-          LEFT JOIN 
-              customer_metas ON customers.id = customer_metas.customer_id
-          LEFT JOIN (
-              SELECT 
-                  customer_id, 
-                  COUNT(*) AS branch_count
-              FROM 
-                  branches
-              GROUP BY 
-                  customer_id
-          ) AS branch_counts ON customers.id = branch_counts.customer_id
-          LEFT JOIN (
-              SELECT 
-                  b.customer_id, 
-                  COUNT(ca.id) AS application_count,
-                  MAX(ca.created_at) AS latest_application_date
-              FROM 
-                  BranchesCTE b
-              INNER JOIN 
-                  client_applications ca ON b.branch_id = ca.branch_id
-              WHERE ca.is_data_qc = 1 AND ca.is_deleted != 1
-              GROUP BY 
-                  b.customer_id
-          ) AS application_counts ON customers.id = application_counts.customer_id
-          WHERE 
-              customers.status = 1
-              AND customers.is_deleted != 1
-              AND COALESCE(application_counts.application_count, 0) > 0
-          ORDER BY 
-              application_counts.latest_application_date DESC;
-        `;
-
+      const finalSql = `WITH BranchesCTE AS (
+                            SELECT
+                                b.id AS branch_id,
+                                b.customer_id
+                            FROM
+                                branches b
+                        )
+                        SELECT
+                            customers.client_unique_id,
+                            customers.name,
+                            customer_metas.tat_days,
+                            customer_metas.single_point_of_contact,
+                            customers.id AS main_id,
+                            COALESCE(branch_counts.branch_count, 0) AS branch_count,
+                            COALESCE(application_counts.application_count, 0) AS application_count,
+                            COALESCE(completed_counts.completed_count, 0) AS completedApplicationsCount,
+                            COALESCE(pending_counts.pending_count, 0) AS pendingApplicationsCount
+                        FROM
+                            customers
+                        LEFT JOIN
+                            customer_metas ON customers.id = customer_metas.customer_id
+                        LEFT JOIN (
+                            SELECT
+                                customer_id,
+                                COUNT(*) AS branch_count
+                            FROM
+                                branches
+                            GROUP BY
+                                customer_id
+                        ) AS branch_counts ON customers.id = branch_counts.customer_id
+                        LEFT JOIN (
+                            SELECT
+                                b.customer_id,
+                                COUNT(ca.id) AS application_count,
+                                MAX(ca.created_at) AS latest_application_date
+                            FROM
+                                BranchesCTE b
+                            INNER JOIN
+                                client_applications ca ON b.branch_id = ca.branch_id
+                              ${client_application_ids_query_condition}
+                            GROUP BY
+                                b.customer_id
+                        ) AS application_counts ON customers.id = application_counts.customer_id
+                        LEFT JOIN (
+                            SELECT
+                                b.customer_id,
+                                COUNT(ca.id) AS completed_count
+                            FROM
+                                BranchesCTE b
+                            INNER JOIN
+                                client_applications ca ON b.branch_id = ca.branch_id
+                            WHERE
+                                ca.status = 'completed'
+                            GROUP BY
+                                b.customer_id
+                        ) AS completed_counts ON customers.id = completed_counts.customer_id
+                        LEFT JOIN (
+                            SELECT
+                                b.customer_id,
+                                COUNT(ca.id) AS pending_count
+                            FROM
+                                BranchesCTE b
+                            INNER JOIN
+                                client_applications ca ON b.branch_id = ca.branch_id
+                            WHERE
+                                ca.status <> 'completed'
+                            GROUP BY
+                                b.customer_id
+                        ) AS pending_counts ON customers.id = pending_counts.customer_id
+                        WHERE
+                            customers.status = 1
+                            ${customer_ids_query_condition}
+                            AND COALESCE(application_counts.application_count, 0) > 0
+                        ORDER BY
+                            application_counts.latest_application_date DESC;
+                        `;
       const results = await sequelize.query(finalSql, {
         type: QueryTypes.SELECT,
       });
-      for (const result of results) {
-        const headBranchApplicationsCountQuery = `SELECT COUNT(*) FROM \`client_applications\` ca INNER JOIN \`branches\` b ON ca.branch_id = b.id WHERE ca.customer_id = ? AND b.customer_id = ? AND b.is_head = ? AND ca.is_data_qc = ? AND ca.is_deleted != 1`;
 
-        const headBranchResults = await sequelize.query(headBranchApplicationsCountQuery, {
-          replacements: [result.main_id, result.main_id, 1, 1], // Positional replacements using ?
-          type: QueryTypes.SELECT,
-        });
-        const headBranchApplicationsCount = await new Promise((resolve) =>
-          resolve(headBranchResults[0]["COUNT(*)"])
+      // Process each result to fetch client_spoc names
+      for (const result of results) {
+        const headBranchApplicationsCountQuery = `SELECT COUNT(*) FROM \`client_applications\` ca INNER JOIN \`branches\` b ON ca.branch_id = b.id WHERE ca.customer_id = ? AND b.customer_id = ? AND b.is_head = ?`;
+        const headBranchApplicationsCount = await new Promise(
+          async (resolve, reject) => {
+            const headBranchResults = await sequelize.query(headBranchApplicationsCountQuery, {
+              replacements: [result.main_id, result.main_id, 1, 1],
+              type: QueryTypes.SELECT,
+            });
+            resolve(headBranchResults[0]["COUNT(*)"]);
+          }
         );
         result.head_branch_applications_count = headBranchApplicationsCount;
         // if (result.branch_count === 1) {
         // Query client_spoc table to fetch names for these IDs
         const headBranchQuery = `SELECT id, is_head FROM \`branches\` WHERE \`customer_id\` = ? AND \`is_head\` = ?`;
 
-
-        const headBranchID = await new Promise(async (resolve, reject) => {
-          const headBranchResults = await sequelize.query(headBranchQuery, {
-            replacements: [result.main_id, 1], // Positional replacements using ?
-            type: QueryTypes.SELECT,
+        try {
+          const headBranchID = await new Promise(async (resolve, reject) => {
+            const headBranchResults = await sequelize.query(headBranchQuery, {
+              replacements: [result.main_id, 1],
+              type: QueryTypes.SELECT,
+            });
+            resolve(
+              headBranchResults.length > 0
+                ? headBranchResults[0].id
+                : null
+            );
           });
-          resolve(
-            headBranchResults.length > 0
-              ? headBranchResults[0].id
-              : null
+
+          // Attach head branch id and application count to the current result
+          result.head_branch_id = headBranchID;
+        } catch (headBranchErr) {
+          console.error(
+            "Error fetching head branch id or applications count:",
+            headBranchErr
           );
-        });
-        result.head_branch_id = headBranchID;
+          result.head_branch_id = null;
+          result.head_branch_applications_count = 0;
+        }
+        // }
       }
       callback(null, results);
-
+    } catch (error) {
+      callback(error, null);
     }
-
   },
 
   listByCustomerID: async (customer_id, filter_status, callback) => {
