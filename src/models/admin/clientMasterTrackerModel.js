@@ -477,13 +477,18 @@ const Customer = {
         }
 
         console.log(`sql - `, sql);
-        
+
         const results = await sequelize.query(sql, {
           replacements: [filter_status],
           type: QueryTypes.SELECT,
         });
 
         console.log(`results - `, results);
+
+        console.log(`results.length - `, results.length);
+        if (results.length === 0) {
+          return callback(null, []);
+        }
 
         // Loop through results and push customer_id to the array
         results.forEach((row) => {
