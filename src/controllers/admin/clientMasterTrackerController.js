@@ -2939,6 +2939,9 @@ exports.upload = async (req, res) => {
                                 }
                                 // QC report email
                                 else if (emailStatus == 2) {
+                                  const toQCTeam = [
+                                    { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                  ];
                                   qcReportCheckMail(
                                     "cmt",
                                     "qc",
@@ -2946,8 +2949,8 @@ exports.upload = async (req, res) => {
                                     application.name,
                                     application.application_id,
                                     attachments,
-                                    toArr,
-                                    ccArr
+                                    toQCTeam,
+                                    []
                                   )
                                     .then(() => {
                                       return res.status(200).json({
