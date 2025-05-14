@@ -18,10 +18,6 @@ const PDFuserPath = path.join(__dirname, "../assets/images/PDFuser.png");
 const PDFuserData = fs.readFileSync(PDFuserPath);
 const PDFuser = `data:image/png;base64,${PDFuserData.toString("base64")}`;
 
-const PDFuserGirlPath = path.join(__dirname, "../assets/images/PDFuserGirl.png");
-const PDFuserGirlData = fs.readFileSync(PDFuserGirlPath);
-const PDFuserGirl = `data:image/png;base64,${PDFuserGirlData.toString("base64")}`;
-
 const isoLogoPath = path.join(__dirname, "../assets/images/iso.png");
 const isoLogoData = fs.readFileSync(isoLogoPath);
 const isoLogo = `data:image/png;base64,${isoLogoData.toString("base64")}`;
@@ -117,6 +113,7 @@ async function fetchImageAsBase64(imageUrls) {
     return await Promise.all(urlArray.map(convertToBase64));
 }
 
+
 function addFooter(doc, applicationInfo, appHost) {
     const footerHeight = 18;
     const pageWidth = doc.internal.pageSize.width;
@@ -181,8 +178,6 @@ function addFooter(doc, applicationInfo, appHost) {
 
                     // Set color based on whether word includes "include"
                     if (word.toLowerCase().includes("@")) {
-                        doc.setTextColor(0, 0, 255); // Blue
-                    } else if (word.toLowerCase().includes(appHost)) {
                         doc.setTextColor(0, 0, 255); // Blue
                     } else {
                         doc.setTextColor(color.r, color.g, color.b); // Default
@@ -366,14 +361,9 @@ module.exports = {
                                 return reject(new Error("Customer not found."));
                             }
 
+
+
                             const modifiedNames = currentCustomer.emails;
-
-                            const emailArray = JSON.parse(modifiedNames);
-
-                            const customerEmails = emailArray.map(email => {
-                                // console.log('firstName', email);
-                                return email;
-                            });
 
                             // Fetch CMT Application Data
                             ClientMasterTrackerModel.getCMTApplicationById(
@@ -523,15 +513,10 @@ module.exports = {
                                                     } else {
                                                         doc.addImage(screeningLogo, "PNG", customerLogoX, customerLogoY, customlogoWidth, customlogoHeight);
                                                     }
-                                                    let profilePhoto;
+                                                    // doc.rect(logoBorderX, logoBorderY, logoBorderWidth, logoBorderHeight);
 
-                                                    if (applicationInfo.gender === 'Male') {
-                                                        profilePhoto = PDFuser;
-                                                    } else if (applicationInfo.gender === 'Female') {
-                                                        profilePhoto = PDFuserGirl;
-                                                    } else {
-                                                        profilePhoto = PDFuser;
-                                                    }
+                                                    // Fetch Profile Photo if necessary
+                                                    let profilePhoto = PDFuser;
                                                     if (applicationInfo?.photo) {
                                                         const imgUrl = await fetchImageAsBase64(applicationInfo.photo.trim());
                                                         profilePhoto = imgUrl?.[0]?.base64 || PDFuser;
@@ -605,11 +590,11 @@ module.exports = {
                                                     // Add text centered horizontally and vertically
                                                     doc.text(mainTitle, pageWidth / 2, verticalCenter, { align: 'center' });
 
-                                                    console.log('applicationInfo', applicationInfo)
+
                                                     const headerTableData = [
                                                         ["REFERENCE ID", String(applicationInfo.application_id).toUpperCase(), "DATE OF BIRTH", formatDate(applicationInfo.dob) || "N/A"],
                                                         ["EMPLOYEE ID", String(applicationInfo.employee_id || "N/A").toUpperCase(), "INSUFF CLEARED", formatDate(applicationInfo.first_insuff_reopened_date) || "N/A"],
-                                                        ["VERIFICATION INITIATED", formatDate(applicationInfo.initiation_date).toUpperCase() || "N/A", "FINAL REPORT DATE", formatDate(applicationInfo.report_date) || "N/A"],
+                                                        ["VERIFICATION INITIATED", formatDate(applicationInfo.initiation_date).toUpperCase() || "N/A", "FINAL REPORT DATE", formatDate(applicationInfo.deadline_date) || "N/A"],
                                                         ["VERIFICATION PURPOSE", (applicationInfo.verification_purpose || "EMPLOYMENT").toUpperCase(), "VERIFICATION STATUS", (applicationInfo.final_verification_status || "N/A").toUpperCase()],
                                                         ["REPORT TYPE", (applicationInfo.report_type || "EMPLOYMENT").replace(/_/g, " ").toUpperCase(), "REPORT STATUS", (applicationInfo.report_status || "N/A").toUpperCase()]
                                                     ];
@@ -749,8 +734,8 @@ module.exports = {
                                                             ]
                                                         ],
                                                         body: servicesData
-                                                            .filter(service => service?.annexureData?.status) // Filter out rows with no status
-                                                            .slice(0, 10)
+                                                            .filter(service => service?.annexureData?.status) // Filter out rows with no status value
+                                                            .slice(0, 10) // Limit to the first 10 services
                                                             .map(service => {
                                                                 const colorMapping = {
                                                                     Yellow: 'yellow',
@@ -761,23 +746,20 @@ module.exports = {
                                                                     Pink: 'pink',
                                                                 };
 
-                                                                const rawStatus = service?.annexureData?.status || "Not Verified";
+                                                                const notstatusContent = service?.annexureData?.status || "Not Verified";
+                                                                const statusContent = notstatusContent
+                                                                    .replace(/_/g, ' ') // Replaces underscores with spaces
+                                                                    .replace(/[^a-zA-Z0-9 ]/g, '') // Removes special characters
+                                                                    .replace(/\b\w/g, char => char.toUpperCase());
 
-                                                                let statusContent = rawStatus
-                                                                    .replace(/_/g, ' ') // Replace underscores with spaces
-                                                                    .replace(/[^a-zA-Z0-9 ]/g, '') // Remove special characters
-                                                                    .replace(/\b\w/g, char => char.toUpperCase()) // Capitalize words
-                                                                    .trim();
-
-                                                                if (!statusContent || statusContent.toLowerCase() === 'nil') {
-                                                                    return null; // Skip this row
-                                                                }
-
-                                                                let filteredStatusContent = statusContent;
                                                                 let textColorr = 'black';
+
+                                                                // Remove the color name from statusContent and determine the textColor
+                                                                let filteredStatusContent = statusContent;
 
                                                                 for (let color in colorMapping) {
                                                                     if (filteredStatusContent.includes(color)) {
+                                                                        // Remove the color name (case-sensitive removal) from the status content
                                                                         filteredStatusContent = filteredStatusContent.replace(new RegExp(color, 'g'), '').trim();
                                                                         textColorr = colorMapping[color];
                                                                     }
@@ -789,8 +771,11 @@ module.exports = {
                                                                             ? JSON.parse(service.reportFormJson.json)?.heading
                                                                             : null,
                                                                         styles: {
-                                                                            fontStyle: 'bold',
+                                                                            fontStyle: 'normal',
                                                                             halign: 'left',
+                                                                            fontStyle: 'bold',
+
+
                                                                         },
                                                                     },
                                                                     {
@@ -814,27 +799,21 @@ module.exports = {
                                                                                 ]
                                                                                 : null,
                                                                         styles: {
-                                                                            fontStyle: 'bold',
+                                                                            fontStyle: 'normal',
                                                                             halign: 'left',
+                                                                            fontStyle: 'bold',
                                                                         },
                                                                     },
                                                                     {
-                                                                        content: (() => {
-                                                                            const annexure = service?.annexureData || {};
-                                                                            const matchKey = Object.keys(annexure).find(key =>
-                                                                                key.includes('date_of_verification')
-                                                                            );
-                                                                            if (matchKey && annexure[matchKey]) {
-                                                                                return new Date(annexure[matchKey])
-                                                                                    .toLocaleDateString('en-GB')
-                                                                                    .replace(/\//g, '-');
-                                                                            } else {
-                                                                                return 'N/A';
-                                                                            }
-                                                                        })(),
+                                                                        content: service?.annexureData?.created_at
+                                                                            ? new Date(service.annexureData.created_at)
+                                                                                .toLocaleDateString('en-GB')
+                                                                                .replace(/\//g, '-')
+                                                                            : 'N/A',
+
                                                                         styles: {
-                                                                            fontWeight: 'bold',
                                                                             fontStyle: 'normal',
+                                                                            fontStyle: 'bold',
                                                                         },
                                                                     },
                                                                     {
@@ -842,12 +821,11 @@ module.exports = {
                                                                         styles: {
                                                                             fontStyle: 'bold',
                                                                             font: 'TimesNewRomanBold',
-                                                                            textColor: textColorr,
+                                                                            textColor: textColorr // Apply the color based on the status
                                                                         },
                                                                     },
                                                                 ];
-                                                            })
-                                                            .filter(Boolean), // Remove null entries from the map result
+                                                            }),
 
                                                         startY: nextContentYPosition - 2,
                                                         styles: {
@@ -939,12 +917,12 @@ module.exports = {
                                                         tableLineColor: [62, 118, 165],
                                                         tableLineWidth: 0.2,
                                                         margin: { left: 10, right: 10 },
-                                                        tableWidth: 'wrap', // This will allow the table to use the full available width
+                                                        tableWidth: 'auto', // This will allow the table to use the full available width
                                                         columnStyles: {
-                                                            0: { cellWidth: 47.5, cellMargin: 5 },
-                                                            1: { cellWidth: 47.5, cellMargin: 5 },
-                                                            2: { cellWidth: 47.5, cellMargin: 5 },
-                                                            3: { cellWidth: 47.5, cellMargin: 5 }
+                                                            0: { cellWidth: 'auto', cellMargin: 5 },
+                                                            1: { cellWidth: 'auto', cellMargin: 5 },
+                                                            2: { cellWidth: 'auto', cellMargin: 5 },
+                                                            3: { cellWidth: 'auto', cellMargin: 5 }
                                                         },
                                                         didDrawCell: function (data) {
                                                             const size = 10; // Controls the overall size
@@ -1060,87 +1038,89 @@ module.exports = {
                                                                     },
                                                                 ]
                                                             ],
+                                                            body: remainingServices.map(service => {
+                                                                const colorMapping = {
+                                                                    Yellow: 'yellow',
+                                                                    Red: 'red',
+                                                                    Blue: 'blue',
+                                                                    Green: 'green',
+                                                                    Orange: 'orange',
+                                                                    Pink: 'pink',
+                                                                };
+                                                                const notstatusContent = service?.annexureData?.status || "Not Verified";
+                                                                const statusContent = notstatusContent
+                                                                    .replace(/_/g, ' ') // Replaces underscores with spaces
+                                                                    .replace(/[^a-zA-Z0-9 ]/g, '') // Removes special characters
+                                                                    .replace(/\b\w/g, char => char.toUpperCase());
 
-                                                            body: remainingServices
-                                                                .filter(service => service?.annexureData?.status !== 'nil') // <-- Filter here
-                                                                .map(service => {
-                                                                    const colorMapping = {
-                                                                        Yellow: 'yellow',
-                                                                        Red: 'red',
-                                                                        Blue: 'blue',
-                                                                        Green: 'green',
-                                                                        Orange: 'orange',
-                                                                        Pink: 'pink',
-                                                                    };
-
-                                                                    const notstatusContent = service?.annexureData?.status || "Not Verified";
-                                                                    const statusContent = notstatusContent
-                                                                        .replace(/_/g, ' ')
-                                                                        .replace(/[^a-zA-Z0-9 ]/g, '')
-                                                                        .replace(/\b\w/g, char => char.toUpperCase());
-
-                                                                    let textColorr = 'black';
-                                                                    for (let color in colorMapping) {
-                                                                        if (statusContent.includes(color)) {
-                                                                            textColorr = colorMapping[color];
-                                                                        }
+                                                                let textColorr = 'black';
+                                                                // console.log('statusContent--', statusContent)
+                                                                for (let color in colorMapping) {
+                                                                    if (statusContent.includes(color)) {
+                                                                        textColorr = colorMapping[color];
                                                                     }
+                                                                }
 
-                                                                    return [
-                                                                        {
-                                                                            content: service?.reportFormJson?.json
-                                                                                ? JSON.parse(service.reportFormJson.json)?.heading
+                                                                return [
+                                                                    {
+                                                                        content: service?.reportFormJson?.json
+                                                                            ? JSON.parse(service.reportFormJson.json)?.heading
+                                                                            : null,
+                                                                        styles: {
+                                                                            fontStyle: 'normal',
+                                                                            halign: 'left',
+                                                                            fontStyle: 'bold',
+
+
+                                                                        },
+                                                                    },
+                                                                    {
+                                                                        content:
+                                                                            service?.annexureData &&
+                                                                                Object.keys(service.annexureData).find(
+                                                                                    key =>
+                                                                                        key.endsWith('info_source') ||
+                                                                                        key.endsWith('information_source') ||
+                                                                                        key.startsWith('info_source') ||
+                                                                                        key.startsWith('information_source')
+                                                                                )
+                                                                                ? service.annexureData[
+                                                                                Object.keys(service.annexureData).find(
+                                                                                    key =>
+                                                                                        key.endsWith('info_source') ||
+                                                                                        key.endsWith('information_source') ||
+                                                                                        key.startsWith('info_source') ||
+                                                                                        key.startsWith('information_source')
+                                                                                )
+                                                                                ]
                                                                                 : null,
-                                                                            styles: {
-                                                                                fontStyle: 'bold',
-                                                                                halign: 'left',
-                                                                            },
+                                                                        styles: {
+                                                                            fontStyle: 'normal',
+                                                                            halign: 'left',
+                                                                            fontStyle: 'bold',
                                                                         },
-                                                                        {
-                                                                            content:
-                                                                                service?.annexureData &&
-                                                                                    Object.keys(service.annexureData).find(
-                                                                                        key =>
-                                                                                            key.endsWith('info_source') ||
-                                                                                            key.endsWith('information_source') ||
-                                                                                            key.startsWith('info_source') ||
-                                                                                            key.startsWith('information_source')
-                                                                                    )
-                                                                                    ? service.annexureData[
-                                                                                    Object.keys(service.annexureData).find(
-                                                                                        key =>
-                                                                                            key.endsWith('info_source') ||
-                                                                                            key.endsWith('information_source') ||
-                                                                                            key.startsWith('info_source') ||
-                                                                                            key.startsWith('information_source')
-                                                                                    )
-                                                                                    ]
-                                                                                    : null,
-                                                                            styles: {
-                                                                                fontStyle: 'bold',
-                                                                                halign: 'left',
-                                                                            },
+                                                                    },
+                                                                    {
+                                                                        content: service?.annexureData?.created_at
+                                                                            ? new Date(service.annexureData.created_at)
+                                                                                .toLocaleDateString('en-GB')
+                                                                                .replace(/\//g, '-')
+                                                                            : 'N/A',
+                                                                        styles: {
+                                                                            fontStyle: 'normal',
+                                                                            fontStyle: 'bold',
                                                                         },
-                                                                        {
-                                                                            content: service?.annexureData?.created_at
-                                                                                ? new Date(service.annexureData.created_at)
-                                                                                    .toLocaleDateString('en-GB')
-                                                                                    .replace(/\//g, '-')
-                                                                                : 'N/A',
-                                                                            styles: {
-                                                                                fontStyle: 'bold',
-                                                                            },
+                                                                    },
+                                                                    {
+                                                                        content: formatStatus(statusContent).toUpperCase(),
+                                                                        styles: {
+                                                                            font: 'TimesNewRomanBold',
+                                                                            fontStyle: 'bold',
+                                                                            textColor: textColorr, // Apply the color based on the status
                                                                         },
-                                                                        {
-                                                                            content: formatStatus(statusContent).toUpperCase(),
-                                                                            styles: {
-                                                                                font: 'TimesNewRomanBold',
-                                                                                fontStyle: 'bold',
-                                                                                textColor: textColorr,
-                                                                            },
-                                                                        },
-                                                                    ];
-                                                                }),
+                                                                    },
+                                                                ];
+                                                            }),
 
                                                             startY: doc.previousAutoTable ? doc.previousAutoTable.finalY + 20 : 20,
                                                             styles: {
@@ -1175,7 +1155,6 @@ module.exports = {
                                                             },
                                                         });
 
-
                                                         addFooter(doc, applicationInfo, appHost)
                                                     }
 
@@ -1193,333 +1172,231 @@ module.exports = {
                                                         const headingText = reportFormJson?.heading.toUpperCase() || null;
                                                         const rows = reportFormJson?.rows || [];
                                                         const serviceData = [];
-                                                        if (service?.annexureData?.status !== 'nil') {
-                                                            if (headingText) {
-                                                                // console.log('headingText',headingText)
-                                                                doc.addPage();
-                                                                addFooter(doc, applicationInfo, appHost)
 
-                                                                rows.forEach((row) => {
-                                                                    const inputLabel = row.label || "";
-                                                                    const valuesObj = {};
+                                                        if (headingText) {
+                                                            // console.log('headingText',headingText)
+                                                            doc.addPage();
+                                                            addFooter(doc, applicationInfo, appHost)
 
-                                                                    row.inputs.forEach((input) => {
-                                                                        const inputName = input.name;
-                                                                        let verifiedInputName = `verified_${inputName}`;
+                                                            rows.forEach((row) => {
+                                                                const inputLabel = row.label || "";
+                                                                const valuesObj = {};
 
-                                                                        verifiedInputName = verifiedInputName.replace("verified_verified_", "verified_");
+                                                                row.inputs.forEach((input) => {
+                                                                    const inputName = input.name;
+                                                                    let verifiedInputName = `verified_${inputName}`;
 
-                                                                        const value = service?.annexureData?.[inputName] || "";
-                                                                        const verifiedValue = service?.annexureData?.[verifiedInputName] || "";
+                                                                    verifiedInputName = verifiedInputName.replace("verified_verified_", "verified_");
 
-                                                                        valuesObj[inputName] = value;
-                                                                        valuesObj["isVerifiedExist"] = !!verifiedValue;
-                                                                        if (verifiedValue) valuesObj[verifiedInputName] = verifiedValue;
+                                                                    const value = service?.annexureData?.[inputName] || "";
+                                                                    const verifiedValue = service?.annexureData?.[verifiedInputName] || "";
 
-                                                                        valuesObj["name"] = inputName.replace("verified_", "");
-                                                                    });
+                                                                    valuesObj[inputName] = value;
+                                                                    valuesObj["isVerifiedExist"] = !!verifiedValue;
+                                                                    if (verifiedValue) valuesObj[verifiedInputName] = verifiedValue;
 
-                                                                    serviceData.push({
-                                                                        label: inputLabel,
-                                                                        values: valuesObj,
-                                                                    });
+                                                                    valuesObj["name"] = inputName.replace("verified_", "");
                                                                 });
 
-                                                                const tableData = serviceData
-                                                                    .map((data) => {
-                                                                        if (!data || !data.values) return null;
+                                                                serviceData.push({
+                                                                    label: inputLabel,
+                                                                    values: valuesObj,
+                                                                });
+                                                            });
 
-                                                                        const name = data.values.name;
-                                                                        if (!name || name.startsWith("annexure")) return null;
+                                                            const tableData = serviceData
+                                                                .map((data) => {
+                                                                    if (!data || !data.values) return null;
 
-                                                                        const isVerifiedExist = data.values.isVerifiedExist;
-                                                                        const value = data.values[name];
-                                                                        const verified = data.values[`verified_${name}`];
+                                                                    const name = data.values.name;
+                                                                    if (!name || name.startsWith("annexure")) return null;
 
-                                                                        // Function to format the date from yyyy-mm-dd to dd-mm-yyyy
-                                                                        const formatDate = (dateStr) => {
-                                                                            const date = new Date(dateStr);
-                                                                            if (isNaN(date)) return dateStr; // If it's not a valid date, return the original string
-                                                                            const day = String(date.getDate()).padStart(2, '0');
-                                                                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                                                                            const year = date.getFullYear();
-                                                                            return `${day}-${month}-${year}`;
-                                                                        };
+                                                                    const isVerifiedExist = data.values.isVerifiedExist;
+                                                                    const value = data.values[name];
+                                                                    const verified = data.values[`verified_${name}`];
 
-                                                                        if (value === undefined) return null;
-
-                                                                        // If value is a date, format it
-                                                                        const formattedValue = (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) ? formatDate(value) : value;
-                                                                        const formattedVerified = (typeof verified === 'string' && verified.match(/^\d{4}-\d{2}-\d{2}$/)) ? formatDate(verified) : verified;
-
-                                                                        return formattedVerified ? [data.label, formattedValue, formattedVerified] : [data.label, formattedValue];
-                                                                    })
-                                                                    .filter((item) => item !== null);
-
-                                                                if (tableData.length > 0) {
-
-                                                                    const pageWidth = doc.internal.pageSize.width;
-                                                                    const backgroundColor = "#f5f5f5";
-                                                                    const borderColor = "#3d75a6";
-                                                                    const xsPosition = 10;
-                                                                    const rectHeight = 8;
-
-                                                                    doc.setLineWidth(0.2); // Set border thickness to 0.2
-                                                                    doc.setFillColor(backgroundColor);
-                                                                    doc.setDrawColor(borderColor);
-                                                                    doc.rect(xsPosition, yPosition, pageWidth - 20, rectHeight, "FD");
-
-                                                                    doc.setFontSize(10);
-                                                                    doc.setFont('TimesNewRomanBold');
-                                                                    doc.setTextColor(0, 0, 0);
-
-                                                                    const textHeight = doc.getTextDimensions(headingText).h + 1;
-                                                                    const verticalCenter = yPosition + rectHeight / 2 + textHeight / 4;
-
-                                                                    doc.text(headingText, pageWidth / 2, verticalCenter, { align: "center" });
-
-                                                                    yPosition += rectHeight;
-                                                                    const colorMap = {
-                                                                        red: [255, 0, 0],
-                                                                        green: [0, 128, 0],
-                                                                        blue: [0, 0, 255],
-                                                                        yellow: [255, 255, 0],
-                                                                        black: [0, 0, 0],
-                                                                        white: [255, 255, 255],
-                                                                        orange: [255, 165, 0],
-                                                                        purple: [128, 0, 128],
-                                                                        pink: [255, 192, 203],
-                                                                        gray: [128, 128, 128]
+                                                                    // Function to format the date from yyyy-mm-dd to dd-mm-yyyy
+                                                                    const formatDate = (dateStr) => {
+                                                                        const date = new Date(dateStr);
+                                                                        if (isNaN(date)) return dateStr; // If it's not a valid date, return the original string
+                                                                        const day = String(date.getDate()).padStart(2, '0');
+                                                                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                                                                        const year = date.getFullYear();
+                                                                        return `${day}-${month}-${year}`;
                                                                     };
 
+                                                                    if (value === undefined) return null;
 
-                                                                    doc.autoTable({
-                                                                        head: [[
-                                                                            { content: "PARTICULARS", styles: { halign: "left", fontStyle: "bold" } },
-                                                                            { content: "APPLICANT DETAILS", styles: { halign: "left", fontStyle: "bold" } },
-                                                                            { content: "VERIFIED DETAILS", styles: { halign: "left", fontStyle: "bold" } }
-                                                                        ]],
-                                                                        body: tableData
-                                                                            .map((row) => {
-                                                                                console.log(`row - `, row);  // Log each row
-                                                                                if (!row || typeof row[0] !== 'string') {
-                                                                                    console.warn('Invalid row or missing index 0:', row);
-                                                                                    return null;
+                                                                    // If value is a date, format it
+                                                                    const formattedValue = (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) ? formatDate(value) : value;
+                                                                    const formattedVerified = (typeof verified === 'string' && verified.match(/^\d{4}-\d{2}-\d{2}$/)) ? formatDate(verified) : verified;
+
+                                                                    return formattedVerified ? [data.label, formattedValue, formattedVerified] : [data.label, formattedValue];
+                                                                })
+                                                                .filter((item) => item !== null);
+
+                                                            if (tableData.length > 0) {
+
+                                                                const pageWidth = doc.internal.pageSize.width;
+                                                                const backgroundColor = "#f5f5f5";
+                                                                const borderColor = "#3d75a6";
+                                                                const xsPosition = 10;
+                                                                const rectHeight = 8;
+
+                                                                doc.setLineWidth(0.2); // Set border thickness to 0.2
+                                                                doc.setFillColor(backgroundColor);
+                                                                doc.setDrawColor(borderColor);
+                                                                doc.rect(xsPosition, yPosition, pageWidth - 20, rectHeight, "FD");
+
+                                                                doc.setFontSize(10);
+                                                                doc.setFont('TimesNewRomanBold');
+                                                                doc.setTextColor(0, 0, 0);
+
+                                                                const textHeight = doc.getTextDimensions(headingText).h + 1;
+                                                                const verticalCenter = yPosition + rectHeight / 2 + textHeight / 4;
+
+                                                                doc.text(headingText, pageWidth / 2, verticalCenter, { align: "center" });
+
+                                                                yPosition += rectHeight;
+                                                                const colorMap = {
+                                                                    red: [255, 0, 0],
+                                                                    green: [0, 128, 0],
+                                                                    blue: [0, 0, 255],
+                                                                    yellow: [255, 255, 0],
+                                                                    black: [0, 0, 0],
+                                                                    white: [255, 255, 255],
+                                                                    orange: [255, 165, 0],
+                                                                    purple: [128, 0, 128],
+                                                                    pink: [255, 192, 203],
+                                                                    gray: [128, 128, 128]
+                                                                };
+                                                                // console.log('tableData', tableData)
+                                                                doc.autoTable({
+                                                                    head: [[
+                                                                        { content: "PARTICULARS", styles: { halign: "left", fontStyle: "bold" } },
+                                                                        { content: "APPLICANT DETAILS", styles: { halign: "left", fontStyle: "bold" } },
+                                                                        { content: "VERIFIED DETAILS", styles: { halign: "left", fontStyle: "bold" } }
+                                                                    ]],
+                                                                    body: tableData.map((row) => {
+                                                                        const isColourCodeRow = row[0] === "Colour Code:"; // only match title
+
+                                                                        return row.length === 2
+                                                                            ? [
+                                                                                { content: row[0], styles: { halign: "left", fontStyle: "bold" } },
+                                                                                {
+                                                                                    content: isColourCodeRow ? formatContent(row[1]).toUpperCase() : formatContent(row[1]), // Convert to uppercase if isColourCodeRow
+                                                                                    colSpan: 2,
+                                                                                    styles: isColourCodeRow ? { ...getStyle(row[1], isColourCodeRow) } : {} // only if Colour Code
                                                                                 }
-
-                                                                                const cell = row[0].toLowerCase();
-                                                                                if (cell.includes('addition') && cell.includes('fee')) {
-                                                                                    return null;
+                                                                            ]
+                                                                            : [
+                                                                                { content: row[0], styles: { halign: "left", fontStyle: "bold" } },
+                                                                                {
+                                                                                    content: isColourCodeRow ? formatContent(row[1]).toUpperCase() : formatContent(row[1]), // Convert to uppercase if isColourCodeRow
+                                                                                    styles: isColourCodeRow ? { ...getStyle(row[1], isColourCodeRow) } : {}
+                                                                                },
+                                                                                {
+                                                                                    content: isColourCodeRow ? formatContent(row[2]).toUpperCase() : formatContent(row[2]), // Convert to uppercase if isColourCodeRow
+                                                                                    styles: isColourCodeRow ? { ...getStyle(row[2], isColourCodeRow) } : {}
                                                                                 }
-
-                                                                                const isColourCodeRow = row[0] === "Colour Code:";
-
-                                                                                return row.length === 2
-                                                                                    ? [
-                                                                                        { content: row[0], styles: { halign: "left", fontStyle: "bold" } },
-                                                                                        {
-                                                                                            content: isColourCodeRow ? formatContent(row[1]).toUpperCase() : formatContent(row[1]),
-                                                                                            colSpan: 2,
-                                                                                            styles: isColourCodeRow ? { ...getStyle(row[1], isColourCodeRow) } : {}
-                                                                                        }
-                                                                                    ]
-                                                                                    : [
-                                                                                        { content: row[0], styles: { halign: "left", fontStyle: "bold" } },
-                                                                                        {
-                                                                                            content: isColourCodeRow ? formatContent(row[1]).toUpperCase() : formatContent(row[1]),
-                                                                                            styles: isColourCodeRow ? { ...getStyle(row[1], isColourCodeRow) } : {}
-                                                                                        },
-                                                                                        {
-                                                                                            content: isColourCodeRow ? formatContent(row[2]).toUpperCase() : formatContent(row[2]),
-                                                                                            styles: isColourCodeRow ? { ...getStyle(row[2], isColourCodeRow) } : {}
-                                                                                        }
-                                                                                    ];
-                                                                            })
-                                                                            .filter(row => row !== null),
-                                                                        startY: yPosition,
-                                                                        styles: {
-                                                                            font: 'times',
-                                                                            fontSize: 10,
-                                                                            cellPadding: 2,
-                                                                            lineWidth: 0.2,
-                                                                            lineColor: [62, 118, 165]
-                                                                        },
-                                                                        columnStyles: {
-                                                                            0: { cellWidth: 65 },
-                                                                            1: { cellWidth: "auto" },
-                                                                            2: { cellWidth: "auto" }
-                                                                        },
-                                                                        theme: "grid",
-                                                                        headStyles: {
-                                                                            fontStyle: "bold",
-                                                                            fillColor: backgroundColor,
-                                                                            textColor: [0, 0, 0],
-                                                                            fontSize: 10,
-                                                                            halign: "left"
-                                                                        },
-                                                                        bodyStyles: { textColor: [0, 0, 0] },
-                                                                        margin: { horizontal: 10 }
-                                                                    });
+                                                                            ];
+                                                                    }),
 
 
 
+                                                                    startY: yPosition,
+                                                                    styles: {
+                                                                        font: 'times', // Default font for the table
+                                                                        fontSize: 10,
+                                                                        cellPadding: 2,
+                                                                        lineWidth: 0.2,
+                                                                        lineColor: [62, 118, 165]
+                                                                    },
+                                                                    columnStyles: {
+                                                                        0: { cellWidth: 65 }, // "PARTICULARS" column
+                                                                        1: { cellWidth: "auto" },
+                                                                        2: { cellWidth: "auto" }
+                                                                    },
+                                                                    theme: "grid",
+                                                                    headStyles: {
+                                                                        fontStyle: "bold",
+                                                                        fillColor: backgroundColor, // Apply background color to the entire header
+                                                                        textColor: [0, 0, 0],
+                                                                        fontSize: 10,
+                                                                        halign: "left"
+                                                                    },
+                                                                    bodyStyles: { textColor: [0, 0, 0] },
+                                                                    margin: { horizontal: 10 }
 
-                                                                    // Function to format text (uppercase & bold)
-                                                                    function formatContent(text) {
-                                                                        return text
-                                                                    }
 
-                                                                    // console.log('text---',text)
-                                                                    function getStyle(text, isColourCodeRow) {
-                                                                        console.log(`isColourCodeRow (1):`, isColourCodeRow);  // Log the value of isColourCodeRow
+                                                                });
 
-                                                                        let styles = { halign: "left", fontStyle: "bold" };
+                                                                // Function to format text (uppercase & bold)
+                                                                function formatContent(text) {
+                                                                    return text
+                                                                }
 
-                                                                        // If isColourCodeRow is false, return default styles
-                                                                        if (!isColourCodeRow) {
-                                                                            console.log('Returning default styles:', styles);
-                                                                            return styles;
-                                                                        }
-
-                                                                        if (!text) {
-                                                                            console.log('No text provided, returning default styles:', styles);
-                                                                            return styles;
-                                                                        }
-
-                                                                        console.log('text to check color map:', text);  // Log the text for debugging the color match
-
-                                                                        // Iterate through the colorMap to find a matching color
-                                                                        Object.keys(colorMap).forEach(color => {
-                                                                            console.log(`Checking if text contains color: ${color}`);  // Log each color being checked
-
-                                                                            if (text.toLowerCase().includes(color)) {
-                                                                                console.log(`Color match found! Applying color: ${colorMap[color]}`);  // Log the color match
-
-                                                                                styles.textColor = colorMap[color]; // Apply color from the colorMap
-                                                                            }
-                                                                        });
-
-                                                                        console.log('Returning styles:', styles);  // Log the final styles
+                                                                // console.log('text---',text)
+                                                                function getStyle(text, isColourCodeRow) {
+                                                                    let styles = { halign: "left", fontStyle: "bold" };
+                                                                    if (!isColourCodeRow) {
                                                                         return styles;
                                                                     }
 
-
-                                                                    yPosition = doc.lastAutoTable.finalY + 10;
-
-                                                                    const remarksData = serviceData.find((data) => data.label === "Remarks");
-                                                                    if (remarksData && remarksData.values) {
-                                                                        const remarks = remarksData.values.name || "No remarks available.";
-                                                                        doc.setFont("TimesNewRomanBold");
-                                                                        doc.setFontSize(10);
-                                                                        doc.setTextColor(100, 100, 100);
-                                                                        doc.text(`Remarks: ${remarks}`, 10, yPosition);
-                                                                        yPosition += 5;
-                                                                    } else {
-                                                                        console.error("remarksData or remarksData.values is null/undefined");
-                                                                    }
-
-
-                                                                    const annexureImagesKey = Object.keys(service?.annexureData || {}).find(
-                                                                        key => key.toLowerCase().startsWith('annexure') && !key.includes('[') && !key.includes(']')
-                                                                    );
-                                                                    const checkboxKey = Object.keys(service?.annexureData || {}).find(
-                                                                        key => key.toLowerCase().startsWith('checkbox_annexure') && !key.includes('[') && !key.includes(']')
-                                                                    );
-                                                                    const value = service?.annexureData?.[checkboxKey];
-                                                                    console.log(`Step 1`);
-                                                                    if (checkboxKey) {
-                                                                        const value = service?.annexureData[checkboxKey]; // Get the value of the checkbox key
-                                                                        if (value === true || value === 'true' || value === 1 || value === '1') {
-                                                                            // console.log("This is true or 1");
-
-                                                                            // When checkbox is true or 1, adjust image handling logic
-                                                                            if (annexureImagesKey) {
-                                                                                const annexureImagesStr = service?.annexureData[annexureImagesKey];
-                                                                                const annexureImagesSplitArr = annexureImagesStr ? annexureImagesStr.split(',') : [];
-
-                                                                                const pageWidth = doc.internal.pageSize.width; // Define page width before loop
-
-                                                                                if (annexureImagesSplitArr.length === 0) {
-                                                                                    doc.setFont("TimesNewRomanbold");
-                                                                                    doc.setFontSize(10);
-                                                                                    doc.text("No annexure images available.", pageWidth / 2, yPosition, { align: "center" });
-                                                                                    yPosition += 10;
-                                                                                } else {
-                                                                                    const imageBases = await fetchImageAsBase64(annexureImagesStr.trim());
-                                                                                    if (imageBases) {
-
-                                                                                        for (const [index, image] of imageBases.entries()) {
-                                                                                            if (!image.base64 || !image.base64.startsWith('data:image/')) {
-                                                                                                console.error(`Invalid base64 data for image ${index + 1}`);
-                                                                                                continue;
-                                                                                            }
-
-                                                                                            try {
-                                                                                                const maxBoxWidth = doc.internal.pageSize.width - 20;
-                                                                                                const maxBoxHeight = doc.internal.pageSize.height - 50; // Adjust height to full page
-
-                                                                                                // If a new page is required, add it
-                                                                                                if (yPosition + maxBoxHeight > doc.internal.pageSize.height - 15) {
-                                                                                                    doc.addPage();
-                                                                                                    yPosition = 10;
-                                                                                                }
-
-                                                                                                // Centered Annexure text
-                                                                                                const text = `ANNEXURE ${index + 1}`;
-                                                                                                doc.setFont('TimesNewRomanBold');
-                                                                                                doc.setFontSize(10);
-                                                                                                doc.text(text, pageWidth / 2, yPosition, { align: "center" }); // Ensure text is always centered
-                                                                                                yPosition += 5;
-
-                                                                                                // Draw image box
-                                                                                                const padding = 5;
-                                                                                                doc.setDrawColor(61, 117, 166);
-                                                                                                doc.setLineWidth(0.2);
-                                                                                                doc.rect(10, yPosition, maxBoxWidth, maxBoxHeight);
-
-                                                                                                // Calculate image dimensions while maintaining aspect ratio
-                                                                                                const width = maxBoxWidth - 2 * padding;
-                                                                                                let height = (width * image.height) / image.width;
-
-                                                                                                // Ensure image does not exceed box height
-                                                                                                if (height > maxBoxHeight - 2 * padding) {
-                                                                                                    height = maxBoxHeight - 2 * padding;
-                                                                                                }
-
-                                                                                                const centerXImage = 10 + padding;
-                                                                                                const centerYImage = yPosition + padding + (maxBoxHeight - height - 2 * padding) / 2;
-
-                                                                                                // Add the image
-                                                                                                doc.addImage(image.base64, image.type, centerXImage, centerYImage, width, height);
-
-                                                                                                // Move yPosition for next content
-                                                                                                yPosition += maxBoxHeight + 10;
-                                                                                            } catch (error) {
-                                                                                                console.error(`Error adding image ${index + 1}:`, error);
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-
-                                                                            }
-                                                                        } else {
-                                                                            // console.log("Checkbox is not true or 1, no changes to layout");
+                                                                    if (!text) return styles;
+                                                                    // console.log('text-1-', text)
+                                                                    Object.keys(colorMap).forEach(color => {
+                                                                        if (text.toLowerCase().includes(color)) {
+                                                                            styles.textColor = colorMap[color]; // Apply color
                                                                         }
-                                                                    } else {
-                                                                        // console.log("No checkbox key found");
-                                                                    }
+                                                                    });
 
-                                                                    console.log(`step - 2`);
+                                                                    return styles;
+                                                                }
 
-                                                                    if (!checkboxKey || !value || (value !== true && value !== 'true' && value !== 1 && value !== '1')) {
-                                                                        // Default handling when no checkbox is true (same as original logic for images)
+
+
+
+
+
+                                                                yPosition = doc.lastAutoTable.finalY + 10;
+
+                                                                const remarksData = serviceData.find((data) => {
+                                                                    const label = data.label?.toLowerCase().trim();
+                                                                    return label === "remarks" || label === "remarks:";
+                                                                });
+
+                                                                if (remarksData && remarksData.values) {
+                                                                    const remarks = remarksData.values.name || "No remarks available.";
+                                                                    doc.setFont("TimesNewRomanBold");
+                                                                    doc.setFontSize(10);
+                                                                    doc.setTextColor(100, 100, 100);
+                                                                    doc.text(`Remarks: ${remarks}`, 10, yPosition);
+                                                                    yPosition += 5;
+                                                                } else {
+                                                                    console.error("remarksData or remarksData.values is null/undefined");
+                                                                }
+
+
+                                                                const annexureImagesKey = Object.keys(service?.annexureData || {}).find(
+                                                                    key => key.toLowerCase().startsWith('annexure') && !key.includes('[') && !key.includes(']')
+                                                                );
+                                                                const checkboxKey = Object.keys(service?.annexureData || {}).find(
+                                                                    key => key.toLowerCase().startsWith('checkbox_annexure') && !key.includes('[') && !key.includes(']')
+                                                                );
+                                                                const value = service?.annexureData?.[checkboxKey];
+
+                                                                if (checkboxKey) {
+                                                                    const value = service?.annexureData[checkboxKey]; // Get the value of the checkbox key
+                                                                    if (value === true || value === 'true' || value === 1 || value === '1') {
+                                                                        // console.log("This is true or 1");
+
+                                                                        // When checkbox is true or 1, adjust image handling logic
                                                                         if (annexureImagesKey) {
                                                                             const annexureImagesStr = service?.annexureData[annexureImagesKey];
                                                                             const annexureImagesSplitArr = annexureImagesStr ? annexureImagesStr.split(',') : [];
 
-                                                                            const maxBoxWidth = doc.internal.pageSize.width - 20;
-                                                                            const maxBoxHeight = 120;
-                                                                            const padding = 5;
+                                                                            const pageWidth = doc.internal.pageSize.width; // Define page width before loop
 
                                                                             if (annexureImagesSplitArr.length === 0) {
                                                                                 doc.setFont("TimesNewRomanbold");
@@ -1536,76 +1413,132 @@ module.exports = {
                                                                                         }
 
                                                                                         try {
-                                                                                            const width = maxBoxWidth - 2 * padding;
-                                                                                            const height = maxBoxHeight - 2 * padding;
+                                                                                            const maxBoxWidth = doc.internal.pageSize.width - 20;
+                                                                                            const maxBoxHeight = doc.internal.pageSize.height - 50; // Adjust height to full page
 
+                                                                                            // If a new page is required, add it
                                                                                             if (yPosition + maxBoxHeight > doc.internal.pageSize.height - 15) {
                                                                                                 doc.addPage();
                                                                                                 yPosition = 10;
                                                                                             }
 
+                                                                                            // Centered Annexure text
                                                                                             const text = `ANNEXURE ${index + 1}`;
                                                                                             doc.setFont('TimesNewRomanBold');
                                                                                             doc.setFontSize(10);
-                                                                                            doc.text(text, pageWidth / 2, yPosition, { align: "center" }); // Centered text
+                                                                                            doc.text(text, pageWidth / 2, yPosition, { align: "center" }); // Ensure text is always centered
                                                                                             yPosition += 5;
 
+                                                                                            // Draw image box
+                                                                                            const padding = 5;
                                                                                             doc.setDrawColor(61, 117, 166);
                                                                                             doc.setLineWidth(0.2);
                                                                                             doc.rect(10, yPosition, maxBoxWidth, maxBoxHeight);
 
-                                                                                            const centerXImage = 10 + padding + (maxBoxWidth - width - 2 * padding) / 2;
+                                                                                            // Calculate image dimensions while maintaining aspect ratio
+                                                                                            const width = maxBoxWidth - 2 * padding;
+                                                                                            let height = (width * image.height) / image.width;
+
+                                                                                            // Ensure image does not exceed box height
+                                                                                            if (height > maxBoxHeight - 2 * padding) {
+                                                                                                height = maxBoxHeight - 2 * padding;
+                                                                                            }
+
+                                                                                            const centerXImage = 10 + padding;
                                                                                             const centerYImage = yPosition + padding + (maxBoxHeight - height - 2 * padding) / 2;
 
+                                                                                            // Add the image
                                                                                             doc.addImage(image.base64, image.type, centerXImage, centerYImage, width, height);
 
+                                                                                            // Move yPosition for next content
                                                                                             yPosition += maxBoxHeight + 10;
                                                                                         } catch (error) {
                                                                                             console.error(`Error adding image ${index + 1}:`, error);
-                                                                                            // You may choose to show a message or skip silently
-                                                                                            continue;
                                                                                         }
                                                                                     }
                                                                                 }
                                                                             }
 
                                                                         }
-                                                                        else {
+                                                                    } else {
+                                                                        // console.log("Checkbox is not true or 1, no changes to layout");
+                                                                    }
+                                                                } else {
+                                                                    // console.log("No checkbox key found");
+                                                                }
+
+                                                                if (!checkboxKey || !value || (value !== true && value !== 'true' && value !== 1 && value !== '1')) {
+                                                                    // Default handling when no checkbox is true (same as original logic for images)
+                                                                    if (annexureImagesKey) {
+                                                                        const annexureImagesStr = service?.annexureData[annexureImagesKey];
+                                                                        const annexureImagesSplitArr = annexureImagesStr ? annexureImagesStr.split(',') : [];
+
+                                                                        const maxBoxWidth = doc.internal.pageSize.width - 20;
+                                                                        const maxBoxHeight = 120;
+                                                                        const padding = 5;
+
+                                                                        if (annexureImagesSplitArr.length === 0) {
                                                                             doc.setFont("TimesNewRomanbold");
                                                                             doc.setFontSize(10);
                                                                             doc.text("No annexure images available.", pageWidth / 2, yPosition, { align: "center" });
                                                                             yPosition += 10;
+                                                                        } else {
+                                                                            const imageBases = await fetchImageAsBase64(annexureImagesStr.trim());
+                                                                            if (imageBases) {
+                                                                                for (const [index, image] of imageBases.entries()) {
+                                                                                    if (!image.base64 || !image.base64.startsWith('data:image/')) {
+                                                                                        console.error(`Invalid base64 data for image ${index + 1}`);
+                                                                                        continue;
+                                                                                    }
+
+                                                                                    try {
+                                                                                        const width = maxBoxWidth - 2 * padding;
+                                                                                        const height = maxBoxHeight - 2 * padding;
+
+                                                                                        if (yPosition + maxBoxHeight > doc.internal.pageSize.height - 15) {
+                                                                                            doc.addPage();
+                                                                                            yPosition = 10;
+                                                                                        }
+
+
+                                                                                        const text = `ANNEXURE ${index + 1}`;
+                                                                                        doc.setFont('TimesNewRomanBold');
+                                                                                        doc.setFontSize(10);
+                                                                                        doc.text(text, pageWidth / 2, yPosition, { align: "center" }); // Ensure text is always centered
+                                                                                        yPosition += 5;
+
+                                                                                        doc.setDrawColor(61, 117, 166);
+                                                                                        doc.setLineWidth(0.2);
+                                                                                        doc.rect(10, yPosition, maxBoxWidth, maxBoxHeight);
+
+                                                                                        const centerXImage = 10 + padding + (maxBoxWidth - width - 2 * padding) / 2;
+                                                                                        const centerYImage = yPosition + padding + (maxBoxHeight - height - 2 * padding) / 2;
+
+                                                                                        // console.log('checkboxKey', checkboxKey)
+                                                                                        doc.addImage(image.base64, image.type, centerXImage, centerYImage, width, height);
+
+                                                                                        yPosition += maxBoxHeight + 10;
+                                                                                    } catch (error) {
+                                                                                        console.error(`Error adding image ${index + 1}:`, error);
+                                                                                    }
+                                                                                }
+                                                                            }
                                                                         }
                                                                     }
-
-                                                                    console.log(`step 3`);
-                                                                    function scaleImageForPDF(imageWidth, imageHeight, maxWidth, maxHeight) {
-                                                                        let width = imageWidth;
-                                                                        let height = imageHeight;
-
-                                                                        // Scale the width if it exceeds maxWidth
-                                                                        if (imageWidth > maxWidth) {
-                                                                            width = maxWidth;
-                                                                            height = (imageHeight * maxWidth) / imageWidth;
-                                                                        }
-
-                                                                        // Scale the height if it exceeds maxHeight
-                                                                        if (height > maxHeight) {
-                                                                            height = maxHeight;
-                                                                            width = (imageWidth * maxHeight) / imageHeight;
-                                                                        }
-
-                                                                        return { width, height };
+                                                                    else {
+                                                                        doc.setFont("TimesNewRomanbold");
+                                                                        doc.setFontSize(10);
+                                                                        doc.text("No annexure images available.", pageWidth / 2, yPosition, { align: "center" });
+                                                                        yPosition += 10;
                                                                     }
-
-                                                                    addFooter(doc, applicationInfo, appHost)
                                                                 }
 
+                                                                addFooter(doc, applicationInfo, appHost)
                                                             }
                                                         }
                                                     }
 
-                                                    // doc.addPage();
+                                                    doc.addPage();
                                                     yPosition = 20;
 
                                                     const disclaimerButtonHeight = 8; // Button height (without padding)
@@ -1619,22 +1552,17 @@ module.exports = {
                                                     const adjustedDisclaimerButtonHeight = disclaimerButtonHeight + buttonBottomPadding;
 
                                                     doc.setFont("TimesNewRoman");
-                                                    const disclaimerTextPart1 = `This report is based on information obtained from records searched by Screeningstar Solutions and is provided on an “as is where is” basis. No opinions are expressed regarding the corporate entities or individuals mentioned, nor does it constitute a recommendation for any action.
-        
-        While every effort is made to ensure accuracy, Screeningstar Solutions does not guarantee the completeness of the information due to the inherent challenges of verifying public records. We do not accept responsibility for any consequences arising from reliance on this report.
-
-        This report is strictly confidential and intended solely for the client’s internal evaluation as per the terms of our Letter of Engagement (LoE)/Agreement. It is not for public dissemination or use beyond its intended purpose.
-
-        The client acknowledges that Screeningstar Solutions is not the original source of the gathered data and that employment decisions based on this report remain their responsibility.
-
-        All information is sourced from universities, ex-employers, online, and public records following industry best practices. We strive to gather the most comprehensive information available to serve you effectively.
-
-        As per our background verification policy, all verification services are conducted with the applicant’s consent. If the applicant is unavailable, an absence declaration authorization is obtained from the client organization to ensure strict compliance and maintain our quality standards.`;
-
-                                                    const modifiedNames = customerEmails.map(name =>
-                                                        name
-                                                    );
-
+                                                    const disclaimerTextPart1 = `This report is based on information obtained from records searched by Screeningstar Solutions and is provided on an “as is where is” basis. No opinions are expressed regarding the corporate entities or individuals mentioned , nor does it constitute a recommendation for any action.
+                            
+                            While every effort is made to ensure accuracy, Screeningstar Solutions does not guarantee the completeness of the information due to the inherent challenges of verifying public records. We do not accept responsibility for any consequences arising from reliance on this report.
+                    
+                            This report is strictly confidential and intended solely for the client’s internal evaluation as per the terms of our Letter of Engagement (LoE)/Agreement. It is not for public dissemination or use beyond its intended purpose.
+                    
+                            The client acknowledges that Screeningstar Solutions is not the original source of the gathered data and that employment decisions based on this report remain their responsibility.
+                    
+                            All information is sourced from universities, ex-employers, online, and public records following industry best practices. We strive to gather the most comprehensive information available to serve you effectively.
+                    
+                            As per our background verification policy, all verification services are conducted with the applicant’s consent. If the applicant is unavailable, an absence declaration authorization is obtained from the client organization to ensure strict compliance and maintain our quality standards.`;
 
                                                     let anchorText = "compliance@screeningstar.com";
                                                     let bgvEmail = "bgv@screeningstar.com";
@@ -1746,7 +1674,6 @@ module.exports = {
                                                         currentY += 3;  // Adjust this value if you need more or less space between paragraphs
                                                     });
 
-
                                                     const firstText = `For clarifications, contact `;
                                                     let xFirst = paragraphX;
                                                     doc.setTextColor(0, 0, 0);
@@ -1826,7 +1753,6 @@ module.exports = {
                                                     // Ensure footer is added
                                                     addFooter(doc, applicationInfo, appHost);
 
-                                                    console.log(`PDF Saved`);
                                                     // doc.save(`123.pdf`);
 
                                                     const pdfPathCloud = await savePdf(
@@ -1836,6 +1762,7 @@ module.exports = {
                                                     );
                                                     // doc.save(pdfPath);
                                                     resolve(pdfPathCloud);
+
                                                 } catch (error) {
                                                     console.error("PDF generation error:", error);
                                                     reject(new Error("Error generating PDF"));
