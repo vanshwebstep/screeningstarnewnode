@@ -108,8 +108,8 @@ async function finalReportMail(
       .replace(/{{gender_title}}/g, gender_title)
       .replace(/{{case_initiated_date}}/g, case_initiated_date)
       .replace(/{{final_report_date}}/g, final_report_date)
-      .replace(/{{report_type}}/g, report_type)
-      .replace(/{{overall_status}}/g, overall_status);
+      .replace(/{{report_type}}/g, report_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+      .replace(/{{overall_status}}/g, overall_status.toUpperCase());
     // Prepare CC list
     const ccList = ccArr
       .map((entry) => {
