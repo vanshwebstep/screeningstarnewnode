@@ -443,7 +443,14 @@ module.exports = {
                                                                 );
                                                             }
 
-                                                            const serviceValueDataForPDF = Object.values(serviceData)?.map(item => item.data) || [];
+                                                            const serviceValueDataForPDF = Object.values(serviceData)?.reduce((acc, item) => {
+                                                                const dbTable = item?.jsonData?.db_table;
+                                                                if (dbTable && item?.data) {
+                                                                    acc[dbTable] = item.data;
+                                                                }
+                                                                return acc;
+                                                            }, {});
+
 
                                                             data = {
                                                                 application,
@@ -605,7 +612,6 @@ module.exports = {
                                                                 yPosition = doc.autoTable.previous.finalY + gapY;
                                                                 const pageWidth = doc.internal.pageSize.getWidth() - 30;
 
-                                                                console.log('cefData', cefData);
                                                                 const personalBody = [
                                                                     [{ content: "Full Name of the Applicant", styles: { fontStyle: 'bold' } }, cefData.full_name || "N/A"],
                                                                     [{ content: "Pancard Number", styles: { fontStyle: 'bold' } }, cefData.pan_card_number || "N/A"],
@@ -803,14 +809,15 @@ module.exports = {
                                                                 console.log(`Step 1`);
                                                                 yPosition = doc.autoTable.previous.finalY - 2;
                                                                 (async () => {
+
                                                                     if (!serviceDataMain.length) {
                                                                         const pageWidth = doc.internal.pageSize.width;
                                                                         doc.text("No service data available.", pageWidth / 2, yPosition + 10, { align: 'center' });
                                                                         yPosition += 20;
                                                                     } else {
 
-                                                                        for (let i = 0; i < serviceData.length; i++) {
-                                                                            const service = serviceData[i];
+                                                                        for (let i = 0; i < serviceDataMain.length; i++) {
+                                                                            const service = serviceDataMain[i];
 
                                                                             const isNonEmpty = (obj) => {
                                                                                 if (!obj || typeof obj !== 'object') return false;
@@ -1096,7 +1103,7 @@ module.exports = {
                                                                         targetDirectory
                                                                     );
                                                                     resolve(pdfPathCloud);
-                                                                    console.log("PDF generation completed successfully.");
+                                                                    // console.log("PDF generation completed successfully.");
                                                                 })();
                                                             } catch (error) {
                                                                 console.error("PDF generation error:", error);
