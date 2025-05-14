@@ -18,8 +18,8 @@ const createAttachments = async (attachments_url) => {
   const urls = Array.isArray(attachments_url)
     ? attachments_url
     : typeof attachments_url === "string"
-    ? attachments_url.split(",")
-    : [];
+      ? attachments_url.split(",")
+      : [];
 
   const attachments = [];
 
@@ -61,11 +61,11 @@ async function finalReportMail(
   toArr,
   ccArr
 ) {
-  
+
 
   try {
     // Establish database connection
-    
+
 
     // Fetch email template
     const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
@@ -153,6 +153,9 @@ async function finalReportMail(
       .map((email) => `"${email.name}" <${email.email}>`)
       .join(", ");
 
+    console.log(`toList - `, toList);
+    console.log(`ccList - `, ccList);
+
     // Send email
     const mailOptions = {
       from: `"${smtp.title}" <${smtp.username}>`,
@@ -168,7 +171,7 @@ async function finalReportMail(
   } catch (error) {
     console.error("Error sending email:", error.message);
   } finally {
-    
+
   }
 }
 
