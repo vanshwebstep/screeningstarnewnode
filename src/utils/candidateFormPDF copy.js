@@ -311,17 +311,6 @@ function createEmploymentFields(noOfEmployments, fieldValue) {
     return employmentFields;
 }
 
-const formatDatedmy = (isoString) => {
-    if (!isoString || isNaN(new Date(isoString).getTime())) {
-        return;  // Return "nill" if the date is invalid or null
-    }
-    const date = new Date(isoString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear(); // full year (e.g., 2025)
-    return `${day}-${month}-${year}`;
-};
-
 
 const formatDate = (isoString) => {
     const date = new Date(isoString);
@@ -463,8 +452,6 @@ module.exports = {
                                                             companyName = data.application?.customer_name || '';
                                                             purpose = data.application?.purpose_of_application || '';
                                                             cefData = data.CEFData || {};
-                                                            const fullName = cefData.full_name;
-                                                            const createdDate = formatDate(cefData.created_at);
                                                             nationality = data.application?.nationality || '';
                                                             isSameAsPermanent = false
 
@@ -561,20 +548,6 @@ module.exports = {
                                                                 const doc = new jsPDF();
                                                                 let yPosition = 10;
                                                                 const gapY = 8; // consistent gap between tables
-                                                                const formatDate = (value) => {
-                                                                    if (!value) {
-                                                                        return null;  // Return null if the date doesn't exist
-                                                                    }
-                                                                    const date = new Date(value);
-                                                                    if (isNaN(date.getTime())) {
-                                                                        return null;  // Return null if the date is invalid
-                                                                    }
-                                                                    const day = String(date.getDate()).padStart(2, '0');
-                                                                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                                                                    const year = date.getFullYear();
-                                                                    return `${day}-${month}-${year}`;
-                                                                };
-
 
                                                                 // Table 1: Header
                                                                 doc.autoTable({
@@ -611,14 +584,14 @@ module.exports = {
                                                                     [{ content: "Pancard Number", styles: { fontStyle: 'bold' } }, cefData.pan_card_number || "N/A"],
                                                                     [{ content: "Aadhar Number", styles: { fontStyle: 'bold' } }, cefData.aadhar_card_number || "N/A"],
                                                                     [{ content: "Father's Name", styles: { fontStyle: 'bold' } }, cefData.father_name || "N/A"],
-                                                                    [{ content: "Date of Birth (dd/mm/yy)", styles: { fontStyle: 'bold' } }, formatDatedmy(cefData.dob) || "N/A"],
+                                                                    [{ content: "Date of Birth (dd/mm/yy)", styles: { fontStyle: 'bold' } }, cefData.dob || "N/A"],
                                                                     [{ content: "Husband's Name", styles: { fontStyle: 'bold' } }, cefData.husband_name || "N/A"],
                                                                     [{ content: "Gender", styles: { fontStyle: 'bold' } }, cefData.gender || "N/A"],
                                                                     [{ content: "Mobile Number", styles: { fontStyle: 'bold' } }, cefData.mb_no || "N/A"],
                                                                     [{ content: "Nationality", styles: { fontStyle: 'bold' } }, cefData.nationality || "N/A"],
                                                                     [{ content: "Marital Status", styles: { fontStyle: 'bold' } }, cefData.marital_status || "N/A"]
                                                                 ];
-
+                                                                console.log(`step1`);
                                                                 doc.autoTable({
                                                                     startY: yPosition,
                                                                     head: [[{
@@ -656,6 +629,7 @@ module.exports = {
                                                                     }
                                                                 });
                                                                 yPosition = doc.autoTable.previous.finalY + gapY;
+                                                                console.log(`step2`);
 
                                                                 // Table 3: Current Address
                                                                 doc.autoTable({
@@ -673,7 +647,7 @@ module.exports = {
                                                                     }]],
                                                                     body: [
                                                                         [
-                                                                            { content: 'Full Address', styles: { fontStyle: 'bold' } },
+                                                                            { content: 'Current Address', styles: { fontStyle: 'bold' } },
                                                                             cefData.full_address || 'N/A'
                                                                         ],
                                                                         [
@@ -681,38 +655,25 @@ module.exports = {
                                                                             cefData.pin_code || 'N/A'
                                                                         ],
                                                                         [
-                                                                            { content: 'State', styles: { fontStyle: 'bold' } },
+                                                                            { content: 'Mobile Number', styles: { fontStyle: 'bold' } },
+                                                                            cefData.current_address_landline_number || 'N/A'
+                                                                        ],
+                                                                        [
+                                                                            { content: 'Current State', styles: { fontStyle: 'bold' } },
                                                                             cefData.current_address_state || 'N/A'
                                                                         ],
                                                                         [
-                                                                            { content: 'Prominent Landmark', styles: { fontStyle: 'bold' } },
+                                                                            { content: 'Current Landmark', styles: { fontStyle: 'bold' } },
                                                                             cefData.current_prominent_landmark || 'N/A'
+                                                                        ],
+                                                                        [
+                                                                            { content: 'Current Address Stay No.', styles: { fontStyle: 'bold' } },
+                                                                            cefData.current_address_stay_to || 'N/A'
                                                                         ],
                                                                         [
                                                                             { content: 'Nearest Police Station', styles: { fontStyle: 'bold' } },
                                                                             cefData.nearest_police_station || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Period Of Stay(From Date)', styles: { fontStyle: 'bold' } },
-                                                                            formatDate(cefData.current_from_date) || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Period Of Stay(To Date)', styles: { fontStyle: 'bold' } },
-                                                                            formatDate(cefData.current_to_date) || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Residence Number', styles: { fontStyle: 'bold' } },
-                                                                            cefData.residence_number || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Alternate Mobile Number', styles: { fontStyle: 'bold' } },
-                                                                            cefData.alternate_mobile_number || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Current Landmark', styles: { fontStyle: 'bold' } },
-                                                                            cefData.current_prominent_landmark || 'N/A'
                                                                         ]
-
                                                                     ],
                                                                     theme: 'grid',
                                                                     margin: { top: 10, left: 15, right: 15 },
@@ -727,80 +688,9 @@ module.exports = {
                                                                         1: { cellWidth: pageWidth * 0.6 }
                                                                     }
                                                                 });
-                                                                yPosition = doc.autoTable.previous.finalY + gapY;
 
-                                                                // Start a new page for Permanent Address table
-                                                                doc.addPage();
-                                                                doc.autoTable({
-                                                                    startY: 10,
-                                                                    head: [[{
-                                                                        content: 'Permanent Address',
-                                                                        colSpan: 2,
-                                                                        styles: {
-                                                                            halign: 'center',
-                                                                            fontSize: 12,
-                                                                            fontStyle: 'bold',
-                                                                            fillColor: [197, 217, 241],
-                                                                            textColor: [80, 80, 80]
-                                                                        }
-                                                                    }]],
-                                                                    body: [
-                                                                        [
-                                                                            { content: 'Full Address', styles: { fontStyle: 'bold' } },
-                                                                            cefData.permanent_full_address || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Pin Code', styles: { fontStyle: 'bold' } },
-                                                                            cefData.permanent_pin_code || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'State', styles: { fontStyle: 'bold' } },
-                                                                            cefData.permanent_address_state || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Prominent Landmark', styles: { fontStyle: 'bold' } },
-                                                                            cefData.permanent_prominent_landmark || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Nearest Police Station', styles: { fontStyle: 'bold' } },
-                                                                            cefData.permanent_nearest_police_station || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Period Of Stay(From Date)', styles: { fontStyle: 'bold' } },
-                                                                            formatDate(cefData.permanent_from_date) || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Period Of Stay(To Date)', styles: { fontStyle: 'bold' } },
-                                                                            formatDate(cefData.permanent_to_date) || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Residence Number', styles: { fontStyle: 'bold' } },
-                                                                            cefData.permanent_residence_number || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Alternate Mobile Number', styles: { fontStyle: 'bold' } },
-                                                                            cefData.permanent_alternate_mobile_number || 'N/A'
-                                                                        ],
-                                                                        [
-                                                                            { content: 'Current Landmark', styles: { fontStyle: 'bold' } },
-                                                                            cefData.permanent_prominent_landmark || 'N/A'
-                                                                        ]
+                                                                console.log(`step3`);
 
-                                                                    ],
-                                                                    theme: 'grid',
-                                                                    margin: { top: 10, left: 15, right: 15 },
-                                                                    styles: {
-                                                                        fontSize: 10,
-                                                                        cellPadding: 2,
-                                                                        lineWidth: 0.2,
-                                                                        lineColor: [0, 0, 0]
-                                                                    },
-                                                                    columnStyles: {
-                                                                        0: { cellWidth: pageWidth * 0.4 },
-                                                                        1: { cellWidth: pageWidth * 0.6 }
-                                                                    }
-                                                                });
-                                                                console.log(`Step 1`);
                                                                 yPosition = doc.autoTable.previous.finalY - 2;
                                                                 (async () => {
                                                                     if (!serviceDataMain.length) {
@@ -809,8 +699,9 @@ module.exports = {
                                                                         yPosition += 20;
                                                                     } else {
 
-                                                                        for (let i = 0; i < serviceData.length; i++) {
-                                                                            const service = serviceData[i];
+                                                                        for (let i = 0; i < serviceDataMain.length; i++) {
+                                                                            const service = serviceDataMain[i];
+                                                                            console.log(`step6`);
 
                                                                             const isNonEmpty = (obj) => {
                                                                                 if (!obj || typeof obj !== 'object') return false;
@@ -820,11 +711,11 @@ module.exports = {
                                                                                         !(typeof value === 'string' && value.trim() === '')
                                                                                 );
                                                                             };
-
-                                                                            const validEntries = Object.values(serviceValueDataForPDF).filter(isNonEmpty);
+                                                                            console.log(`step7`);
 
                                                                             let tableData = [];
                                                                             let shouldSkipEntireTable = false;
+                                                                            console.log(`step8`);
 
                                                                             for (const row of service.rows) {
                                                                                 for (const input of row.inputs) {
@@ -845,28 +736,20 @@ module.exports = {
                                                                             if (shouldSkipEntireTable) {
                                                                                 continue;
                                                                             }
-                                                                            const isValidDate = (value) => {
-                                                                                const date = new Date(value);
-                                                                                return !isNaN(date.getTime()) && typeof value === 'string' && value.length >= 8;
-                                                                            };
-
-
 
                                                                             service.rows.forEach((row) => {
                                                                                 row.inputs.forEach((input) => {
-                                                                                    const rawValue = serviceValueDataForPDF[service?.db_table]?.[input?.name] || 'N/A';
+                                                                                    const value = serviceValueDataForPDF[service?.db_table]?.[input?.name] || 'N/A';
 
                                                                                     if (input.type === 'file' || input.type === 'checkbox') return;
 
-                                                                                    // Try to format if it's a valid date string
-                                                                                    const value = isValidDate(rawValue) ? formatDate(rawValue) : rawValue;
-
                                                                                     tableData.push([
-                                                                                        { content: input.label, styles: { fontStyle: 'bold' } },
+                                                                                        { content: input.label, styles: { fontStyle: 'bold' } }, // Bold label
                                                                                         value
                                                                                     ]);
                                                                                 });
                                                                             });
+
                                                                             // ✅ Add spacing bet
                                                                             if (tableData.length > 0 && i !== 0) {
                                                                                 yPosition -= 2;
@@ -941,8 +824,6 @@ module.exports = {
                                                                         }
                                                                     }
 
-
-
                                                                     let newYPosition = 20
                                                                     doc.addPage();
                                                                     const disclaimerButtonHeight = 8; // Button height (without padding)
@@ -973,8 +854,8 @@ module.exports = {
 
 
                                                                     const disclaimerTextPart1 = `I hereby authorize Screeningstar Solutions Private Limited and its representative to verify the information provided in my application for employment and this employee background verification form, and to conduct enquiries as may be necessary, at the company’s discretion.
-                
-                I authorize all persons who may have information relevant to this enquiry to disclose it to ScreeningStar HR Services Pvt Ltd or its representative. I release all persons from liability on account of such disclosure. I confirm that the above information is correct to the best of my knowledge. I agree that in the event of my obtaining employment, my probationary appointment, confirmation as well as continued employment in the services of the company are subject to clearance of medical test and background verification check done by the company.`;
+                                                                    
+                                                                    I authorize all persons who may have information relevant to this enquiry to disclose it to ScreeningStar HR Services Pvt Ltd or its representative. I release all persons from liability on account of such disclosure. I confirm that the above information is correct to the best of my knowledge. I agree that in the event of my obtaining employment, my probationary appointment, confirmation as well as continued employment in the services of the company are subject to clearance of medical test and background verification check done by the company.`;
 
                                                                     const disclaimerLinesPart1 = doc.splitTextToSize(disclaimerTextPart1, disclaimerButtonWidth);
                                                                     const lineHeight = 5
@@ -992,7 +873,7 @@ module.exports = {
                                                                             maxLineWidth = lineWidth;
                                                                         }
                                                                     });
-                                                                    const paragraphX = (doc.internal.pageSize.width - maxLineWidth - 14);
+                                                                    const paragraphX = (doc.internal.pageSize.width - maxLineWidth - 10.5);
                                                                     const paragraphGap = 2; // smaller gap between paragraphs
                                                                     const paragraphs = disclaimerTextPart1.trim().split(/\n\s*\n/); // split into paragraphs
                                                                     doc.setFont('helvetica', 'normal'); // Reset to normal for following text
@@ -1032,16 +913,19 @@ module.exports = {
 
                                                                         currentY += paragraphGap;
                                                                     });
-                                                                    newYPosition = 100; // Adjusting for space from the last table
+
+                                                                    newYPosition = doc.autoTable.previous.finalY - 10; // Adjusting for space from the last table
 
 
                                                                     const newPageWidth = pageWidth + 10;
                                                                     // Create a single row table
                                                                     const tableWidth = newPageWidth * 0.9; // Adjust this value for the desired table width
                                                                     const tableMargin = (newPageWidth - tableWidth) / 2; // Calculate the left margin to center the table
+                                                                    const createdDate = formatDate(cefData.created_at);
+
 
                                                                     doc.autoTable({
-                                                                        startY: newYPosition,
+                                                                        startY: newYPosition - 70,
                                                                         margin: { left: tableMargin }, // Apply the margin to center the table
                                                                         body: [
                                                                             [
@@ -1050,7 +934,7 @@ module.exports = {
                                                                                     styles: { fontStyle: 'bold', halign: 'center' } // Center align the first column
                                                                                 },
                                                                                 {
-                                                                                    content: fullName,
+                                                                                    content: cefData.full_name,
                                                                                     styles: { fontStyle: 'normal', halign: 'center' } // Center align the second column
                                                                                 },
                                                                                 {
@@ -1083,10 +967,8 @@ module.exports = {
                                                                         }
                                                                     });
 
-
-
                                                                     // Save PDF
-                                                                    // console.log(`pdfFileName - `, pdfFileName);
+                                                                    console.log(`pdfFileName - `, pdfFileName);
                                                                     // doc.save(`123.pdf`);
 
                                                                     // console.log(`targetDirectory - `, targetDirectory);
@@ -1096,10 +978,10 @@ module.exports = {
                                                                         targetDirectory
                                                                     );
                                                                     resolve(pdfPathCloud);
-                                                                    console.log("PDF generation completed successfully.");
+                                                                    // console.log("PDF generation completed successfully.");
                                                                 })();
                                                             } catch (error) {
-                                                                console.error("PDF generation error:", error);
+                                                                // console.error("PDF generation error:", error);
                                                                 reject(new Error("Error generating PDF"));
                                                             }
                                                         }

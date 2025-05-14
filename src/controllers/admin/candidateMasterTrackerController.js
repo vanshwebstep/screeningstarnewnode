@@ -98,12 +98,12 @@ exports.list = (req, res) => {
 
 exports.test = async (req, res) => {
   try {
-    const candidate_application_id = 46;
-    const client_unique_id = "GQ-INDV";
-    const application_id = "GQ-INDV-1";
-    const branch_id = 54;
-    const customer_id = 40;
-    const name = "Rohit Sisodia";
+    const candidate_application_id = 130;
+    const client_unique_id = "TEST-2";
+    const application_id = "TEST-2-103";
+    const branch_id = 103;
+    const customer_id = 89;
+    const name = "VANSH";
 
     const today = new Date();
     const formattedDate = `${today.getFullYear()}-${String(
