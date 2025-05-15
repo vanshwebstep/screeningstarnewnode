@@ -323,122 +323,119 @@ exports.upload = async (req, res) => {
         }
 
         const newToken = result.newToken;
-        App.appInfo("backend", async (err, appInfo) => {
-          if (err) {
-            console.error("Database error:", err);
-            return res.status(500).json({
-              status: false,
-              err,
-              message: err.message,
-              token: newToken,
-            });
-          }
+        ClientMasterTrackerModel.applicationByID(
+          appId,
+          branchId,
+          (err, application) => {
+            if (err) {
+              console.error("Database error:", err);
+              return res.status(500).json({
+                status: false,
+                message: err.message,
+                token: newToken,
+              });
+            }
 
-          let imageHost = "www.example.in";
-
-          if (appInfo) {
-            imageHost = appInfo.cloud_host || "www.example.in";
-          }
-          // Define the target directory for uploads
-          const targetDirectory = `uploads/customer/${customerCode}/application/${appCode}/${dbTable}`;
-          // Create the target directory for uploads
-          await fs.promises.mkdir(targetDirectory, { recursive: true });
-
-          let savedImagePaths = [];
-
-          if (req.files.images && req.files.images.length > 0) {
-            const uploadedImages = await saveImages(
-              req.files.images,
-              targetDirectory
-            );
-            uploadedImages.forEach((imagePath) => {
-              savedImagePaths.push(`${imageHost}/${imagePath}`);
-            });
-          }
-
-          // Process single file upload
-          if (req.files.image && req.files.image.length > 0) {
-            const uploadedImage = await saveImage(
-              req.files.image[0],
-              targetDirectory
-            );
-            savedImagePaths.push(`${imageHost}/${uploadedImage}`);
-          }
-
-          const modifiedDbTable = dbTable.replace(/-/g, "_").toLowerCase();
-          const cleanDBColumnForQry = cleanDBColumn
-            .replace(/-/g, "_")
-            .toLowerCase();
-
-          // Call the model to upload images
-          DocumentCheckInModel.upload(
-            appId,
-            modifiedDbTable,
-            cleanDBColumnForQry,
-            savedImagePaths,
-            (success, result) => {
-              if (!success) {
-                console.error(
-                  "Upload failed:",
-                  result || "An error occurred while saving the image."
-                );
+            if (!application) {
+              console.warn("Application not found 3");
+              return res.status(404).json({
+                status: false,
+                message: "Application not found 3",
+                token: newToken,
+              });
+            }
+            App.appInfo("backend", async (err, appInfo) => {
+              if (err) {
+                console.error("Database error:", err);
                 return res.status(500).json({
                   status: false,
-                  message:
-                    result || "An error occurred while saving the image.",
+                  err,
+                  message: err.message,
                   token: newToken,
-                  savedImagePaths,
                 });
               }
 
-              // Handle sending email notifications if required
-              if (sendMail == 1) {
-                BranchCommon.getBranchandCustomerEmailsForNotification(
-                  branchId,
-                  (emailError, emailData) => {
-                    if (emailError) {
-                      console.error("Error fetching emails:", emailError);
-                      return res.status(500).json({
-                        status: false,
-                        message: "Failed to retrieve email addresses.",
-                        token: newToken,
-                        savedImagePaths,
-                      });
-                    }
+              let imageHost = "www.example.in";
 
-                    const { branch, customer } = emailData;
-                    const companyName = customer.name;
+              if (appInfo) {
+                imageHost = appInfo.cloud_host || "www.example.in";
+              }
+              // Define the target directory for uploads
+              const targetDirectory = `uploads/customer/${customerCode}/application/${application.application_id}/${dbTable}`;
+              // Create the target directory for uploads
+              await fs.promises.mkdir(targetDirectory, { recursive: true });
 
-                    // Prepare recipient and CC lists
-                    const toArr = [{ name: branch.name, email: branch.email }];
-                    const ccArr = JSON.parse(customer.emails).map((email) => ({
-                      name: customer.name,
-                      email: email.trim(),
-                    }));
+              let savedImagePaths = [];
 
-                    DocumentCheckInModel.applicationByID(
-                      appId,
+              if (req.files.images && req.files.images.length > 0) {
+                const uploadedImages = await saveImages(
+                  req.files.images,
+                  targetDirectory
+                );
+                uploadedImages.forEach((imagePath) => {
+                  savedImagePaths.push(`${imageHost}/${imagePath}`);
+                });
+              }
+
+              // Process single file upload
+              if (req.files.image && req.files.image.length > 0) {
+                const uploadedImage = await saveImage(
+                  req.files.image[0],
+                  targetDirectory
+                );
+                savedImagePaths.push(`${imageHost}/${uploadedImage}`);
+              }
+
+              const modifiedDbTable = dbTable.replace(/-/g, "_").toLowerCase();
+              const cleanDBColumnForQry = cleanDBColumn
+                .replace(/-/g, "_")
+                .toLowerCase();
+
+              // Call the model to upload images
+              DocumentCheckInModel.upload(
+                appId,
+                modifiedDbTable,
+                cleanDBColumnForQry,
+                savedImagePaths,
+                (success, result) => {
+                  if (!success) {
+                    console.error(
+                      "Upload failed:",
+                      result || "An error occurred while saving the image."
+                    );
+                    return res.status(500).json({
+                      status: false,
+                      message:
+                        result || "An error occurred while saving the image.",
+                      token: newToken,
+                      savedImagePaths,
+                    });
+                  }
+
+                  // Handle sending email notifications if required
+                  if (sendMail == 1) {
+                    BranchCommon.getBranchandCustomerEmailsForNotification(
                       branchId,
-                      (err, application) => {
-                        if (err) {
-                          console.error("Database error:", err);
+                      (emailError, emailData) => {
+                        if (emailError) {
+                          console.error("Error fetching emails:", emailError);
                           return res.status(500).json({
                             status: false,
-                            message: err.message,
+                            message: "Failed to retrieve email addresses.",
                             token: newToken,
                             savedImagePaths,
                           });
                         }
 
-                        if (!application) {
-                          console.warn("Application not found 3");
-                          return res.status(404).json({
-                            status: false,
-                            message: "Application not found 3",
-                            token: newToken,
-                            savedImagePaths,
-                          });
-                        }
+                        const { branch, customer } = emailData;
+                        const companyName = customer.name;
+
+                        // Prepare recipient and CC lists
+                        const toArr = [{ name: branch.name, email: branch.email }];
+                        const ccArr = JSON.parse(customer.emails).map((email) => ({
+                          name: customer.name,
+                          email: email.trim(),
+                        }));
 
                         if (application.is_data_qc !== 1) {
                           console.warn("Application Data QC is not done yet 3");
@@ -466,7 +463,7 @@ exports.upload = async (req, res) => {
                               });
                             }
 
-                            DocumentCheckInModel.getCMTApplicationById(
+                            ClientMasterTrackerModel.getCMTApplicationById(
                               appId,
                               async (err, CMTApplicationData) => {
                                 if (err) {
@@ -642,21 +639,21 @@ exports.upload = async (req, res) => {
                             );
                           }
                         );
+
                       }
                     );
+                  } else {
+                    return res.status(200).json({
+                      status: true,
+                      message: "Images uploaded successfully.",
+                      token: newToken,
+                      savedImagePaths,
+                    });
                   }
-                );
-              } else {
-                return res.status(200).json({
-                  status: true,
-                  message: "Images uploaded successfully.",
-                  token: newToken,
-                  savedImagePaths,
-                });
-              }
-            }
-          );
-        });
+                }
+              );
+            });
+          });
       });
     });
   });
