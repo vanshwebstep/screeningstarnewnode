@@ -605,7 +605,7 @@ exports.generateReport = (req, res) => {
                             });
                           }
                           const toArr = [
-                            { name: 'Report Team', email: 'vanshwebstep@gmail.com' },
+                            { name: 'Report Team', email: 'reports@screeningstar.com' },
                             { name: 'QC Team', email: 'qc@screeningstar.com' },
                           ];
 
