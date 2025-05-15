@@ -1,3 +1,5 @@
+const ClientApplication = require("../../models/customer/branch/clientApplicationModel");
+
 const crypto = require("crypto");
 const ClientMasterTrackerModel = require("../../models/admin/clientMasterTrackerModel");
 const TeamManagement = require("../../models/admin/teamManagementModel");
@@ -8,7 +10,9 @@ const Admin = require("../../models/admin/adminModel");
 const App = require("../../models/appModel");
 const BranchCommon = require("../../models/customer/branch/commonModel");
 const Permission = require("../../models/admin/permissionModel");
-
+const {
+  TeamManagementSubmitMail,
+} = require("../../mailer/admin/team-management/submit");
 const {
   finalReportMail,
 } = require("../../mailer/admin/client-master-tracker/finalReportMail");
@@ -459,167 +463,232 @@ exports.generateReport = (req, res) => {
 
       const newToken = TokenResult.newToken;
 
-      Branch.getBranchById(branch_id, (err, branch) => {
-        if (err || !branch || parseInt(branch.customer_id) !== parseInt(customer_id)) {
-          return res.status(404).json({
-            status: false,
-            message: "Branch not found or customer ID mismatch.",
-            token: newToken,
-          });
-        }
 
-        Customer.getCustomerById(customer_id, (err, customer) => {
-          if (err || !customer) {
-            return res.status(404).json({
+      ClientApplication.getClientApplicationById(
+        application_id,
+        async (err, currentClientApplication) => {
+          if (err) {
+            console.error(
+              "Database error during clientApplication retrieval:",
+              err
+            );
+            return res.status(500).json({
               status: false,
-              message: "Customer not found.",
+              message:
+                "Failed to retrieve ClientApplication. Please try again.",
               token: newToken,
             });
           }
 
-          Admin.findById(admin_id, (err, admin) => {
-            if (err || !admin) {
+          if (!currentClientApplication) {
+            return res.status(404).json({
+              status: false,
+              message: "Client Aplication not found.",
+              token: newToken,
+            });
+          }
+          Branch.getBranchById(branch_id, (err, branch) => {
+            if (err || !branch || parseInt(branch.customer_id) !== parseInt(customer_id)) {
               return res.status(404).json({
                 status: false,
-                message: "Admin not found.",
+                message: "Branch not found or customer ID mismatch.",
                 token: newToken,
               });
             }
 
-            let grantedServiceIds = [];
-            let skippedIds = [];
+            Customer.getCustomerById(customer_id, (err, customer) => {
+              if (err || !customer) {
+                return res.status(404).json({
+                  status: false,
+                  message: "Customer not found.",
+                  token: newToken,
+                });
+              }
 
-            const processStatuses = () => {
-              const { mainJsonRaw, annexureRawJson: annexure } = flattenJsonWithAnnexure(updated_json);
-              const mainJson = mainJsonRaw;
-
-              ClientMasterTrackerModel.generateReport(
-                mainJson,
-                application_id,
-                branch_id,
-                customer_id,
-                (err, cmtResult) => {
-                  if (err) {
-                    return res.status(500).json({
-                      status: false,
-                      message: "Failed to generate report.",
-                      token: newToken,
-                    });
-                  }
-
-                  AdminCommon.adminActivityLog(
-                    req.ip,
-                    "ipv4",
-                    admin_id,
-                    "Client Master Tracker",
-                    "create",
-                    "1",
-                    JSON.stringify(mainJson),
-                    null,
-                    () => { }
-                  );
-
-                  const annexurePromises = Object.keys(annexure || {}).map((key) => {
-                    return new Promise((resolveAnnexure) => {
-                      const db_table = key.replace(/-/g, "_").toLowerCase();
-                      const subJson = annexure[db_table];
-
-                      ClientMasterTrackerModel.createOrUpdateAnnexure(
-                        cmtResult.insertId,
-                        application_id,
-                        branch_id,
-                        customer_id,
-                        db_table,
-                        subJson,
-                        (err) => {
-                          if (err) {
-                            return resolveAnnexure({ serviceId: key, status: "update_failed" });
-                          }
-                          resolveAnnexure({ serviceId: key, status: "updated" });
-                        }
-                      );
-                    });
-                  });
-
-                  const updatePromises = statuses.map((statusItem) => {
-                    return new Promise((resolve) => {
-                      const serviceId = Number(statusItem.service_id);
-                      const status = statusItem.status;
-
-                      if (!grantedServiceIds.includes(serviceId)) {
-                        skippedIds.push(serviceId);
-                        return resolve({ serviceId, status: "skipped" });
-                      }
-
-                      TeamManagement.updateStatusOfAnnexureByDBTable(
-                        application_id,
-                        branch_id,
-                        customer_id,
-                        status,
-                        statusItem.db_table,
-                        (err) => {
-                          if (err) {
-                            return resolve({ serviceId, status: "update_failed" });
-                          }
-                          resolve({ serviceId, status: "updated" });
-                        }
-                      );
-                    });
-                  });
-
-                  Promise.all([...annexurePromises, ...updatePromises]).then((results) => {
-                    TeamManagement.updateComponentStatus(application_id, componentStatusNum, (err) => {
-                      if (err) {
-                        return res.status(500).json({
-                          status: false,
-                          message: "Component status update failed.",
-                          token: newToken,
-                        });
-                      }
-
-                      res.status(200).json({
-                        status: true,
-                        message: "Report and statuses processed successfully.",
-                        updated_services: results.filter(r => r.status === "updated"),
-                        skipped_service_ids: skippedIds,
-                        failed_updates: results.filter(r => r.status === "update_failed"),
-                        token: newToken,
-                      });
-                    });
-                  });
-                }
-              );
-            };
-
-            if (admin.role === "team_management") {
-              Permission.getPermissionByRole(admin.role, (err, permission) => {
-                if (err) {
-                  return res.status(500).json({
+              Admin.findById(admin_id, (err, admin) => {
+                if (err || !admin) {
+                  return res.status(404).json({
                     status: false,
-                    message: "Permission retrieval failed.",
+                    message: "Admin not found.",
                     token: newToken,
                   });
                 }
 
-                if (permission.service_ids) {
-                  grantedServiceIds = permission.service_ids
-                    .split(",")
-                    .map(id => parseInt(id.trim(), 10))
+                let grantedServiceIds = [];
+                let skippedIds = [];
+
+                const processStatuses = () => {
+                  const { mainJsonRaw, annexureRawJson: annexure } = flattenJsonWithAnnexure(updated_json);
+                  const mainJson = mainJsonRaw;
+
+                  ClientMasterTrackerModel.generateReport(
+                    mainJson,
+                    application_id,
+                    branch_id,
+                    customer_id,
+                    (err, cmtResult) => {
+                      if (err) {
+                        return res.status(500).json({
+                          status: false,
+                          message: "Failed to generate report.",
+                          token: newToken,
+                        });
+                      }
+
+                      AdminCommon.adminActivityLog(
+                        req.ip,
+                        "ipv4",
+                        admin_id,
+                        "Client Master Tracker",
+                        "create",
+                        "1",
+                        JSON.stringify(mainJson),
+                        null,
+                        () => { }
+                      );
+
+                      const annexurePromises = Object.keys(annexure || {}).map((key) => {
+                        return new Promise((resolveAnnexure) => {
+                          const db_table = key.replace(/-/g, "_").toLowerCase();
+                          const subJson = annexure[db_table];
+
+                          ClientMasterTrackerModel.createOrUpdateAnnexure(
+                            cmtResult.insertId,
+                            application_id,
+                            branch_id,
+                            customer_id,
+                            db_table,
+                            subJson,
+                            (err) => {
+                              if (err) {
+                                return resolveAnnexure({ serviceId: key, status: "update_failed" });
+                              }
+                              resolveAnnexure({ serviceId: key, status: "updated" });
+                            }
+                          );
+                        });
+                      });
+
+                      const updatePromises = statuses.map((statusItem) => {
+                        return new Promise((resolve) => {
+                          const serviceId = Number(statusItem.service_id);
+                          const status = statusItem.status;
+
+                          if (!grantedServiceIds.includes(serviceId)) {
+                            skippedIds.push(serviceId);
+                            return resolve({ serviceId, status: "skipped" });
+                          }
+
+                          TeamManagement.updateStatusOfAnnexureByDBTable(
+                            application_id,
+                            branch_id,
+                            customer_id,
+                            status,
+                            statusItem.db_table,
+                            (err) => {
+                              if (err) {
+                                return resolve({ serviceId, status: "update_failed" });
+                              }
+                              resolve({ serviceId, status: "updated" });
+                            }
+                          );
+                        });
+                      });
+
+                      Promise.all([...annexurePromises, ...updatePromises]).then((results) => {
+                        TeamManagement.updateComponentStatus(application_id, componentStatusNum, (err) => {
+                          if (err) {
+                            return res.status(500).json({
+                              status: false,
+                              message: "Component status update failed.",
+                              token: newToken,
+                            });
+                          }
+                          const toArr = [
+                            { name: 'Report Team', email: 'vanshwebstep@gmail.com' },
+                            { name: 'QC Team', email: 'qc@screeningstar.com' },
+                          ];
+
+                          if (component_status == 1) {
+                            TeamManagementSubmitMail(
+                              "Team Management Done",
+                              "submit",
+                              customer.name,
+                              currentClientApplication.name,
+                              currentClientApplication.application_id,
+                              toArr,
+                              []
+                            )
+                              .then(() => {
+                                return res.status(201).json({
+                                  status: true,
+                                  message:
+                                    "Client application created successfully and email sent.",
+                                  token: newToken,
+                                });
+                              })
+                              .catch((emailError) => {
+                                console.error(
+                                  "Error sending email:",
+                                  emailError
+                                );
+                                return res.status(200).json({
+                                  status: true,
+                                  message: "Report and statuses processed successfully.",
+                                  updated_services: results.filter(r => r.status === "updated"),
+                                  skipped_service_ids: skippedIds,
+                                  failed_updates: results.filter(r => r.status === "update_failed"),
+                                  token: newToken,
+                                });
+                              });
+                          } else {
+                            return res.status(200).json({
+                              status: true,
+                              message: "Report and statuses processed successfully.",
+                              updated_services: results.filter(r => r.status === "updated"),
+                              skipped_service_ids: skippedIds,
+                              failed_updates: results.filter(r => r.status === "update_failed"),
+                              token: newToken,
+                            });
+                          }
+
+
+                        });
+                      });
+                    }
+                  );
+                };
+
+                if (admin.role === "team_management") {
+                  Permission.getPermissionByRole(admin.role, (err, permission) => {
+                    if (err) {
+                      return res.status(500).json({
+                        status: false,
+                        message: "Permission retrieval failed.",
+                        token: newToken,
+                      });
+                    }
+
+                    if (permission.service_ids) {
+                      grantedServiceIds = permission.service_ids
+                        .split(",")
+                        .map(id => parseInt(id.trim(), 10))
+                        .filter(id => !isNaN(id));
+                    }
+
+                    processStatuses();
+                  });
+                } else {
+                  grantedServiceIds = statuses
+                    .map(status => Number(status.service_id))
                     .filter(id => !isNaN(id));
+
+                  processStatuses();
                 }
-
-                processStatuses();
               });
-            } else {
-              grantedServiceIds = statuses
-                .map(status => Number(status.service_id))
-                .filter(id => !isNaN(id));
-
-              processStatuses();
-            }
+            });
           });
         });
-      });
     });
   });
 };
