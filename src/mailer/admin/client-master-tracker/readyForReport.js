@@ -91,6 +91,8 @@ async function readyForReport(
     const toList = toArr
       .map((email) => `"${email.name}" <${email.email.trim()}>`) // Trim to remove whitespace
       .join(", ");
+    console.log(`toList 1 - `, toList);
+    console.log(`ccList 2 - `, ccList);
 
     // Send email
     const info = await transporter.sendMail({

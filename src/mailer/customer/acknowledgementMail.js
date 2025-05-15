@@ -137,6 +137,8 @@ async function acknowledgementMail(
       .filter((cc) => cc !== "") // Remove any empty CCs from failed parses
       .join(", ");
 
+    console.log(`recipientList - `, recipientList);
+    console.log(`ccList - `, ccList);
     const info = await transporter.sendMail({
       from: `"${smtp.title}" <${smtp.username}>`,
       to: recipientList.join(", "),

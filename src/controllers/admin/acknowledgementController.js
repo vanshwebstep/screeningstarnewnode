@@ -236,6 +236,13 @@ exports.sendNotification = async (req, res) => {
                           );
                         }
 
+                        const extraCC = [
+                          { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                          { name: 'QC Team', email: 'qc@screeningstar.com' },
+                          { name: 'Manjunath', email: 'manjunath@screeningstar.com' },
+                        ]
+
+                        const mergedCC = [...ccArr, ...extraCC];
                         const toArr = [
                           { name: branch.name, email: branch.email },
                         ];
@@ -248,7 +255,7 @@ exports.sendNotification = async (req, res) => {
                           customer.client_unique_id,
                           emailApplicationArr,
                           toArr,
-                          ccArr
+                          mergedCC
                         )
                           .then(() => { })
                           .catch((emailError) => {

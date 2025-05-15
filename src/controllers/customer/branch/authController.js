@@ -1028,12 +1028,18 @@ exports.forgotPasswordRequest = (req, res) => {
               }/branch/reset-password?email=${branch.email}&token=${token}`;
             const toArr = [{ name: branch.name || branch.email, email: branch.email }];
 
+
+            const ccArr = [
+              {name: 'BGV Team', email: 'bgv@screeningstar.com'}
+            ];
+
             forgetPassword(
               "branch auth",
               "forget-password",
               branch.name || branch.email,
               resetLink,
-              toArr
+              toArr,
+              ccArr
             )
               .then(() => {
                 /*

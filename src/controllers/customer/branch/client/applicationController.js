@@ -301,8 +301,9 @@ exports.create = (req, res) => {
                                         email: admin.email,
                                       })
                                     );
-                                    const toArr = [
-                                      { name: branch.name, email: branch.email },
+                                    const toCC = [
+                                      { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                                      { name: 'QC Team', email: 'qc@screeningstar.com' },
                                     ];
                                     const ccArr1 = customer.emails
                                       .split(",")
@@ -311,7 +312,7 @@ exports.create = (req, res) => {
                                         email: email.trim(),
                                       }));
 
-                                    const ccArr = [
+                                    const toArr = [
                                       ...ccArr1,
                                       ...adminList.map((admin) => ({
                                         name: admin.name,
@@ -333,7 +334,7 @@ exports.create = (req, res) => {
                                       serviceNames,
                                       newAttachedDocsString,
                                       appHost,
-                                      adminList,
+                                      toCC,
                                       []
                                     )
                                       .then(() => {
@@ -761,6 +762,10 @@ function sendNotificationEmails(
                 name: customer.name,
                 email: email.trim(),
               }));
+              const toCC = [
+                { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                { name: 'QC Team', email: 'qc@screeningstar.com' },
+              ];
 
               const serviceIds =
                 typeof services === "string" && services.trim() !== ""
@@ -780,8 +785,8 @@ function sendNotificationEmails(
                     customer.name,
                     serviceNames,
                     "",
-                    toArr,
-                    ccArr
+                    toCC,
+                    []
                   )
                     .then(() => {
                       if (!responseSent) {
@@ -1427,6 +1432,11 @@ exports.upload = async (req, res) => {
                                       email: email.trim(),
                                     }));
 
+                                  const toCC = [
+                                    { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                                    { name: 'QC Team', email: 'qc@screeningstar.com' },
+                                  ];
+
                                   const ccArr = [
                                     ...ccArr1,
                                     ...adminResult.map((admin) => ({
@@ -1554,7 +1564,7 @@ exports.upload = async (req, res) => {
                                                       serviceNames,
                                                       newAttachedDocsString,
                                                       appHost,
-                                                      toAdminArr,
+                                                      toCC,
                                                       []
                                                     );
 

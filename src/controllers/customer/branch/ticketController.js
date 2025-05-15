@@ -319,7 +319,7 @@ exports.chat = (req, res) => {
                         "0",
                         null,
                         createErr.message,
-                        () => {}
+                        () => { }
                       );
 
                       return res.status(500).json({
@@ -340,7 +340,7 @@ exports.chat = (req, res) => {
                       "1",
                       `{ticket: ${ticket_number}}`,
                       null,
-                      () => {}
+                      () => { }
                     );
 
                     // Retrieve admins and send email
@@ -390,7 +390,7 @@ exports.chat = (req, res) => {
                             "chat",
                             "0",
                             emailError.message || "N/A",
-                            () => {}
+                            () => { }
                           );
                           return res.status(500).json({
                             status: false,
@@ -527,7 +527,7 @@ exports.create = (req, res) => {
                         "0",
                         null,
                         createErr.message,
-                        () => {}
+                        () => { }
                       );
 
                       return res.status(500).json({
@@ -548,7 +548,7 @@ exports.create = (req, res) => {
                       "1",
                       `{ticket: ${createResult.ticketNumber}}`,
                       null,
-                      () => {}
+                      () => { }
                     );
 
                     // Retrieve admins and send email
@@ -561,7 +561,10 @@ exports.create = (req, res) => {
                           token: newToken,
                         });
                       }
-
+                      const ccArr = [
+                        { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                        { name: 'QC Team', email: 'qc@screeningstar.com' }
+                      ];
                       // Extract admin emails
                       const toArr = adminResult.map((admin) => ({
                         name: admin.name,
@@ -577,7 +580,7 @@ exports.create = (req, res) => {
                         createResult.ticketNumber,
                         title,
                         description,
-                        toArr
+                        ccArr
                       )
                         .then(() => {
                           return res.status(201).json({
@@ -596,7 +599,7 @@ exports.create = (req, res) => {
                             "Create",
                             "0",
                             emailError.message || "N/A",
-                            () => {}
+                            () => { }
                           );
                           return res.status(500).json({
                             status: true,
@@ -669,8 +672,8 @@ exports.upload = (req, res) => {
         // Calculate total application count
         const totalApplicationCount = clientApplications
           ? Object.values(clientApplications).reduce((total, statusGroup) => {
-              return total + statusGroup.applicationCount;
-            }, 0)
+            return total + statusGroup.applicationCount;
+          }, 0)
           : 0;
 
         return res.status(200).json({
@@ -793,7 +796,7 @@ exports.delete = (req, res) => {
                       "0",
                       JSON.stringify({ ticket: ticket_number }),
                       err,
-                      () => {}
+                      () => { }
                     );
                     return res.status(500).json({
                       status: false,
@@ -811,7 +814,7 @@ exports.delete = (req, res) => {
                     "1",
                     JSON.stringify({ ticket: ticket_number }),
                     null,
-                    () => {}
+                    () => { }
                   );
 
                   res.status(200).json({

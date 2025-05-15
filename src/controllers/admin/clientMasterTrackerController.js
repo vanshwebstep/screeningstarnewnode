@@ -1969,6 +1969,10 @@ exports.generateReport = (req, res) => {
                                                                         ).padStart(2, "0")}`;
 
 
+                                                                        const toFinalReportEmails = [
+                                                                          { name: 'Bgv Team', email: 'bgv@screeningstar.com' },
+                                                                          { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
+                                                                        ];
                                                                         // Send email notification
                                                                         finalReportMail(
                                                                           "cmt",
@@ -1982,8 +1986,8 @@ exports.generateReport = (req, res) => {
                                                                           report_type,
                                                                           mainJson.overall_status,
                                                                           newAttachments,
-                                                                          toArr,
-                                                                          ccArr
+                                                                          toFinalReportEmails,
+                                                                          []
                                                                         )
                                                                           .then(() => {
                                                                             console.log(
@@ -2264,6 +2268,10 @@ exports.generateReport = (req, res) => {
                                                                           token: newToken,
                                                                         });
                                                                     }
+                                                                    const toReadyForReportEmails = [
+                                                                      { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                                                                      { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
+                                                                    ];
                                                                     readyForReport(
                                                                       "cmt",
                                                                       "ready",
@@ -2287,8 +2295,8 @@ exports.generateReport = (req, res) => {
                                                                             (char) =>
                                                                               char.toUpperCase()
                                                                           ),
-                                                                      toArr,
-                                                                      ccArr
+                                                                      toReadyForReportEmails,
+                                                                      []
                                                                     )
                                                                       .then(() => {
                                                                         console.log(`Step 44`);
@@ -2901,6 +2909,10 @@ exports.upload = async (req, res) => {
                                 // Prepare and send email based on application status
                                 // Final report email
                                 if (emailStatus == 1) {
+                                  const toFinalReportEmails = [
+                                    { name: 'Bgv Team', email: 'bgv@screeningstar.com' },
+                                    { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
+                                  ];
                                   finalReportMail(
                                     "cmt",
                                     "final",
@@ -2913,8 +2925,8 @@ exports.upload = async (req, res) => {
                                     report_type,
                                     overall_status,
                                     attachments,
-                                    toArr,
-                                    ccArr
+                                    toFinalReportEmails,
+                                    []
                                   )
                                     .then(() => {
                                       return res.status(200).json({
@@ -2976,12 +2988,17 @@ exports.upload = async (req, res) => {
                                 }
                                 // Handling for other statuses
                                 else if (emailStatus == 3) {
+
+                                  const toReadyForReportEmails = [
+                                    { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                                    { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
+                                  ];
                                   readyForReport(
                                     "cmt",
                                     "ready",
                                     application.application_id,
-                                    toArr,
-                                    ccArr
+                                    toReadyForReportEmails,
+                                    []
                                   )
                                     .then(() => {
                                       return res.status(200).json({

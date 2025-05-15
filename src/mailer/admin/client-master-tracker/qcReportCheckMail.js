@@ -134,6 +134,8 @@ async function qcReportCheckMail(
 
     // Create attachments
     const attachments = await createAttachments(attachments_url);
+    console.log(`toList 3 - `, toList);
+    console.log(`ccList 4 - `, ccList);
 
     // Send email
     const mailOptions = {

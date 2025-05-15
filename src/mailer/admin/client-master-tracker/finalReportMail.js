@@ -153,8 +153,8 @@ async function finalReportMail(
       .map((email) => `"${email.name}" <${email.email}>`)
       .join(", ");
 
-    console.log(`toList - `, toList);
-    console.log(`ccList - `, ccList);
+    console.log(`toList 4 - `, toList);
+    console.log(`ccList 5 - `, ccList);
 
     // Send email
     const mailOptions = {

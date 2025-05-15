@@ -4,7 +4,7 @@ const { QueryTypes } = require("sequelize");
 
 // Function to send email
 async function createMail(
-    module,
+    mailModule,
     action,
     photo,
     ticket_date,

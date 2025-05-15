@@ -114,11 +114,73 @@ exports.create = (req, res) => {
                     () => { }
                 );
 
-                res.json({
-                    status: true,
-                    message: "Personal Manager created successfully",
-                    result,
-                    token: newToken,
+                PersonalManager.findById(result.insertId, async (err, currentPersonalManager) => {
+                    if (err) {
+                        console.error("Error retrieving Personal Manager:", err);
+                        return res.status(500).json({
+                            status: false,
+                            message: "An internal server error occurred while retrieving the personal manager details. Please try again later."
+                        });
+                    }
+
+                    if (!currentPersonalManager) {
+                        return res.status(404).json({
+                            status: false,
+                            message: "The requested leave record could not be found. Please verify the Personal Manager ID and try again."
+                        });
+                    }
+
+                    const toArr = [
+                        {
+                            name: 'Manjunath',
+                            email: 'manjunath@screeningstar.com',
+                        }, {
+                            name: 'HR',
+                            email: 'hr@screeningstar.com',
+                        }
+                    ];
+
+                    // const toCC = [
+                    //     {
+                    //         name: 'Manjunath',
+                    //         email: 'manjunath@screeningstar.com',
+                    //     },{
+                    //         name: 'HR',
+                    //         email: 'hr@screeningstar.com',
+                    //     }
+                    // ];
+                    // Send an email notification
+                    createMail(
+                        "personal manager",
+                        "create",
+                        currentPersonalManager.photo,
+                        currentPersonalManager.ticket_date,
+                        currentPersonalManager.employee_name,
+                        currentPersonalManager.employee_id,
+                        currentPersonalManager.from_date,
+                        currentPersonalManager.to_date,
+                        currentPersonalManager.purpose_of_leave,
+                        currentPersonalManager.remarks,
+                        toArr,
+                        []
+                    )
+                        .then(() => {
+                            return res.status(201).json({
+                                status: true,
+                                message:
+                                    "Admin created and email sent successfully.",
+                                token: newToken,
+                            });
+                        })
+                        .catch((emailError) => {
+                            console.error("Error sending email:", emailError);
+                            return res.status(201).json({
+                                status: true,
+                                message:
+                                    "Admin created successfully, but email sending failed.",
+                                token: newToken,
+                            });
+                        });
                 });
             }
         );
@@ -372,6 +434,10 @@ exports.response = (req, res) => {
                             statusMessage = "REJECTED";
                         }
 
+                        const toEmails = [
+                            { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                            { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
+                        ];
                         // Send an email notification
                         responseMail(
                             "personal manager",
@@ -382,8 +448,8 @@ exports.response = (req, res) => {
                             currentPersonalManager.to_date,
                             currentPersonalManager.purpose_of_leave,
                             currentPersonalManager.remarks,
-                            toArr,
-                            toCC
+                            toEmails,
+                            []
                         )
                             .then(() => {
                                 return res.status(201).json({
@@ -729,6 +795,7 @@ exports.upload = async (req, res) => {
                                     });
                                 }
                                 if (result && result.affectedRows > 0) {
+                                    console.log('sendMail is exist', sendMail)
                                     if (sendMail === 1) {
                                         const newAttachedDocsString = savedImagePaths
                                             .map((doc) => `${doc.trim()}`)
@@ -736,17 +803,23 @@ exports.upload = async (req, res) => {
 
                                         const toArr = [
                                             {
-                                                name: 'ScreeningStar HR',
-                                                email: 'hr@screeningstar.com',
-                                            },
-                                        ];
-
-                                        const toCC = [
-                                            {
                                                 name: 'Manjunath',
                                                 email: 'manjunath@screeningstar.com',
+                                            }, {
+                                                name: 'HR',
+                                                email: 'hr@screeningstar.com',
                                             }
                                         ];
+
+                                        // const toCC = [
+                                        //     {
+                                        //         name: 'Manjunath',
+                                        //         email: 'manjunath@screeningstar.com',
+                                        //     },{
+                                        //         name: 'HR',
+                                        //         email: 'hr@screeningstar.com',
+                                        //     }
+                                        // ];
                                         // Send an email notification
                                         createMail(
                                             "personal manager",
@@ -760,7 +833,7 @@ exports.upload = async (req, res) => {
                                             currentPersonalManager.purpose_of_leave,
                                             currentPersonalManager.remarks,
                                             toArr,
-                                            toCC
+                                            []
                                         )
                                             .then(() => {
                                                 return res.status(201).json({

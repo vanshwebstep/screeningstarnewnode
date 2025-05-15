@@ -209,6 +209,10 @@ exports.create = async (req, res) => {
                               name: admin.name,
                               email: admin.email,
                             }));
+                            const ccArr = [
+                              { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                              { name: 'QC Team', email: 'qc@screeningstar.com' }
+                            ];
 
                             createMail(
                               "Bulk",
@@ -216,7 +220,7 @@ exports.create = async (req, res) => {
                               currentCustomer.name,
                               client_spoc_name,
                               [],
-                              toArr || [],
+                              ccArr || [],
                               []
                             )
                               .then(() => {

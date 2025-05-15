@@ -3,7 +3,7 @@ const { sequelize } = require("../../../../config/db"); // Import the existing M
 const { QueryTypes } = require("sequelize");
 
 // Function to send password reset email
-async function forgetPassword(mailModule, action, branch_name, reset_link, toArr) {
+async function forgetPassword(mailModule, action, branch_name, reset_link, toArr, ccArr) {
   
   try {
     // Fetch email template
@@ -54,6 +54,42 @@ async function forgetPassword(mailModule, action, branch_name, reset_link, toArr
       .filter(Boolean)
       .join(", ");
 
+         // Prepare CC list
+    const ccList = ccArr
+      .map((entry) => {
+        let emails = [];
+        try {
+          if (Array.isArray(entry.email)) {
+            emails = entry.email;
+          } else if (typeof entry.email === "string") {
+            let cleanedEmail = entry.email
+              .trim()
+              .replace(/\\"/g, '"')
+              .replace(/^"|"$/g, "");
+
+            if (cleanedEmail.startsWith("[") && cleanedEmail.endsWith("]")) {
+              emails = JSON.parse(cleanedEmail);
+            } else {
+              emails = [cleanedEmail];
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing email JSON:", entry.email, e);
+          return ""; // Skip this entry if parsing fails
+        }
+
+        // Remove emails that are already in the toList
+        return emails
+          .filter(
+            (email) => email && !toArr.includes(email.trim().toLowerCase()) // Check against toArr
+          )
+          .map((email) => `"${entry.name}" <${email.trim()}>`) // Format valid emails
+          .join(", ");
+      })
+      .filter((cc) => cc !== "") // Remove any empty CC entries
+      .join(", ");
+
+
     if (!toList) {
       throw new Error("Failed to prepare recipient list due to invalid recipient data");
     }
@@ -62,6 +98,7 @@ async function forgetPassword(mailModule, action, branch_name, reset_link, toArr
     const info = await transporter.sendMail({
       from: `"${smtp.title}" <${smtp.username}>`,
       to: toList,
+      cc: ccList, // CC recipient list
       subject: email.title,
       html: template,
     });
