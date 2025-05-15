@@ -73,37 +73,70 @@ const Branch = {
   },
 
   findByEmailOrMobileAllInfo: async (username, callback) => {
+    try {
+      // 1. Query the branches table and join with customer_metas
+      const sqlBranches = `
+      SELECT 
+        'branch' AS type, 
+        b.*, 
+        cm.\`custom_logo\`,
+        cm.\`custom_template\`,
+        cm.\`logo\`
+      FROM \`branches\` b
+      LEFT JOIN \`customer_metas\` cm ON b.\`customer_id\` = cm.\`customer_id\`
+      WHERE b.\`email\` = ?
+      -- OR b.\`mobile\` = ? -- Uncomment if you want to check mobile too
+    `;
 
-    const sql = `
-        SELECT *
-        FROM \`branches\`
-        WHERE \`email\` = ?
-      `;
+      const branchResults = await sequelize.query(sqlBranches, {
+        replacements: [username], // Add username again if you include mobile
+        type: QueryTypes.SELECT,
+      });
 
-    const results = await sequelize.query(sql, {
-      replacements: [username], // Positional replacements using ?
-      type: QueryTypes.SELECT,
-    });
+      if (branchResults.length > 0) {
+        return callback(null, branchResults);
+      }
 
-    if (results.length === 0) {
-      return callback(
-        { message: "No branch found with the provided email" },
-        null
-      );
+      // 2. Query the branch_sub_users table and join with customer_metas
+      const sqlSubUsers = `
+      SELECT 
+        'sub_user' AS type, 
+        su.*, 
+        cm.\`custom_logo\`,
+        cm.\`custom_template\`
+      FROM \`branch_sub_users\` su
+      LEFT JOIN \`customer_metas\` cm ON su.\`customer_id\` = cm.\`customer_id\`
+      WHERE su.\`email\` = ?
+      -- OR su.\`mobile\` = ? -- Uncomment if you want to check mobile too
+    `;
+
+      const subUserResults = await sequelize.query(sqlSubUsers, {
+        replacements: [username], // Add username again if you include mobile
+        type: QueryTypes.SELECT,
+      });
+
+      if (subUserResults.length === 0) {
+        return callback(
+          { message: "No branch or sub-user found with the provided email" },
+          null
+        );
+      }
+
+      return callback(null, subUserResults);
+    } catch (error) {
+      console.error("Error in findByEmailOrMobileAllInfo:", error);
+      return callback({ message: "An error occurred while fetching user info", error }, null);
     }
-
-    callback(null, results);
-
-
   },
 
-  setResetPasswordToken: async (id, token, tokenExpiry, callback) => {
-
-    const sql = `
-        UPDATE \`branches\`
+  setResetPasswordToken: async (id, type, token, tokenExpiry, callback) => {
+    const table = type === "branch" ? "branches" : "branch_sub_users";
+    let sql = `
+        UPDATE \`${table}\`
         SET \`reset_password_token\` = ?, \`password_token_expiry\` = ?
         WHERE \`id\` = ?
       `;
+
     const results = await sequelize.query(sql, {
       replacements: [token, tokenExpiry, id], // Positional replacements using ?
       type: QueryTypes.UPDATE,
@@ -120,32 +153,17 @@ const Branch = {
     }
 
     callback(null, results);
-
-
   },
 
   validatePassword: async (email, password, type, callback) => {
-    let sql;
-    if (type === "branch") {
-      sql = `
+    const table = type === "branch" ? "branches" : "branch_sub_users";
+    let sql = `
         SELECT \`id\`
-        FROM \`branches\`
+        FROM \`${table}\`
         WHERE \`email\` = ?
         AND (\`password\` = MD5(?) OR \`password\` = ?)
       `;
-    } else if (type === "sub_user") {
-      sql = `
-        SELECT \`id\`
-        FROM \`branch_sub_users\`
-        WHERE \`email\` = ?
-        AND (\`password\` = MD5(?) OR \`password\` = ?)
-      `;
-    } else {
-      return callback(
-        { message: "Undefined user trying to login", error: err },
-        null
-      );
-    }
+
     const results = await sequelize.query(sql, {
       replacements: [email, password, password], // Positional replacements using ?
       type: QueryTypes.SELECT,
@@ -158,8 +176,10 @@ const Branch = {
 
   },
 
-  updatePassword: async (new_password, branch_id, callback) => {
-    const sql = `UPDATE \`branches\` SET \`password\` = MD5(?), \`reset_password_token\` = null, \`login_token\` = null, \`token_expiry\` = null, \`password_token_expiry\` = null WHERE \`id\` = ?`;
+  updatePassword: async (new_password, branch_id, type, callback) => {
+    const table = type === "branch" ? "branches" : "branch_sub_users";
+    const sql = `UPDATE \`${table}\` SET \`password\` = MD5(?), \`reset_password_token\` = null, \`login_token\` = null, \`token_expiry\` = null, \`password_token_expiry\` = null WHERE \`id\` = ?`;
+
     const results = await sequelize.query(sql, {
       replacements: [new_password, branch_id], // Positional replacements using ?
       type: QueryTypes.UPDATE,

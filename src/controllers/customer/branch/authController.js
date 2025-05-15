@@ -137,6 +137,7 @@ exports.login = (req, res) => {
               (err, isValid) => {
                 if (err) {
                   console.error("Database error:", err);
+                  /*
                   Common.branchLoginLog(
                     ipAddress,
                     ipType,
@@ -146,6 +147,7 @@ exports.login = (req, res) => {
                     err,
                     () => { }
                   );
+                  */
                   return res
                     .status(500)
                     .json({ status: false, message: err.message });
@@ -153,6 +155,7 @@ exports.login = (req, res) => {
 
                 // If the password is incorrect, log the attempt and return a 401 response
                 if (!isValid) {
+                  /*
                   Common.branchLoginLog(
                     ipAddress,
                     ipType,
@@ -162,12 +165,14 @@ exports.login = (req, res) => {
                     "Incorrect password",
                     () => { }
                   );
+                  */
                   return res
                     .status(401)
                     .json({ status: false, message: "Incorrect password" });
                 }
 
                 if (record.status == 0) {
+                  /*
                   Common.branchLoginLog(
                     ipAddress,
                     ipType,
@@ -178,6 +183,7 @@ exports.login = (req, res) => {
                     } account is not yet verified.`,
                     () => { }
                   );
+                  */
                   return res.status(400).json({
                     status: false,
                     message: `Branch ${record.type === "sub_user" ? "Sub User" : ""
@@ -186,6 +192,7 @@ exports.login = (req, res) => {
                 }
 
                 if (record.status == 2) {
+                  /*
                   Common.branchLoginLog(
                     ipAddress,
                     ipType,
@@ -196,6 +203,7 @@ exports.login = (req, res) => {
                     } account has been suspended.`,
                     () => { }
                   );
+                  */
                   return res.status(400).json({
                     status: false,
                     message: `Branch ${record.type === "sub_user" ? "Sub User" : ""
@@ -253,6 +261,7 @@ exports.login = (req, res) => {
                             (err) => {
                               if (err) {
                                 console.error("Database error:", err);
+                                /*
                                 Common.branchLoginLog(
                                   ipAddress,
                                   ipType,
@@ -262,6 +271,7 @@ exports.login = (req, res) => {
                                   "Error updating token: " + err,
                                   () => { }
                                 );
+                                */
                                 return res.status(500).json({
                                   status: false,
                                   message: `Error updating token: ${err}`,
@@ -269,6 +279,7 @@ exports.login = (req, res) => {
                                 });
                               }
 
+                              /*
                               // Log successful login and return the response
                               Common.branchLoginLog(
                                 ipAddress,
@@ -279,6 +290,8 @@ exports.login = (req, res) => {
                                 null,
                                 () => { }
                               );
+                              */
+
                               const {
                                 login_token,
                                 token_expiry,
@@ -314,6 +327,7 @@ exports.login = (req, res) => {
                         null,
                         record.type, (err) => {
                           if (err) {
+                            /*
                             Common.branchLoginLog(
                               ipAddress,
                               ipType,
@@ -323,6 +337,7 @@ exports.login = (req, res) => {
                               "Error updating token: " + err,
                               () => { }
                             );
+                            */
                             return res.status(500).json({
                               status: false,
                               message: `Error updating token: ${err}`,
@@ -393,6 +408,7 @@ exports.login = (req, res) => {
                       (err) => {
                         if (err) {
                           console.error("Database error:", err);
+                          /*
                           Common.branchLoginLog(
                             ipAddress,
                             ipType,
@@ -402,12 +418,14 @@ exports.login = (req, res) => {
                             "Error updating token: " + err,
                             () => { }
                           );
+                          */
                           return res.status(500).json({
                             status: false,
                             message: `Error updating token: ${err}`,
                           });
                         }
 
+                        /*
                         // Log successful login and return the response
                         Common.branchLoginLog(
                           ipAddress,
@@ -418,6 +436,7 @@ exports.login = (req, res) => {
                           null,
                           () => { }
                         );
+                        */
                         const {
                           login_token,
                           token_expiry,
@@ -491,6 +510,7 @@ exports.verifyTwoFactor = (req, res) => {
 
     // Validate account status
     if (branch.status === 0) {
+      /*
       Common.branchLoginLog(
         ipAddress,
         ipType,
@@ -500,6 +520,7 @@ exports.verifyTwoFactor = (req, res) => {
         "Account not verified",
         () => { }
       );
+      */
       return res.status(400).json({
         status: false,
         message: "Branch account is not verified.",
@@ -507,6 +528,7 @@ exports.verifyTwoFactor = (req, res) => {
     }
 
     if (branch.status === 2) {
+      /*
       Common.branchLoginLog(
         ipAddress,
         ipType,
@@ -516,6 +538,8 @@ exports.verifyTwoFactor = (req, res) => {
         "Account suspended",
         () => { }
       );
+      */
+
       return res.status(400).json({
         status: false,
         message: "Branch account is suspended.",
@@ -554,8 +578,11 @@ exports.verifyTwoFactor = (req, res) => {
     const otpExpiry = new Date(branch.otp_expiry);
 
     if (branch.otp !== otpInt) {
+      /*
       Common.branchLoginLog(ipAddress,
         ipType, branch.id, "login", "0", "Invalid OTP", () => { });
+      */
+
       return res.status(401).json({
         status: false,
         message: "The provided OTP is incorrect.",
@@ -563,8 +590,11 @@ exports.verifyTwoFactor = (req, res) => {
     }
 
     if (otpExpiry <= currentTime) {
+      /*
       Common.branchLoginLog(ipAddress,
         ipType, branch.id, "login", "0", "OTP expired", () => { });
+      */
+
       return res.status(401).json({
         status: false,
         message: "The OTP has expired. Please request a new one.",
@@ -590,6 +620,7 @@ exports.verifyTwoFactor = (req, res) => {
         (err) => {
           if (err) {
             console.error("Error updating token:", err);
+            /*
             Common.branchLoginLog(
               ipAddress,
               ipType,
@@ -599,6 +630,8 @@ exports.verifyTwoFactor = (req, res) => {
               "Error updating token",
               () => { }
             );
+            */
+
             return res.status(500).json({
               status: false,
               message:
@@ -606,6 +639,7 @@ exports.verifyTwoFactor = (req, res) => {
             });
           }
 
+          /*
           Common.branchLoginLog(
             ipAddress,
             ipType,
@@ -615,6 +649,8 @@ exports.verifyTwoFactor = (req, res) => {
             "Login successful",
             () => { }
           );
+          */
+
           const {
             otp,
             two_factor_enabled,
@@ -699,6 +735,7 @@ exports.updatePassword = (req, res) => {
       BranchAuth.updatePassword(new_password, branch_id, (err, result) => {
         if (err) {
           console.error("Database error during password update:", err);
+          /*
           Common.branchActivityLog(
             ipAddress,
             ipType,
@@ -710,6 +747,7 @@ exports.updatePassword = (req, res) => {
             null,
             () => { }
           );
+          */
           return res.status(500).json({
             status: false,
             message: "Failed to update password. Please try again later.",
@@ -717,6 +755,7 @@ exports.updatePassword = (req, res) => {
           });
         }
 
+        /*
         Common.branchActivityLog(
           ipAddress,
           ipType,
@@ -728,6 +767,7 @@ exports.updatePassword = (req, res) => {
           null,
           () => { }
         );
+        */
 
         return res.status(200).json({
           status: true,
@@ -837,6 +877,7 @@ exports.validateLogin = (req, res) => {
 
     // Check branch status
     if (branch.status === 0) {
+      /*
       Common.branchLoginLog(
         ipAddress,
         ipType,
@@ -846,6 +887,8 @@ exports.validateLogin = (req, res) => {
         "Branch account is not yet verified.",
         () => { }
       );
+      */
+
       return res.status(400).json({
         status: false,
         message:
@@ -854,6 +897,7 @@ exports.validateLogin = (req, res) => {
     }
 
     if (branch.status === 2) {
+      /*
       Common.branchLoginLog(
         ipAddress,
         ipType,
@@ -863,6 +907,8 @@ exports.validateLogin = (req, res) => {
         "branch account has been suspended.",
         () => { }
       );
+      */
+
       return res.status(400).json({
         status: false,
         message:
@@ -933,6 +979,8 @@ exports.forgotPasswordRequest = (req, res) => {
 
     const branch = result[0];
 
+    console.log(`branch - `, branch);
+
     // Retrieve application information for the reset link
     AppModel.appInfo("frontend", (err, appInfo) => {
       if (err) {
@@ -951,11 +999,13 @@ exports.forgotPasswordRequest = (req, res) => {
         // Update the reset password token in the database
         BranchAuth.setResetPasswordToken(
           branch.id,
+          branch.type,
           token,
           tokenExpiry,
           (err) => {
             if (err) {
               console.error("Error updating reset password token:", err);
+              /*
               Common.branchLoginLog(
                 ipAddress,
                 ipType,
@@ -965,6 +1015,7 @@ exports.forgotPasswordRequest = (req, res) => {
                 `Error updating token: ${err}`,
                 () => { }
               );
+              */
               return res.status(500).json({
                 status: false,
                 message:
@@ -975,16 +1026,17 @@ exports.forgotPasswordRequest = (req, res) => {
             // Send password reset email
             const resetLink = `${appInfo.host || "www.screeningstar.in"
               }/branch/reset-password?email=${branch.email}&token=${token}`;
-            const toArr = [{ name: branch.name, email: branch.email }];
+            const toArr = [{ name: branch.name || branch.email, email: branch.email }];
 
             forgetPassword(
               "branch auth",
               "forget-password",
-              branch.name,
+              branch.name || branch.email,
               resetLink,
               toArr
             )
               .then(() => {
+                /*
                 Common.branchLoginLog(
                   ipAddress,
                   ipType,
@@ -994,6 +1046,7 @@ exports.forgotPasswordRequest = (req, res) => {
                   null,
                   () => { }
                 );
+                */
                 return res.status(200).json({
                   status: true,
                   message: `A password reset email has been successfully sent to ${branch.name}.`,
@@ -1004,6 +1057,7 @@ exports.forgotPasswordRequest = (req, res) => {
                   "Error sending password reset email:",
                   emailError
                 );
+                /*
                 Common.branchLoginLog(
                   ipAddress,
                   ipType,
@@ -1013,6 +1067,7 @@ exports.forgotPasswordRequest = (req, res) => {
                   `Failed to send email: ${emailError.message}`,
                   () => { }
                 );
+                */
                 return res.status(500).json({
                   status: false,
                   message: `Failed to send password reset email to ${branch.name}. Please try again later.`,
@@ -1074,6 +1129,7 @@ exports.forgotPassword = (req, res) => {
     }
 
     const branch = result[0];
+    console.log(`branch - `, branch);
     const tokenExpiry = new Date(branch.password_token_expiry);
     const currentTime = new Date();
 
@@ -1085,6 +1141,8 @@ exports.forgotPassword = (req, res) => {
       });
     }
 
+    console.log(`1 - `, branch.reset_password_token);
+    console.log(`2 - `, password_token);
     // Verify if the token matches
     if (branch.reset_password_token !== password_token) {
       return res.status(401).json({
@@ -1094,9 +1152,10 @@ exports.forgotPassword = (req, res) => {
     }
 
     // Proceed to update the password
-    BranchAuth.updatePassword(new_password, branch.id, (err, result) => {
+    BranchAuth.updatePassword(new_password, branch.id, branch.type, (err, result) => {
       if (err) {
         console.error("Database error during password update:", err);
+        /*
         Common.branchActivityLog(
           ipAddress,
           ipType,
@@ -1108,12 +1167,14 @@ exports.forgotPassword = (req, res) => {
           err,
           () => { }
         );
+        */
         return res.status(500).json({
           status: false,
           message: "Failed to update password. Please try again later.",
         });
       }
 
+      /*
       // Log successful password update
       Common.branchActivityLog(
         ipAddress,
@@ -1126,6 +1187,7 @@ exports.forgotPassword = (req, res) => {
         null,
         () => { }
       );
+      */
 
       return res.status(200).json({
         status: true,
