@@ -57,6 +57,7 @@ async function finalReportMail(
   final_report_date,
   report_type,
   overall_status,
+  final_verification_status,
   attachments_url,
   toArr,
   ccArr
@@ -109,7 +110,9 @@ async function finalReportMail(
       .replace(/{{case_initiated_date}}/g, case_initiated_date)
       .replace(/{{final_report_date}}/g, final_report_date)
       .replace(/{{report_type}}/g, report_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
-      .replace(/{{overall_status}}/g, overall_status.toUpperCase());
+      .replace(/{{overall_status}}/g, overall_status.toUpperCase())
+      .replace(/{{final_verification_status}}/g, final_verification_status.toUpperCase());
+
     // Prepare CC list
     const ccList = ccArr
       .map((entry) => {

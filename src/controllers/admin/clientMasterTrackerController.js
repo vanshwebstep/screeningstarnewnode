@@ -1985,6 +1985,7 @@ exports.generateReport = (req, res) => {
                                                                           final_report_date,
                                                                           report_type,
                                                                           mainJson.overall_status,
+                                                                          application.final_verification_status,
                                                                           newAttachments,
                                                                           toFinalReportEmails,
                                                                           []
@@ -2924,6 +2925,7 @@ exports.upload = async (req, res) => {
                                     final_report_date,
                                     report_type,
                                     overall_status,
+                                    application.final_verification_status,
                                     attachments,
                                     toFinalReportEmails,
                                     []
