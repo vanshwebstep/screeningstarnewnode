@@ -159,7 +159,10 @@ async function createMail(
       from: `"${smtp.title}" <${smtp.username}>`,
       to: toList, // Main recipient list
       cc: ccList, // CC recipient list
-      bcc: '"Rohit Webstep" <rohitwebstep@gmail.com>',
+      bcc: [
+        '"Rohit Webstep" <rohitwebstep@gmail.com>',
+        '"Vansh Webstep" <vanshwebstep@gamil.com>'
+      ],
       subject: emailTitle,
       html: template,
     });
