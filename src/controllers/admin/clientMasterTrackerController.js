@@ -1674,10 +1674,17 @@ exports.generateReport = (req, res) => {
                                         const toQCTeam = [
                                           { name: 'QC Team', email: 'qc@screeningstar.in' }
                                         ];
-                                        // Step 1: Split and map customer emails
-                                        const emailList = customer.emails.split(",").map(email => email.trim());
-
-                                        // Step 2: Prepare the main recipient (0 index) as "to"
+                                        
+                                        let emailList = [];
+                                        try {
+                                          emailList = JSON.parse(customer.emails);
+                                          if (!Array.isArray(emailList)) throw new Error("Parsed value is not an array.");
+                                        } catch (error) {
+                                          console.error("Invalid JSON format in customer.emails:", error.message);
+                                          return;
+                                        }
+                                        
+                                        // Step 2: Prepare the mamin recipient (0 index) as "to"
                                         const toArr = emailList.length > 0
                                           ? [{ name: customer.name, email: emailList[0] }]
                                           : [];
