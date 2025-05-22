@@ -1836,11 +1836,11 @@ module.exports = {
                                                             .replace(/^-|-$/g, '');              // remove starting/ending hyphens
                                                     };
 
-                                                    const newPdfFileName = `${applicationInfo?.application_id || 'NA'}-${applicationInfo.name || 'NA'}-${applicationInfo.employee_id || 'NA'}-${applicationInfo.report_type === 'interim_report' ? 'INTERIM_REPORT' : applicationInfo.report_type === 'final_report' ? 'FINAL_REPORT' : 'UNKNOWN_REPORT'}`;
+                                                    const newPdfFileName = sanitizeFilename(`${applicationInfo?.application_id || 'NA'}-${applicationInfo.name || 'NA'}-${applicationInfo.employee_id || 'NA'}-${applicationInfo.report_type === 'interim_report' ? 'INTERIM_REPORT' : applicationInfo.report_type === 'final_report' ? 'FINAL_REPORT' : 'UNKNOWN_REPORT'}`) + '.pdf';
                                                     console.log(newPdfFileName)
                                                     const pdfPathCloud = await savePdf(
                                                         doc,
-                                                        sanitizeFilename(newPdfFileName),
+                                                        newPdfFileName,
                                                         targetDirectory
                                                     );
                                                     // doc.save(pdfPath);
