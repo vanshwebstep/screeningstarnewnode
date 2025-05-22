@@ -672,8 +672,9 @@ exports.verifyTwoFactor = (req, res) => {
 };
 
 exports.updatePassword = (req, res) => {
-  const { ipAddress, ipType } = getClientIpAddress(req);
 
+  const { ipAddress, ipType } = getClientIpAddress(req);
+  console.log(`step 1`);
   const { new_password, sub_user_id, branch_id, _token } = req.body;
 
   // Validate required fields
@@ -694,6 +695,8 @@ exports.updatePassword = (req, res) => {
     branch_id === undefined ||
     branch_id === "undefined"
   ) {
+    console.log(`step 2`);
+
     missingFields.push("Branch ID");
   }
 
@@ -703,16 +706,21 @@ exports.updatePassword = (req, res) => {
     _token === undefined ||
     _token === "undefined"
   ) {
+    console.log(`step 3`);
+
     missingFields.push("Token");
   }
 
   // If required fields are missing, return error
   if (missingFields.length > 0) {
+    console.log(`step 4`);
+
     return res.status(400).json({
       status: false,
       message: `Missing required fields: ${missingFields.join(", ")}`,
     });
   }
+  const type = sub_user_id ? 'branch_sub_users' : 'branches';
 
   // Validate branch token
   Common.isBranchTokenValid(
@@ -724,7 +732,7 @@ exports.updatePassword = (req, res) => {
         console.error("Error checking token validity:", err);
         return res.status(500).json({ status: false, message: err.message });
       }
-
+      console.log('step-222')
       if (!result.status) {
         return res.status(401).json({ status: false, message: result.message });
       }
@@ -732,8 +740,9 @@ exports.updatePassword = (req, res) => {
       const newToken = result.newToken;
 
       // Check if employee ID is unique
-      BranchAuth.updatePassword(new_password, branch_id, (err, result) => {
+      BranchAuth.updatePassword(new_password, branch_id, type, (err, result) => {
         if (err) {
+          console.log(`step 5`);
           console.error("Database error during password update:", err);
           /*
           Common.branchActivityLog(
@@ -1030,7 +1039,7 @@ exports.forgotPasswordRequest = (req, res) => {
 
 
             const ccArr = [
-              {name: 'BGV Team', email: 'bgv@screeningstar.com'}
+              { name: 'BGV Team', email: 'bgv@screeningstar.com' }
             ];
 
             forgetPassword(
@@ -1174,6 +1183,8 @@ exports.forgotPassword = (req, res) => {
           () => { }
         );
         */
+        console.log(`step 7`);
+
         return res.status(500).json({
           status: false,
           message: "Failed to update password. Please try again later.",

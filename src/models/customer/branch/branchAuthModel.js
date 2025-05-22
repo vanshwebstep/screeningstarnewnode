@@ -274,7 +274,6 @@ const Branch = {
 
   },
 
-
   validateLogin: async (id, callback) => {
 
     const sql = `
