@@ -1668,21 +1668,33 @@ exports.generateReport = (req, res) => {
                                         }
                                         console.log(`Step 19`);
                                         const { branch, customer } = emailData;
+
                                         const company_name = customer.name;
 
-                                        // Prepare recipient and CC lists
-                                        const toArr = [
-                                          { name: branch.name, email: branch.email },
-                                        ];
                                         const toQCTeam = [
                                           { name: 'QC Team', email: 'qc@screeningstar.in' }
                                         ];
-                                        const ccArr = customer.emails
-                                          .split(",")
-                                          .map((email) => ({
-                                            name: customer.name,
-                                            email: email.trim(),
-                                          }));
+                                        // Step 1: Split and map customer emails
+                                        const emailList = customer.emails.split(",").map(email => email.trim());
+
+                                        // Step 2: Prepare the main recipient (0 index) as "to"
+                                        const toArr = emailList.length > 0
+                                          ? [{ name: customer.name, email: emailList[0] }]
+                                          : [];
+
+                                        // Step 3: Prepare the rest as "cc"
+                                        const ccArr = emailList.slice(1).map(email => ({
+                                          name: customer.name,
+                                          email,
+                                        }));
+
+                                        // Step 4: Merge into final recipients
+                                        const finalCcEmails = [
+                                          { name: 'Bgv Team', email: 'bgv@screeningstar.com' },
+                                          { name: 'Manjunath', email: 'manjunath@screeningstar.com' },
+                                          ...ccArr,
+                                        ];
+
                                         console.log(`Step 20`);
                                         ClientMasterTrackerModel.applicationByID(
                                           application_id,
@@ -1987,8 +1999,8 @@ exports.generateReport = (req, res) => {
                                                                           mainJson.overall_status,
                                                                           application.final_verification_status,
                                                                           newAttachments,
-                                                                          toFinalReportEmails,
-                                                                          []
+                                                                          toArr,
+                                                                          finalCcEmails
                                                                         )
                                                                           .then(() => {
                                                                             console.log(
