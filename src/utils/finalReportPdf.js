@@ -1829,9 +1829,18 @@ module.exports = {
                                                     console.log(`PDF Saved`);
                                                     // doc.save(`123.pdf`);
 
+                                                    const sanitizeFilename = (str) => {
+                                                        return str
+                                                            .replace(/[\/\\?%*:|"<> ().]/g, '-') // replace invalid characters, including dot & parentheses
+                                                            .replace(/-+/g, '-')                 // replace multiple hyphens with a single one
+                                                            .replace(/^-|-$/g, '');              // remove starting/ending hyphens
+                                                    };
+
+                                                    const newPdfFileName = `${applicationInfo?.application_id || 'NA'}-${applicationInfo.name || 'NA'}-${applicationInfo.employee_id || 'NA'}-${applicationInfo.report_type === 'interim_report' ? 'INTERIM_REPORT' : applicationInfo.report_type === 'final_report' ? 'FINAL_REPORT' : 'UNKNOWN_REPORT'}`;
+                                                    console.log(newPdfFileName)
                                                     const pdfPathCloud = await savePdf(
                                                         doc,
-                                                        pdfFileName,
+                                                        sanitizeFilename(newPdfFileName),
                                                         targetDirectory
                                                     );
                                                     // doc.save(pdfPath);
