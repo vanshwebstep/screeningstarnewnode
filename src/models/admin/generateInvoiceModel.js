@@ -8,7 +8,7 @@ const hashPassword = (password) =>
 
 const generateInvoiceModel = {
   generateInvoice: async (customerId, month, year, callback) => {
-    console.log("🔄 Start generating invoice");
+    // console.log("🔄 Start generating invoice");
 
     const customerQuery = `
          SELECT 
@@ -30,32 +30,32 @@ const generateInvoiceModel = {
       LEFT JOIN customer_metas cm ON cm.customer_id = c.id
       WHERE c.id = ? AND c.is_deleted != 1;
     `;
-    console.log("📡 Fetching customer details...");
+    // console.log("📡 Fetching customer details...");
     const customerResults = await sequelize.query(customerQuery, {
       replacements: [customerId],
       type: QueryTypes.SELECT,
     });
 
     if (customerResults.length === 0) {
-      console.warn("❌ Customer not found.");
+      // console.warn("❌ Customer not found.");
       return callback(new Error("Customer not found."), null);
     }
 
     const customerData = customerResults[0];
-    console.log("✅ Customer details retrieved:", customerData.name);
+    // console.log("✅ Customer details retrieved:", customerData.name);
 
     let servicesData;
     try {
       servicesData = JSON.parse(customerData.services);
-      console.log("🛠️ Parsed services data successfully");
+      // console.log("🛠️ Parsed services data successfully");
     } catch (parseError) {
-      console.error("❌ Failed to parse services JSON:", parseError);
+      // console.error("❌ Failed to parse services JSON:", parseError);
       return callback(parseError, null);
     }
 
     const updateServiceTitles = async () => {
       try {
-        console.log("🔍 Updating service titles...");
+        // console.log("🔍 Updating service titles...");
         for (const group of servicesData) {
           for (const service of group.services) {
             const serviceSql = `SELECT title FROM services WHERE id = ?`;
@@ -67,16 +67,16 @@ const generateInvoiceModel = {
               resolve(results);
             });
             if (rows && rows.title) {
-              console.log(`📌 Service ID ${service.serviceId} -> Title: ${rows.title}`);
+              // console.log(`📌 Service ID ${service.serviceId} -> Title: ${rows.title}`);
               service.serviceTitle = rows.title;
             }
           }
         }
       } catch (err) {
-        console.error("❌ Error updating service titles:", err);
+        // console.error("❌ Error updating service titles:", err);
       } finally {
         customerData.services = JSON.stringify(servicesData);
-        console.log("📦 Fetching completed/closed applications for customer...");
+        // console.log("📦 Fetching completed/closed applications for customer...");
 
         const applicationQuery = `
              SELECT
@@ -106,7 +106,7 @@ const generateInvoiceModel = {
           type: QueryTypes.SELECT,
         });
 
-        console.log(`📋 Total applications fetched: ${applicationResults.length}`);
+        // console.log(`📋 Total applications fetched: ${applicationResults.length}`);
 
         const branchApplicationsMap = {};
         applicationResults.forEach((application) => {
@@ -124,7 +124,7 @@ const generateInvoiceModel = {
         const branchesWithApplications = [];
         const branchIds = Object.keys(branchApplicationsMap);
 
-        console.log("🏢 Fetching branch names...");
+        // console.log("🏢 Fetching branch names...");
         const branchPromises = branchIds.map((branchId) => {
           return new Promise(async (resolve, reject) => {
             const branchQuery = `SELECT id, name FROM branches WHERE id = ?;`;
@@ -140,9 +140,9 @@ const generateInvoiceModel = {
                 name: branch.name,
                 applications: branchApplicationsMap[branchId].applications,
               });
-              console.log(`✅ Branch found: ${branch.name} (ID: ${branch.id})`);
+              // console.log(`✅ Branch found: ${branch.name} (ID: ${branch.id})`);
             } else {
-              console.warn(`⚠️ Branch not found for ID: ${branchId}`);
+              // console.warn(`⚠️ Branch not found for ID: ${branchId}`);
             }
             resolve();
           });
@@ -161,7 +161,7 @@ const generateInvoiceModel = {
               if (reportFormResults.length > 0) {
                 const reportFormJson = JSON.parse(reportFormResults[0].json);
                 const dbTable = reportFormJson.db_table;
-                console.log(`🔧 Processing service ${serviceId} in table: ${dbTable}`);
+                // console.log(`🔧 Processing service ${serviceId} in table: ${dbTable}`);
 
                 const additionalFeeColumnQuery = `SHOW COLUMNS FROM \`${dbTable}\` WHERE \`Field\` LIKE 'additional_fee%'`;
                 const columnResults = await sequelize.query(additionalFeeColumnQuery, {
@@ -182,7 +182,7 @@ const generateInvoiceModel = {
                   type: QueryTypes.SELECT,
                 });
 
-                console.log(`📊 Status fetched for application ${application.id}`);
+                // console.log(`📊 Status fetched for application ${application.id}`);
 
                 application.statusDetails.push({
                   serviceId,
@@ -194,7 +194,7 @@ const generateInvoiceModel = {
                 });
                 resolve();
               } else {
-                console.warn(`❌ No report form found for service ID: ${serviceId}`);
+                // console.warn(`❌ No report form found for service ID: ${serviceId}`);
                 resolve();
               }
             });
@@ -210,11 +210,11 @@ const generateInvoiceModel = {
               customerInfo: customerData,
               applicationsByBranch: branchesWithApplications,
             };
-            console.log("✅ Final result compiled successfully.");
+            // console.log("✅ Final result compiled successfully.");
             callback(null, finalResults);
           })
           .catch((err) => {
-            console.error("❌ Error during data aggregation:", err);
+            // console.error("❌ Error during data aggregation:", err);
             callback(err, null);
           });
       }
