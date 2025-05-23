@@ -204,15 +204,6 @@ const generateInvoiceModel = {
                     } FROM ${dbTable} WHERE client_application_id = ${application.id
                     };`
                   );
-                  if (err) {
-                    if (err.code === "ER_NO_SUCH_TABLE") {
-                      console.warn(
-                        `Table ${dbTable} does not exist. Skipping...`
-                      );
-                      return resolve();
-                    }
-                    return reject(err);
-                  }
 
                   // Append the status and additional_fee to the application object
                   application.statusDetails.push({
