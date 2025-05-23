@@ -10,7 +10,26 @@ const generateInvoiceModel = {
   generateInvoice: async (customerId, month, year, callback) => {
     console.log("🔄 Start generating invoice");
 
-    const customerQuery = `...`; // same query
+    const customerQuery = `
+         SELECT 
+        c.id, 
+        c.client_unique_id, 
+        c.name, 
+        c.emails, 
+        c.mobile, 
+        c.services, 
+        cm.address, 
+        cm.contact_person_name, 
+        cm.escalation_point_contact, 
+        cm.single_point_of_contact, 
+        cm.gst_number,
+        cm.payment_contact_person,
+        cm.state,
+        cm.state_code
+      FROM customers c
+      LEFT JOIN customer_metas cm ON cm.customer_id = c.id
+      WHERE c.id = ? AND c.is_deleted != 1;
+    `;
     console.log("📡 Fetching customer details...");
     const customerResults = await sequelize.query(customerQuery, {
       replacements: [customerId],
@@ -59,7 +78,29 @@ const generateInvoiceModel = {
         customerData.services = JSON.stringify(servicesData);
         console.log("📦 Fetching completed/closed applications for customer...");
 
-        const applicationQuery = `...`; // same query
+        const applicationQuery = `
+             SELECT
+              ca.id,
+              ca.branch_id,
+              ca.application_id,
+              ca.employee_id,
+              ca.name,
+              ca.services,
+              ca.status,
+              ca.created_at,
+              cmt.report_date
+            FROM 
+              client_applications ca
+            LEFT JOIN 
+              cmt_applications cmt ON cmt.client_application_id = ca.id
+            WHERE 
+              (ca.status = 'completed' OR ca.status = 'closed') 
+              AND ca.customer_id = ?
+              AND MONTH(cmt.report_date) = ?
+              AND YEAR(cmt.report_date) = ? 
+              AND ca.is_deleted != 1
+            ORDER BY ca.branch_id;
+          `;
         const applicationResults = await sequelize.query(applicationQuery, {
           replacements: [customerId, month, year],
           type: QueryTypes.SELECT,
