@@ -192,97 +192,78 @@ const tatDelay = {
       const breakTableName = "admin_breaks";
       const adminLoginLogsTableName = "admin_login_logs";
 
-      // Step 1: Fetch all admins
       console.log("Fetching all admins...");
       const admins = await sequelize.query(`
-        SELECT id AS admin_id, name AS admin_name, profile_picture, email AS admin_email, mobile AS admin_mobile, emp_id
-        FROM admins
-      `, {
+      SELECT id AS admin_id, name AS admin_name, profile_picture, email AS admin_email, mobile AS admin_mobile, emp_id
+      FROM admins
+    `, {
         type: QueryTypes.SELECT,
       });
 
-      console.log("Admins fetched:", admins.length);
+      console.log("Fetching all distinct dates...");
+      const datesResult = await sequelize.query(`
+      SELECT DISTINCT DATE(created_at) AS date
+      FROM ${adminLoginLogsTableName}
+      ORDER BY date DESC
+    `, {
+        type: QueryTypes.SELECT,
+      });
+      const distinctDates = datesResult.map(d => d.date);
+
+      console.log("Fetching all distinct break types...");
+      const breakTypesResult = await sequelize.query(`
+      SELECT DISTINCT type FROM ${breakTableName}
+    `, { type: QueryTypes.SELECT });
+      const breakTypes = breakTypesResult.map(t => t.type);
+
+      console.log("Fetching all login/logout records...");
+      const loginLogoutRecords = await sequelize.query(`
+      SELECT admin_id, action, created_at, DATE(created_at) AS date
+      FROM ${adminLoginLogsTableName}
+      WHERE action IN ('login', 'logout')
+    `, { type: QueryTypes.SELECT });
+
+      console.log("Fetching all break records...");
+      const breakRecords = await sequelize.query(`
+      SELECT admin_id, type, created_at, DATE(created_at) AS date
+      FROM ${breakTableName}
+    `, { type: QueryTypes.SELECT });
+
+      console.log("Organizing data...");
+      const loginMap = {};
+      for (const log of loginLogoutRecords) {
+        const key = `${log.admin_id}_${log.date}`;
+        loginMap[key] = loginMap[key] || { login: null, logout: null };
+        if (log.action === 'login') {
+          if (!loginMap[key].login || new Date(log.created_at) < new Date(loginMap[key].login)) {
+            loginMap[key].login = log.created_at;
+          }
+        } else if (log.action === 'logout') {
+          if (!loginMap[key].logout || new Date(log.created_at) > new Date(loginMap[key].logout)) {
+            loginMap[key].logout = log.created_at;
+          }
+        }
+      }
+
+      const breakMap = {};
+      for (const brk of breakRecords) {
+        const key = `${brk.admin_id}_${brk.date}`;
+        breakMap[key] = breakMap[key] || {};
+        if (!breakMap[key][brk.type] || new Date(brk.created_at) < new Date(breakMap[key][brk.type])) {
+          breakMap[key][brk.type] = brk.created_at;
+        }
+      }
 
       const finalResult = [];
-
-      // Step 2: Fetch all distinct dates from admin_login_logs
-      console.log("Fetching all distinct dates...");
-      const distinctDatesResult = await sequelize.query(`
-        SELECT DISTINCT DATE(created_at) AS date
-        FROM ${adminLoginLogsTableName}
-        ORDER BY date DESC
-      `, {
-        type: QueryTypes.SELECT,
-      });
-
-      const distinctDates = distinctDatesResult.map(row => row.date);
-      console.log("Distinct dates fetched:", distinctDates);
-
-      // Step 3: Fetch all distinct break types
-      console.log("Fetching all distinct break types...");
-      const distinctTypesResult = await sequelize.query(`
-        SELECT DISTINCT type
-        FROM ${breakTableName}
-      `, {
-        type: QueryTypes.SELECT,
-      });
-
-      const distinctBreakTypes = distinctTypesResult.map(row => row.type);
-      console.log("Distinct break types:", distinctBreakTypes);
-
-      // Step 4: Loop through each admin and date
       for (const admin of admins) {
-        console.log(`Processing admin: ${admin.admin_id} - ${admin.admin_name}`);
         for (const date of distinctDates) {
-          console.log(`  Processing date: ${date}`);
+          const key = `${admin.admin_id}_${date}`;
+          const logData = loginMap[key] || {};
+          const breakData = breakMap[key] || {};
 
-          // 4.1 Fetch first login time for that admin and date
-          console.log("    Fetching first login time...");
-          const [firstLoginResult] = await sequelize.query(`
-            SELECT created_at AS first_login_time
-            FROM ${adminLoginLogsTableName}
-            WHERE admin_id = ? AND action = 'login' AND DATE(created_at) = ?
-            ORDER BY id ASC
-            LIMIT 1
-          `, {
-            replacements: [admin.admin_id, date],
-            type: QueryTypes.SELECT,
-          });
-
-          const [lastLogoutResult] = await sequelize.query(`
-            SELECT created_at AS last_logout_time
-            FROM ${adminLoginLogsTableName}
-            WHERE admin_id = ? AND action = 'logout' AND DATE(created_at) = ?
-            ORDER BY id DESC
-            LIMIT 1
-          `, {
-            replacements: [admin.admin_id, date],
-            type: QueryTypes.SELECT,
-          });
-
-          const first_login_time = firstLoginResult ? firstLoginResult.first_login_time : null;
-          const last_logout_time = lastLogoutResult ? lastLogoutResult.last_logout_time : null;
-
-          console.log("    First login time:", first_login_time);
-          console.log("    Last logout time:", last_logout_time);
-
-          // 4.2 Fetch first break time for each type for that admin and date
           const breakTimes = {};
-          for (const type of distinctBreakTypes) {
-            console.log(`    Fetching first break of type '${type}'...`);
-            const [breakResult] = await sequelize.query(`
-              SELECT created_at
-              FROM ${breakTableName}
-              WHERE admin_id = ? AND type = ? AND DATE(created_at) = ?
-              ORDER BY id ASC
-              LIMIT 1
-            `, {
-              replacements: [admin.admin_id, type, date],
-              type: QueryTypes.SELECT,
-            });
-
-            breakTimes[type] = breakResult ? breakResult.created_at : null;
-            console.log(`    Break time for type '${type}':`, breakTimes[type]);
+          for (const type of breakTypes) {
+            breakTimes[type] = breakData[type] || null;
           }
 
           finalResult.push({
@@ -293,19 +274,14 @@ const tatDelay = {
             admin_email: admin.admin_email,
             admin_mobile: admin.admin_mobile,
             emp_id: admin.emp_id,
-            first_login_time,
-            last_logout_time,
+            first_login_time: logData.login || null,
+            last_logout_time: logData.logout || null,
             break_times: breakTimes,
           });
-
-          console.log(`  Entry added for ${admin.admin_name} on ${date}`);
         }
       }
 
-      // Optional: sort by latest date first
-      finalResult.sort((a, b) => new Date(b.date) - new Date(a.date));
       console.log("Final result compiled. Total entries:", finalResult.length);
-
       return callback(null, finalResult);
 
     } catch (error) {
