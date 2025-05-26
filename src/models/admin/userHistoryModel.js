@@ -191,18 +191,22 @@ const tatDelay = {
     try {
       const breakTableName = "admin_breaks";
       const adminLoginLogsTableName = "admin_login_logs";
-  
+
       // Step 1: Fetch all admins
+      console.log("Fetching all admins...");
       const admins = await sequelize.query(`
         SELECT id AS admin_id, name AS admin_name, profile_picture, email AS admin_email, mobile AS admin_mobile, emp_id
         FROM admins
       `, {
         type: QueryTypes.SELECT,
       });
-  
+
+      console.log("Admins fetched:", admins.length);
+
       const finalResult = [];
-  
+
       // Step 2: Fetch all distinct dates from admin_login_logs
+      console.log("Fetching all distinct dates...");
       const distinctDatesResult = await sequelize.query(`
         SELECT DISTINCT DATE(created_at) AS date
         FROM ${adminLoginLogsTableName}
@@ -210,24 +214,30 @@ const tatDelay = {
       `, {
         type: QueryTypes.SELECT,
       });
-  
+
       const distinctDates = distinctDatesResult.map(row => row.date);
-  
+      console.log("Distinct dates fetched:", distinctDates);
+
       // Step 3: Fetch all distinct break types
+      console.log("Fetching all distinct break types...");
       const distinctTypesResult = await sequelize.query(`
         SELECT DISTINCT type
         FROM ${breakTableName}
       `, {
         type: QueryTypes.SELECT,
       });
-  
+
       const distinctBreakTypes = distinctTypesResult.map(row => row.type);
-  
+      console.log("Distinct break types:", distinctBreakTypes);
+
       // Step 4: Loop through each admin and date
       for (const admin of admins) {
+        console.log(`Processing admin: ${admin.admin_id} - ${admin.admin_name}`);
         for (const date of distinctDates) {
-  
+          console.log(`  Processing date: ${date}`);
+
           // 4.1 Fetch first login time for that admin and date
+          console.log("    Fetching first login time...");
           const [firstLoginResult] = await sequelize.query(`
             SELECT created_at AS first_login_time
             FROM ${adminLoginLogsTableName}
@@ -249,13 +259,17 @@ const tatDelay = {
             replacements: [admin.admin_id, date],
             type: QueryTypes.SELECT,
           });
-  
+
           const first_login_time = firstLoginResult ? firstLoginResult.first_login_time : null;
           const last_logout_time = lastLogoutResult ? lastLogoutResult.last_logout_time : null;
-  
+
+          console.log("    First login time:", first_login_time);
+          console.log("    Last logout time:", last_logout_time);
+
           // 4.2 Fetch first break time for each type for that admin and date
           const breakTimes = {};
           for (const type of distinctBreakTypes) {
+            console.log(`    Fetching first break of type '${type}'...`);
             const [breakResult] = await sequelize.query(`
               SELECT created_at
               FROM ${breakTableName}
@@ -266,10 +280,11 @@ const tatDelay = {
               replacements: [admin.admin_id, type, date],
               type: QueryTypes.SELECT,
             });
-  
+
             breakTimes[type] = breakResult ? breakResult.created_at : null;
+            console.log(`    Break time for type '${type}':`, breakTimes[type]);
           }
-  
+
           finalResult.push({
             date,
             admin_id: admin.admin_id,
@@ -282,14 +297,17 @@ const tatDelay = {
             last_logout_time,
             break_times: breakTimes,
           });
+
+          console.log(`  Entry added for ${admin.admin_name} on ${date}`);
         }
       }
-  
+
       // Optional: sort by latest date first
       finalResult.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
+      console.log("Final result compiled. Total entries:", finalResult.length);
+
       return callback(null, finalResult);
-  
+
     } catch (error) {
       console.error("Error in attendanceIndex:", error);
       return callback(error, null);
