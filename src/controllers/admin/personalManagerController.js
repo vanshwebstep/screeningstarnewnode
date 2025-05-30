@@ -140,6 +140,10 @@ exports.create = (req, res) => {
                         }
                     ];
 
+                    const toCC = [
+                        { name: 'QC Team', email: 'qc@screeningstar.in' }
+                    ];
+
                     // const toCC = [
                     //     {
                     //         name: 'Manjunath',
@@ -162,7 +166,7 @@ exports.create = (req, res) => {
                         currentPersonalManager.purpose_of_leave,
                         currentPersonalManager.remarks,
                         toArr,
-                        []
+                        toCC
                     )
                         .then(() => {
                             return res.status(201).json({
@@ -424,8 +428,6 @@ exports.response = (req, res) => {
                             },
                         ];
 
-                        const toCC = [];
-
                         // Determine the status message based on the status
                         let statusMessage = "";
                         if (status === 1) {
@@ -438,6 +440,11 @@ exports.response = (req, res) => {
                             { name: 'BGV Team', email: 'bgv@screeningstar.com' },
                             { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
                         ];
+
+                        const toCC = [
+                            { name: 'QC Team', email: 'qc@screeningstar.in' }
+                        ];
+
                         // Send an email notification
                         responseMail(
                             "personal manager",
@@ -449,7 +456,7 @@ exports.response = (req, res) => {
                             currentPersonalManager.purpose_of_leave,
                             currentPersonalManager.remarks,
                             toEmails,
-                            []
+                            toCC
                         )
                             .then(() => {
                                 return res.status(201).json({
@@ -811,6 +818,10 @@ exports.upload = async (req, res) => {
                                             }
                                         ];
 
+                                        const toCC = [
+                                            { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                        ];
+
                                         // const toCC = [
                                         //     {
                                         //         name: 'Manjunath',
@@ -833,7 +844,7 @@ exports.upload = async (req, res) => {
                                             currentPersonalManager.purpose_of_leave,
                                             currentPersonalManager.remarks,
                                             toArr,
-                                            []
+                                            toCC
                                         )
                                             .then(() => {
                                                 return res.status(201).json({

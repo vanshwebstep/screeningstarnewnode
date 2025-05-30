@@ -6,10 +6,6 @@ const Admin = require("../../models/admin/adminModel");
 const Customer = require("../../models/customer/customerModel");
 const Ticket = require("../../models/admin/ticketModel");
 
-const {
-  ticketRaised,
-} = require("../../mailer/customer/branch/ticket/ticketRaised");
-
 const { ticketChat } = require("../../mailer/admin/ticket/ticketChat");
 const { getClientIpAddress } = require("../../utils/ipAddress");
 
@@ -237,6 +233,11 @@ exports.chat = (req, res) => {
                 email: createResult.branch_email,
               },
             ];
+
+            const toCC = [
+              { name: 'QC Team', email: 'qc@screeningstar.in' }
+            ];
+
             ticketChat(
               "Ticket",
               "admin-chat",
@@ -248,7 +249,8 @@ exports.chat = (req, res) => {
               currentAdmin.name,
               message,
               createResult.created_at,
-              toArr
+              toArr,
+              toCC
             )
               .then(() =>
                 res.status(201).json({

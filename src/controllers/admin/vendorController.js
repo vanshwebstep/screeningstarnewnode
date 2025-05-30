@@ -5,12 +5,6 @@ const Vendor = require("../../models/admin/vendorModel");
 const Common = require("../../models/admin/commonModel");
 const { getClientIpAddress } = require("../../utils/ipAddress");
 
-const { createMail } = require("../../mailer/admin/personal-manager/createMail");
-
-const fs = require("fs");
-const path = require("path");
-const { upload, saveImage, saveImages } = require("../../utils/cloudImageSave");
-
 exports.create = (req, res) => {
     const { ipAddress, ipType } = getClientIpAddress(req);
 

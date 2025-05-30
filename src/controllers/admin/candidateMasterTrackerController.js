@@ -13,10 +13,6 @@ const {
   createMail,
 } = require("../../mailer/customer/branch/candidate/createMail");
 
-const {
-  bulkCreateMail,
-} = require("../../mailer/customer/branch/candidate/bulkCreateMail");
-
 const { davMail } = require("../../mailer/customer/branch/candidate/davMail");
 
 const fs = require("fs");
@@ -964,7 +960,8 @@ exports.sendLink = (req, res) => {
                       const services = application.services;
 
                       const toArr = [{ name, email }];
-                      let ccArr = [];
+                      let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
+                      
                       const serviceIds = services
                         ? services
                           .split(",")
@@ -1018,6 +1015,10 @@ exports.sendLink = (req, res) => {
 
                               const emailTasks = [];
 
+                              const toCC = [
+                                { name: 'QC Team', email: 'qc@screeningstar.in' }
+                              ];
+
                               // Send Digital Address Verification Mail if required
                               if (davExist === 1 && davSubmitted === 0) {
                                 const davMailPromise = davMail(
@@ -1026,7 +1027,8 @@ exports.sendLink = (req, res) => {
                                   name,
                                   customer.name,
                                   dav_href,
-                                  toArr
+                                  toArr,
+                                  toCC
                                 )
                                   .then(() => {
                                     davMailSent = true;

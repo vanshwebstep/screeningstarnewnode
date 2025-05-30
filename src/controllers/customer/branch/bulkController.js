@@ -205,12 +205,18 @@ exports.create = async (req, res) => {
                             }
 
                             // Extract admin emails
+                            /*
                             const toArr = adminResult.map((admin) => ({
                               name: admin.name,
                               email: admin.email,
                             }));
+                            */
+
+                            const toArr = [
+                              { name: 'BGV Team', email: 'bgv@screeningstar.com' }
+                            ];
+
                             const ccArr = [
-                              { name: 'BGV Team', email: 'bgv@screeningstar.com' },
                               { name: 'QC Team', email: 'qc@screeningstar.com' }
                             ];
 
@@ -220,8 +226,8 @@ exports.create = async (req, res) => {
                               currentCustomer.name,
                               client_spoc_name,
                               [],
-                              ccArr || [],
-                              []
+                              toArr || [],
+                              ccArr
                             )
                               .then(() => {
                                 return res.status(201).json({

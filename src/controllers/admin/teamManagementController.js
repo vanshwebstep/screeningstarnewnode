@@ -13,15 +13,6 @@ const Permission = require("../../models/admin/permissionModel");
 const {
   TeamManagementSubmitMail,
 } = require("../../mailer/admin/team-management/submit");
-const {
-  finalReportMail,
-} = require("../../mailer/admin/client-master-tracker/finalReportMail");
-const {
-  qcReportCheckMail,
-} = require("../../mailer/admin/client-master-tracker/qcReportCheckMail");
-const {
-  readyForReport,
-} = require("../../mailer/admin/client-master-tracker/readyForReport");
 
 const fs = require("fs");
 const path = require("path");
@@ -609,6 +600,10 @@ exports.generateReport = (req, res) => {
                             { name: 'QC Team', email: 'qc@screeningstar.com' },
                           ];
 
+                          const toCC = [
+                            { name: 'QC Team', email: 'qc@screeningstar.in' }
+                          ];
+
                           if (component_status == 1) {
                             TeamManagementSubmitMail(
                               "Team Management Done",
@@ -617,7 +612,7 @@ exports.generateReport = (req, res) => {
                               currentClientApplication.name,
                               currentClientApplication.application_id,
                               toArr,
-                              []
+                              toCC
                             )
                               .then(() => {
                                 return res.status(201).json({

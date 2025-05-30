@@ -1,21 +1,10 @@
 const Admin = require("../../models/admin/adminModel");
 const DataManagement = require("../../models/admin/dataManagementModel");
-const Common = require("../../models/admin/commonModel");
 const crypto = require("crypto");
 const Customer = require("../../models/customer/customerModel");
 const ClientApplication = require("../../models/customer/branch/clientApplicationModel");
 const Branch = require("../../models/customer/branch/branchModel");
 const AdminCommon = require("../../models/admin/commonModel");
-const BranchCommon = require("../../models/customer/branch/commonModel");
-const {
-  finalReportMail,
-} = require("../../mailer/admin/client-master-tracker/finalReportMail");
-const {
-  qcReportCheckMail,
-} = require("../../mailer/admin/client-master-tracker/qcReportCheckMail");
-const {
-  readyForReport,
-} = require("../../mailer/admin/client-master-tracker/readyForReport");
 const { getClientIpAddress } = require("../../utils/ipAddress");
 
 // Controller to list all customers

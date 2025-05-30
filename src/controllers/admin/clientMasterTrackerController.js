@@ -1674,7 +1674,7 @@ exports.generateReport = (req, res) => {
                                         const toQCTeam = [
                                           { name: 'QC Team', email: 'qc@screeningstar.in' }
                                         ];
-                                        
+
                                         let emailList = [];
                                         try {
                                           emailList = JSON.parse(customer.emails);
@@ -1683,7 +1683,7 @@ exports.generateReport = (req, res) => {
                                           console.error("Invalid JSON format in customer.emails:", error.message);
                                           return;
                                         }
-                                        
+
                                         // Step 2: Prepare the mamin recipient (0 index) as "to"
                                         const toArr = emailList.length > 0
                                           ? [{ name: customer.name, email: emailList[0] }]
@@ -1699,6 +1699,7 @@ exports.generateReport = (req, res) => {
                                         const finalCcEmails = [
                                           { name: 'Bgv Team', email: 'bgv@screeningstar.com' },
                                           { name: 'Manjunath', email: 'manjunath@screeningstar.com' },
+                                          { name: 'QC Team', email: 'qc@screeningstar.in' },
                                           ...ccArr,
                                         ];
 
@@ -2292,6 +2293,11 @@ exports.generateReport = (req, res) => {
                                                                       { name: 'BGV Team', email: 'bgv@screeningstar.com' },
                                                                       { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
                                                                     ];
+
+                                                                    const toReadyForReportCCEmails = [
+                                                                      { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                                                    ];
+
                                                                     readyForReport(
                                                                       "cmt",
                                                                       "ready",
@@ -2316,7 +2322,7 @@ exports.generateReport = (req, res) => {
                                                                               char.toUpperCase()
                                                                           ),
                                                                       toReadyForReportEmails,
-                                                                      []
+                                                                      toReadyForReportCCEmails
                                                                     )
                                                                       .then(() => {
                                                                         console.log(`Step 44`);
@@ -2933,6 +2939,10 @@ exports.upload = async (req, res) => {
                                     { name: 'Bgv Team', email: 'bgv@screeningstar.com' },
                                     { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
                                   ];
+
+                                  const toFinalReportCCEmails = [
+                                    { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                  ];
                                   finalReportMail(
                                     "cmt",
                                     "final",
@@ -2947,7 +2957,7 @@ exports.upload = async (req, res) => {
                                     application.final_verification_status,
                                     attachments,
                                     toFinalReportEmails,
-                                    []
+                                    toFinalReportCCEmails
                                   )
                                     .then(() => {
                                       return res.status(200).json({
@@ -3014,12 +3024,16 @@ exports.upload = async (req, res) => {
                                     { name: 'BGV Team', email: 'bgv@screeningstar.com' },
                                     { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
                                   ];
+                                  const toReadyForReportCCEmails = [
+                                    { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                  ];
+
                                   readyForReport(
                                     "cmt",
                                     "ready",
                                     application.application_id,
                                     toReadyForReportEmails,
-                                    []
+                                    toReadyForReportCCEmails
                                   )
                                     .then(() => {
                                       return res.status(200).json({

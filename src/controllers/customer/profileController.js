@@ -709,6 +709,8 @@ exports.create = (req, res) => {
                                                         })
                                                       );
 
+                                                    const toCC = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
+
                                                     // Create email for head branch
                                                     createMail(
                                                       "customer",
@@ -718,6 +720,7 @@ exports.create = (req, res) => {
                                                       password,
                                                       dbBranch.is_head,
                                                       customerRecipientList,
+                                                      toCC,
                                                       appHost
                                                     )
                                                       .then(resolve)
@@ -1068,6 +1071,10 @@ exports.upload = async (req, res) => {
 
                           // Iterate through each branch
                           dbBranches.forEach((dbBranch) => {
+                            const toCC = [
+                              { name: 'QC Team', email: 'qc@screeningstar.in' }
+                            ];
+
                             // Check if the branch is a head branch
                             if (dbBranch.is_head == 1) {
                               Customer.getCustomerById(
@@ -1113,6 +1120,7 @@ exports.upload = async (req, res) => {
                                     password,
                                     dbBranch.is_head,
                                     customerRecipientList,
+                                    toCC,
                                     appHost
                                   ).catch((emailError) => {
                                     console.error(
@@ -1136,7 +1144,7 @@ exports.upload = async (req, res) => {
                                 [{ email: dbBranch.email, name: dbBranch.name }], // Send only the current branch
                                 password,
                                 dbBranch.is_head,
-                                [],
+                                toCC,
                                 appHost
                               ).catch((emailError) => {
                                 console.error("Error sending email:", emailError);

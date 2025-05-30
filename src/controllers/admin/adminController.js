@@ -441,6 +441,7 @@ exports.create = (req, res) => {
           const newAttachedDocsString = "";
           // Prepare the recipient and CC list for the email
           const toArr = [{ name, email }];
+          const toCC = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
 
           // Send an email notification
           createMail(
@@ -454,7 +455,8 @@ exports.create = (req, res) => {
             newAttachedDocsString,
             designation,
             password,
-            toArr
+            toArr,
+            toCC
           )
             .then(() => {
               return res.status(201).json({
@@ -925,6 +927,11 @@ exports.upload = async (req, res) => {
                             email: currentAdmin.email,
                           },
                         ];
+
+                        const toCC = [
+                          { name: 'QC Team', email: 'qc@screeningstar.in' }
+                        ];
+
                         // Send an email notification
                         createMail(
                           "Admin",
@@ -937,7 +944,8 @@ exports.upload = async (req, res) => {
                           newAttachedDocsString,
                           currentAdmin.designation,
                           password,
-                          toArr
+                          toArr,
+                          toCC
                         )
                           .then(() => {
                             return res.status(201).json({

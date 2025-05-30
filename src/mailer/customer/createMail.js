@@ -38,6 +38,7 @@ async function createMail(
   password,
   is_head,
   customerData,
+  toCC,
   appCustomerLoginHost = "www.example.com"
 ) {
 

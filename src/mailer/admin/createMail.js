@@ -14,10 +14,9 @@ async function createMail(
   profile_url,
   designation,
   password,
-  toArr
+  toArr,
+  toCC
 ) {
-  
-
   try {
     // Fetch email template
     const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
@@ -67,6 +66,38 @@ async function createMail(
       .replace(/{{designation}}/g, designation)
       .replace(/{{password}}/g, password);
 
+    // Prepare CC list
+    const ccList = toCC
+      .map((entry) => {
+        let emails = [];
+        try {
+          if (Array.isArray(entry.email)) {
+            emails = entry.email;
+          } else if (typeof entry.email === "string") {
+            let cleanedEmail = entry.email
+              .trim()
+              .replace(/\\"/g, '"')
+              .replace(/^"|"$/g, "");
+
+            if (cleanedEmail.startsWith("[") && cleanedEmail.endsWith("]")) {
+              emails = JSON.parse(cleanedEmail);
+            } else {
+              emails = [cleanedEmail];
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing email JSON:", entry.email, e);
+          return ""; // Skip this entry if parsing fails
+        }
+
+        return emails
+          .filter((email) => email) // Filter out invalid emails
+          .map((email) => `"${entry.name}" <${email.trim()}>`) // Trim to remove whitespace
+          .join(", ");
+      })
+      .filter((cc) => cc !== "") // Remove any empty CCs from failed parses
+      .join(", ");
+
     // Prepare recipient list based on whether the branch is a head branch
     let recipientList = toArr.map(
       (customer) => `"${customer.name}" <${customer.email}>`
@@ -77,6 +108,7 @@ async function createMail(
     const info = await transporter.sendMail({
       from: `"${smtp.title}" <${smtp.username}>`,
       to: recipientList.join(", "), // Join the recipient list into a string
+      cc: ccList,
       subject: email.title,
       html: template,
     });
@@ -85,7 +117,7 @@ async function createMail(
   } catch (error) {
     console.error("Error sending email:", error.message);
   } finally {
-    
+
   }
 }
 

@@ -455,6 +455,10 @@ const sendNotificationEmails = (
                         ...new Map([...ccArr1, ...uniqueEmails].map(item => [item.email, item])).values()
                       ];
 
+                      const toCC = [
+                        { name: 'QC Team', email: 'qc@screeningstar.in' }
+                      ];
+
                       // console.log("step 8: Merged emails - ", mergedEmails);
                       // Send application creation email
                       davSubmitMail(
@@ -464,7 +468,7 @@ const sendNotificationEmails = (
                         customer_name,
                         attachments,
                         adminResult || [],
-                        []
+                        toCC
                       )
                         .then(() => {
                           return res.status(201).json({

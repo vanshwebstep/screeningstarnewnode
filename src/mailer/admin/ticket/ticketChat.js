@@ -14,9 +14,9 @@ async function ticketChat(
   admin_name,
   message,
   reply_date,
-  toArr
+  toArr,
+  toCC
 ) {
-  
 
   try {
     // Fetch email template
@@ -62,10 +62,43 @@ async function ticketChat(
       (customer) => `"${customer.name}" <${customer.email}>`
     );
 
+    // Prepare CC list
+    const ccList = toCC
+      .map((entry) => {
+        let emails = [];
+        try {
+          if (Array.isArray(entry.email)) {
+            emails = entry.email;
+          } else if (typeof entry.email === "string") {
+            let cleanedEmail = entry.email
+              .trim()
+              .replace(/\\"/g, '"')
+              .replace(/^"|"$/g, "");
+
+            if (cleanedEmail.startsWith("[") && cleanedEmail.endsWith("]")) {
+              emails = JSON.parse(cleanedEmail);
+            } else {
+              emails = [cleanedEmail];
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing email JSON:", entry.email, e);
+          return ""; // Skip this entry if parsing fails
+        }
+
+        return emails
+          .filter((email) => email) // Filter out invalid emails
+          .map((email) => `"${entry.name}" <${email.trim()}>`) // Trim to remove whitespace
+          .join(", ");
+      })
+      .filter((cc) => cc !== "") // Remove any empty CCs from failed parses
+      .join(", ");
+
     // Send email to the prepared recipient list
     const info = await transporter.sendMail({
       from: `"${smtp.title}" <${smtp.username}>`,
       to: recipientList.join(", "), // Join the recipient list into a string
+      cc: ccList,
       subject: email.title,
       html: template,
     });
@@ -74,7 +107,7 @@ async function ticketChat(
   } catch (error) {
     console.error("Error sending email:", error.message);
   } finally {
-    
+
   }
 }
 

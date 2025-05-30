@@ -9,10 +9,9 @@ async function TeamManagementSubmitMail(
     customer_name,
     candidate_name,
     application_id,
-    toArr
+    toArr,
+    toCC
 ) {
-
-
     try {
         // Fetch email template
         const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
@@ -48,17 +47,52 @@ async function TeamManagementSubmitMail(
             .replace(/{{application_id}}/g, application_id);
 
         // Prepare recipient list based on whether the branch is a head branch
-        console.log('toArr',toArr)
+        console.log('toArr', toArr)
         const recipientList = toArr.map(
             (customer) => `"${customer.name}" <${customer.email}>`
         );
-        console.log('recipientList', recipientList)
+
+        // Prepare CC list
+        const ccList = toCC
+            .map((entry) => {
+                let emails = [];
+                try {
+                    if (Array.isArray(entry.email)) {
+                        emails = entry.email;
+                    } else if (typeof entry.email === "string") {
+                        let cleanedEmail = entry.email
+                            .trim()
+                            .replace(/\\"/g, '"')
+                            .replace(/^"|"$/g, "");
+
+                        if (cleanedEmail.startsWith("[") && cleanedEmail.endsWith("]")) {
+                            emails = JSON.parse(cleanedEmail);
+                        } else {
+                            emails = [cleanedEmail];
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error parsing email JSON:", entry.email, e);
+                    return ""; // Skip this entry if parsing fails
+                }
+
+                return emails
+                    .filter((email) => email) // Filter out invalid emails
+                    .map((email) => `"${entry.name}" <${email.trim()}>`) // Trim to remove whitespace
+                    .join(", ");
+            })
+            .filter((cc) => cc !== "") // Remove any empty CCs from failed parses
+            .join(", ");
+
+        console.log('recipientList', recipientList);
+        console.log("CC List:", ccList);
 
         let emailTitle = email.title.replace(/{{application_id}}/g, application_id);
         // Send email to the prepared recipient list
         const info = await transporter.sendMail({
             from: `"${smtp.title}" <${smtp.username}>`,
             to: recipientList.join(", "), // Join the recipient list into a string
+            cc: ccList,
             subject: emailTitle,
             html: template,
         });

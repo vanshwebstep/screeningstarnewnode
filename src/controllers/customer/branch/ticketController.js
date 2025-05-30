@@ -360,6 +360,10 @@ exports.chat = (req, res) => {
                         email: admin.email,
                       }));
 
+                      const toCC = [
+                        { name: 'QC Team', email: 'qc@screeningstar.in' }
+                      ];
+
                       // Notify admins about the raised ticket
                       ticketChat(
                         "Ticket",
@@ -371,7 +375,8 @@ exports.chat = (req, res) => {
                         createResult.description,
                         message,
                         createResult.created_at,
-                        toArr
+                        toArr,
+                        toCC
                       )
                         .then(() => {
                           return res.status(201).json({

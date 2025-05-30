@@ -6,13 +6,6 @@ const UserHistory = require("../../../models/admin/userHistoryModel");
 const Common = require("../../../models/admin/commonModel");
 const { getClientIpAddress } = require("../../../utils/ipAddress");
 
-const { createMail } = require("../../../mailer/admin/personal-manager/createMail");
-const { responseMail } = require("../../../mailer/admin/personal-manager/responseMail");
-
-const fs = require("fs");
-const path = require("path");
-const { upload, saveImage, saveImages } = require("../../../utils/cloudImageSave");
-
 exports.create = (req, res) => {
     const { ipAddress, ipType } = getClientIpAddress(req);
 

@@ -750,7 +750,10 @@ function sendNotificationEmails(
 
               const { branch, customer } = emailData;
 
+              /*
               let toArr = [{ name: branch.name, email: branch.email }];
+              */
+
               // If valid emails are found, push them into the toArr
               if (dedicatedClientSpocEmails && dedicatedClientSpocEmails.length > 0) {
                 dedicatedClientSpocEmails.forEach(email => {
@@ -762,8 +765,11 @@ function sendNotificationEmails(
                 name: customer.name,
                 email: email.trim(),
               }));
-              const toCC = [
+              const toArr = [
                 { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+              ];
+
+              const toCC = [
                 { name: 'QC Team', email: 'qc@screeningstar.com' },
               ];
 
@@ -785,8 +791,8 @@ function sendNotificationEmails(
                     customer.name,
                     serviceNames,
                     "",
-                    toCC,
-                    []
+                    toArr,
+                    toCC
                   )
                     .then(() => {
                       if (!responseSent) {

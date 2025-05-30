@@ -2,7 +2,6 @@ const Admin = require("../../models/admin/adminModel");
 const UserHistory = require("../../models/admin/userHistoryModel");
 
 const Common = require("../../models/admin/commonModel");
-const { createMail } = require("../../mailer/admin/createMail");
 
 // Controller to list all Billing SPOCs
 exports.index = (req, res) => {

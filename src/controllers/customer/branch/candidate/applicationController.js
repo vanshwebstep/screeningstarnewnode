@@ -216,7 +216,7 @@ exports.create = (req, res) => {
                         // Prepare recipient and CC lists
 
                         let toArr = [{ name, email }];
-                        let ccArr = [];
+                        let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
 
                         // If valid emails are found, push them into the toArr
                         if (dedicatedClientSpocEmails && dedicatedClientSpocEmails.length > 0) {
@@ -287,6 +287,10 @@ exports.create = (req, res) => {
                                         serviceEntry.id,
                                         10
                                       );
+
+                                      const toCC = [
+                                        { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                      ];
                                       if (serviceIds.includes(digitalAddressID)) {
                                         davMail(
                                           "candidate application",
@@ -294,7 +298,8 @@ exports.create = (req, res) => {
                                           name,
                                           customer.name,
                                           dav_href,
-                                          [{ name: name, email: email.trim() }]
+                                          [{ name: name, email: email.trim() }],
+                                          toCC
                                         )
                                           .then(() => {
                                             console.log(
@@ -774,6 +779,11 @@ function sendNotificationEmails(
                     email: email.trim(),
                   }));
 
+                  const finalEmailCC = [
+                    { name: 'QC Team', email: 'qc@screeningstar.in' },
+                    ...ccArr
+                  ]
+
                   const serviceIds =
                     typeof services === "string" && services.trim() !== ""
                       ? services.split(",").map((id) => id.trim())
@@ -827,7 +837,7 @@ function sendNotificationEmails(
                       serviceNames,
                       "",
                       toArr,
-                      ccArr
+                      finalEmailCC
                     )
                       .then(() => {
                         AppModel.appInfo("frontend", (err, appInfo) => {
@@ -881,7 +891,7 @@ function sendNotificationEmails(
                                     });
                                   }
 
-                                  let createMailCCArr = [];
+                                  let createMailCCArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
 
                                   // Fetch and process digital address service for DAV mail
                                   Service.digitlAddressService((err, serviceEntry) => {
@@ -900,6 +910,10 @@ function sendNotificationEmails(
                                         10
                                       );
                                       if (serviceIds.includes(digitalAddressID)) {
+                                        const toCC = [
+                                          { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                        ];
+
                                         davMail(
                                           "candidate application",
                                           "dav",
@@ -911,7 +925,8 @@ function sendNotificationEmails(
                                               name: app.applicant_full_name,
                                               email: app.email_id.trim(),
                                             },
-                                          ]
+                                          ],
+                                          toCC
                                         )
                                           .then(() => {
                                             console.log(

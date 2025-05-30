@@ -15,26 +15,23 @@ async function responseMail(
     toArr,
     toCC
 ) {
-    
-
     try {
-        
 
         // Fetch email template
-    const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
-      replacements: [mailModule, action],
-      type: QueryTypes.SELECT,
-    });
-    if (emailRows.length === 0) throw new Error("Email template not found");
-    const email = emailRows;  // Assign the first (and only) element to email
+        const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
+            replacements: [mailModule, action],
+            type: QueryTypes.SELECT,
+        });
+        if (emailRows.length === 0) throw new Error("Email template not found");
+        const email = emailRows;  // Assign the first (and only) element to email
 
         // Fetch SMTP credentials
-    const [smtpRows] = await sequelize.query("SELECT * FROM smtp_credentials WHERE module = ? AND action = ? AND status = '1'", {
-      replacements: [mailModule, action],
-      type: QueryTypes.SELECT,
-    });
-    if (smtpRows.length === 0) throw new Error("SMTP credentials not found");
-    const smtp = smtpRows;  // Assign the first (and only) element to smtp
+        const [smtpRows] = await sequelize.query("SELECT * FROM smtp_credentials WHERE module = ? AND action = ? AND status = '1'", {
+            replacements: [mailModule, action],
+            type: QueryTypes.SELECT,
+        });
+        if (smtpRows.length === 0) throw new Error("SMTP credentials not found");
+        const smtp = smtpRows;  // Assign the first (and only) element to smtp
 
         // Create transporter
         const transporter = nodemailer.createTransport({
@@ -48,7 +45,7 @@ async function responseMail(
         });
 
         let leave_status_class = 'status-rejected';
-        if(leave_status == 'ACCEPTED'){
+        if (leave_status == 'ACCEPTED') {
             leave_status_class = 'status-accepted';
         }
 
@@ -61,7 +58,6 @@ async function responseMail(
             .replace(/{{to_date}}/g, to_date)
             .replace(/{{purpose_of_leave}}/g, purpose_of_leave)
             .replace(/{{remarks}}/g, remarks);
-
 
         // Prepare CC list
         const ccList = toCC
@@ -123,7 +119,7 @@ async function responseMail(
         console.error("Error sending email:", error.message);
     } finally {
         if (connection) {
-             // Ensure the connection is released
+            // Ensure the connection is released
         }
     }
 }

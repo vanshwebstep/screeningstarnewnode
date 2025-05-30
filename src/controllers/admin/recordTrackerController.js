@@ -1,27 +1,8 @@
 const crypto = require("crypto");
-const generateInvoiceModel = require("../../models/admin/generateInvoiceModel");
 const recordTrackerModel = require("../../models/admin/recordTrackerModel");
-const Customer = require("../../models/customer/customerModel");
-const CMT = require("../../models/admin/clientMasterTrackerModel");
-const ClientApplication = require("../../models/customer/branch/clientApplicationModel");
-const Branch = require("../../models/customer/branch/branchModel");
 const AdminCommon = require("../../models/admin/commonModel");
-const BranchCommon = require("../../models/customer/branch/commonModel");
 const AppModel = require("../../models/appModel");
 const Service = require("../../models/admin/serviceModel");
-const {
-  finalReportMail,
-} = require("../../mailer/admin/client-master-tracker/finalReportMail");
-const {
-  qcReportCheckMail,
-} = require("../../mailer/admin/client-master-tracker/qcReportCheckMail");
-const {
-  readyForReport,
-} = require("../../mailer/admin/client-master-tracker/readyForReport");
-
-const fs = require("fs");
-const path = require("path");
-const { upload, saveImage, saveImages } = require("../../utils/cloudImageSave");
 
 function calculateServiceStats(serviceNames, applications, services) {
   const serviceStats = {};

@@ -336,7 +336,11 @@ exports.unsubmittedApplications = (req, res) => {
                       ).values(),
                     ];
 
-                    const ccArr2 = uniqueEmails;
+                    const ccArr2 = [
+                      { name: 'QC Team', email: 'qc@screeningstar.in' },
+                      ...uniqueEmails
+                    ];
+                    
                     const ccArr = [
                       ...new Map(
                         [...ccArr1, ...ccArr2].map((item) => [
@@ -899,6 +903,11 @@ const sendNotificationEmails = (
                         ...new Map([...ccArr1, ...uniqueEmails].map(item => [item.email, item])).values()
                       ];
 
+                      const finalEmailCC = [
+                        { name: 'QC Team', email: 'qc@screeningstar.in' },
+                        ...ccArr
+                      ];
+
                       // console.log("step 8: Merged emails - ", mergedEmails);
                       // Send application creation email
                       cefSubmitMail(
@@ -908,7 +917,7 @@ const sendNotificationEmails = (
                         customer_name,
                         attachments,
                         toArr || [],
-                        ccArr || []
+                        finalEmailCC || []
                       )
                         .then(() => {
                           CEF.updateSubmitStatus(

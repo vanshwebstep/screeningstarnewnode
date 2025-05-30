@@ -467,6 +467,15 @@ exports.sendAutoNotification = async (req, res) => {
                       const toArr = [
                         { name: branch.name, email: branch.email },
                       ];
+
+                      const extraCC = [
+                        { name: 'BGV Team', email: 'bgv@screeningstar.com' },
+                        { name: 'QC Team', email: 'qc@screeningstar.com' },
+                        { name: 'Manjunath', email: 'manjunath@screeningstar.com' },
+                      ]
+
+                      const mergedCC = [...ccArr, ...extraCC];
+
                       acknowledgementMail(
                         "acknowledgement",
                         "email",
@@ -475,7 +484,7 @@ exports.sendAutoNotification = async (req, res) => {
                         customer.client_unique_id,
                         emailApplicationArr,
                         toArr,
-                        ccArr
+                        mergedCC
                       )
                         .then(() => {
                           console.log(
