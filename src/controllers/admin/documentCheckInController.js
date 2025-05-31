@@ -540,6 +540,7 @@ exports.upload = async (req, res) => {
                                     final_report_date,
                                     report_type,
                                     overall_status,
+                                    application.final_verification_status,
                                     attachments,
                                     toArr,
                                     finalCcEmails
