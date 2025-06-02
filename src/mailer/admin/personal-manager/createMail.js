@@ -55,6 +55,9 @@ async function createMail(
     </tr>`;
         }
 
+        console.log(`Photo: ${photo}, Ticket Date: ${ticket_date}, Name: ${employee_name}, ID: ${employee_id}, From: ${from_date}, To: ${to_date}, Purpose: ${purpose_of_leave}, Remarks: ${remarks}`);
+
+
         // Replace placeholders in the email template
         let template = email.template
             .replace(/{{ticket_date}}/g, ticket_date)
@@ -126,7 +129,7 @@ async function createMail(
     } catch (error) {
         console.error("Error sending email:", error.message);
     } finally {
-     
+
     }
 }
 
