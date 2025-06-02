@@ -57,15 +57,25 @@ async function createMail(
 
         console.log(`Photo: ${photo}, Ticket Date: ${ticket_date}, Name: ${employee_name}, ID: ${employee_id}, From: ${from_date}, To: ${to_date}, Purpose: ${purpose_of_leave}, Remarks: ${remarks}`);
 
+        // Convert YYYY-MM-DD to DD-MM-YYYY
+        function formatDate(dateStr) {
+            const [year, month, day] = dateStr.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        // Format the date fields
+        let formatted_to_date = formatDate(to_date);
+        let formatted_from_date = formatDate(from_date);
+        let formatted_ticket_date = formatDate(ticket_date);
 
         // Replace placeholders in the email template
         let template = email.template
-            .replace(/{{ticket_date}}/g, ticket_date)
+            .replace(/{{ticket_date}}/g, formatted_ticket_date)
             .replace(/{{photo_tr}}/g, profile_picture_tr)
             .replace(/{{employee_name}}/g, employee_name)
             .replace(/{{employee_id}}/g, employee_id)
-            .replace(/{{from_date}}/g, from_date)
-            .replace(/{{to_date}}/g, to_date)
+            .replace(/{{from_date}}/g, formatted_from_date)
+            .replace(/{{to_date}}/g, formatted_to_date)
             .replace(/{{purpose_of_leave}}/g, purpose_of_leave)
             .replace(/{{remarks}}/g, remarks);
 
