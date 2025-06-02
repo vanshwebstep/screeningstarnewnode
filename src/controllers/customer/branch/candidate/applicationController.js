@@ -216,7 +216,7 @@ exports.create = (req, res) => {
                         // Prepare recipient and CC lists
 
                         let toArr = [{ name, email }];
-                        let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
+                        let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }];
 
                         // If valid emails are found, push them into the toArr
                         if (dedicatedClientSpocEmails && dedicatedClientSpocEmails.length > 0) {
@@ -781,6 +781,7 @@ function sendNotificationEmails(
 
                   const finalEmailCC = [
                     { name: 'QC Team', email: 'qc@screeningstar.in' },
+                    { name: 'BGV Team', email: 'bgv@screeningstar.com' },
                     ...ccArr
                   ]
 
@@ -891,7 +892,7 @@ function sendNotificationEmails(
                                     });
                                   }
 
-                                  let createMailCCArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
+                                  let createMailCCArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }];
 
                                   // Fetch and process digital address service for DAV mail
                                   Service.digitlAddressService((err, serviceEntry) => {
