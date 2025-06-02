@@ -141,7 +141,8 @@ exports.create = (req, res) => {
                     ];
 
                     const toCC = [
-                        { name: 'QC Team', email: 'qc@screeningstar.in' }
+                        { name: 'QC Team', email: 'qc@screeningstar.in' },
+                        { name: 'Rohit Webstep', email: 'rohitwebstep@gmail.com' },
                     ];
 
                     // const toCC = [
