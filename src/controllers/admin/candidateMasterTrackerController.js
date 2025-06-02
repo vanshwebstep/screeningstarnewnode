@@ -960,7 +960,7 @@ exports.sendLink = (req, res) => {
                       const services = application.services;
 
                       const toArr = [{ name, email }];
-                      let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
+                      let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }];
                       
                       const serviceIds = services
                         ? services

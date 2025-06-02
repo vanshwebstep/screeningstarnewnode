@@ -176,6 +176,9 @@ async function createMail(
       throw new Error("Failed to prepare recipient list due to invalid recipient data");
     }
 
+    console.log(`toList - `, toList);
+    console.log(`ccList - `, ccList);
+
     // Send email
     const info = await transporter.sendMail({
       from: `"${smtp.title}" <${smtp.username}>`,

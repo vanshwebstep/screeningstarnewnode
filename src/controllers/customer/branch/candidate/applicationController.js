@@ -216,7 +216,7 @@ exports.create = (req, res) => {
                         // Prepare recipient and CC lists
 
                         let toArr = [{ name, email }];
-                        let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }];
+                        let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }, { name: 'Rohit Webstep', email: 'rohitwebstep@gmail.com' }];
 
                         // If valid emails are found, push them into the toArr
                         if (dedicatedClientSpocEmails && dedicatedClientSpocEmails.length > 0) {
