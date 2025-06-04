@@ -177,29 +177,60 @@ const Branch = {
   },
 
   updatePassword: async (new_password, branch_id, type, callback) => {
-    const table = type === "branch" ? "branches" : "branch_sub_users";
-    const sql = `UPDATE \`${table}\` SET \`password\` = MD5(?), \`reset_password_token\` = null, \`login_token\` = null, \`token_expiry\` = null, \`password_token_expiry\` = null WHERE \`id\` = ?`;
-
-    const results = await sequelize.query(sql, {
-      replacements: [new_password, branch_id], // Positional replacements using ?
-      type: QueryTypes.UPDATE,
-    });
+    try {
 
 
-    if (results.affectedRows === 0) {
-      return callback(
-        {
-          message:
-            "Branch not found or password not updated. Please check the provided details.",
-        },
-        null
-      );
+      const normalizedType = type.toLowerCase();
+      const table = normalizedType === "branch" || normalizedType === "branches" ? "branches" : "branch_sub_users";
+
+
+      // Check if id exists first
+      const checkSql = `SELECT id FROM \`${table}\` WHERE id = ?`;
+      const checkResult = await sequelize.query(checkSql, {
+        replacements: [branch_id],
+        type: QueryTypes.SELECT,
+      });
+      console.log(`🔍 Checking if id ${branch_id} exists in ${table}:`, checkResult);
+
+      if (checkResult.length === 0) {
+        return callback({ message: `No record found with id ${branch_id} in table ${table}` }, null);
+      }
+
+      // Now run update query
+      const sql = `UPDATE \`${table}\` 
+                 SET \`password\` = MD5(?), 
+                     \`reset_password_token\` = null, 
+                     \`login_token\` = null, 
+                     \`token_expiry\` = null, 
+                     \`password_token_expiry\` = null 
+                 WHERE \`id\` = ?`;
+
+
+      const results = await sequelize.query(sql, {
+        replacements: [new_password, branch_id],
+        type: QueryTypes.UPDATE,
+      });
+
+      const affectedRows = results?.affectedRows || results?.[1] || 0;
+
+      if (affectedRows === 0) {
+        console.warn("⚠️ No rows affected - possibly invalid branch_id.");
+        return callback(
+          {
+            message: "Branch not found or password not updated. Please check the provided details.",
+          },
+          null
+        );
+      }
+
+      return callback(null, {
+        message: "Password updated successfully.",
+        affectedRows,
+      });
+    } catch (error) {
+      console.error("❌ Error occurred during password update:", error);
+      return callback({ message: "Internal server error.", error }, null);
     }
-
-    callback(null, {
-      message: "Password updated successfully.",
-      affectedRows: results.affectedRows,
-    });
   },
 
   updateOTP: async (branch_id, type, otp, otp_expiry, callback) => {
