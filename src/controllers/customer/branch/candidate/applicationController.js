@@ -216,7 +216,7 @@ exports.create = (req, res) => {
                         // Prepare recipient and CC lists
 
                         let toArr = [{ name, email }];
-                        let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }, { name: 'Rohit Webstep', email: 'rohitwebstep@gmail.com' }];
+                        let ccArr = [{ name: 'QC Team', email: 'qc@screeningstar.com' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }, { name: 'Rohit Webstep', email: 'rohitwebstep@gmail.com' }];
 
                         // If valid emails are found, push them into the toArr
                         if (dedicatedClientSpocEmails && dedicatedClientSpocEmails.length > 0) {
@@ -289,7 +289,7 @@ exports.create = (req, res) => {
                                       );
 
                                       const toCC = [
-                                        { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                        { name: 'QC Team', email: 'qc@screeningstar.com' }
                                       ];
                                       if (serviceIds.includes(digitalAddressID)) {
                                         davMail(
@@ -780,7 +780,7 @@ function sendNotificationEmails(
                   }));
 
                   const finalEmailCC = [
-                    { name: 'QC Team', email: 'qc@screeningstar.in' },
+                    { name: 'QC Team', email: 'qc@screeningstar.com' },
                     { name: 'BGV Team', email: 'bgv@screeningstar.com' },
                     ...ccArr
                   ]
@@ -892,7 +892,7 @@ function sendNotificationEmails(
                                     });
                                   }
 
-                                  let createMailCCArr = [{ name: 'QC Team', email: 'qc@screeningstar.in' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }];
+                                  let createMailCCArr = [{ name: 'QC Team', email: 'qc@screeningstar.com' }, { name: 'BGV Team', email: 'bgv@screeningstar.com' }];
 
                                   // Fetch and process digital address service for DAV mail
                                   Service.digitlAddressService((err, serviceEntry) => {
@@ -912,7 +912,7 @@ function sendNotificationEmails(
                                       );
                                       if (serviceIds.includes(digitalAddressID)) {
                                         const toCC = [
-                                          { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                          { name: 'QC Team', email: 'qc@screeningstar.com' }
                                         ];
 
                                         davMail(

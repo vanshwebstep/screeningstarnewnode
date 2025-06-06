@@ -337,7 +337,7 @@ exports.unsubmittedApplications = (req, res) => {
                     ];
 
                     const ccArr2 = [
-                      { name: 'QC Team', email: 'qc@screeningstar.in' },
+                      { name: 'QC Team', email: 'qc@screeningstar.com' },
                       ...uniqueEmails
                     ];
                     
@@ -904,7 +904,7 @@ const sendNotificationEmails = (
                       ];
 
                       const finalEmailCC = [
-                        { name: 'QC Team', email: 'qc@screeningstar.in' },
+                        { name: 'QC Team', email: 'qc@screeningstar.com' },
                         ...ccArr
                       ];
 

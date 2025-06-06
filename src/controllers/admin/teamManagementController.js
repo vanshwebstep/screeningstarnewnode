@@ -601,7 +601,7 @@ exports.generateReport = (req, res) => {
                           ];
 
                           const toCC = [
-                            { name: 'QC Team', email: 'qc@screeningstar.in' }
+                            { name: 'QC Team', email: 'qc@screeningstar.com' }
                           ];
 
                           if (component_status == 1) {

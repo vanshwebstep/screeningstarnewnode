@@ -235,7 +235,7 @@ exports.chat = (req, res) => {
             ];
 
             const toCC = [
-              { name: 'QC Team', email: 'qc@screeningstar.in' }
+              { name: 'QC Team', email: 'qc@screeningstar.com' }
             ];
 
             ticketChat(

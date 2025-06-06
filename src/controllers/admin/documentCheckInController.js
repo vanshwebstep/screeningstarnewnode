@@ -439,7 +439,7 @@ exports.upload = async (req, res) => {
 
                         // Step 4: Merge into final recipients
                         const finalCcEmails = [
-                          { name: 'QC Team', email: 'qc@screeningstar.in' },
+                          { name: 'QC Team', email: 'qc@screeningstar.com' },
                           ...ccArr,
                         ];
 
@@ -569,7 +569,7 @@ exports.upload = async (req, res) => {
                                 // QC report email
                                 else if (emailStatus == 2) {
                                   const toQCTeam = [
-                                    { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                    { name: 'QC Team', email: 'qc@screeningstar.com' }
                                   ];
                                   qcReportCheckMail(
                                     "cmt",

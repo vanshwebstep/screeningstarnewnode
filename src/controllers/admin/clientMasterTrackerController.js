@@ -1672,7 +1672,7 @@ exports.generateReport = (req, res) => {
                                         const company_name = customer.name;
 
                                         const toQCTeam = [
-                                          { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                          { name: 'QC Team', email: 'qc@screeningstar.com' }
                                         ];
 
                                         let emailList = [];
@@ -1699,7 +1699,7 @@ exports.generateReport = (req, res) => {
                                         const finalCcEmails = [
                                           { name: 'Bgv Team', email: 'bgv@screeningstar.com' },
                                           { name: 'Manjunath', email: 'manjunath@screeningstar.com' },
-                                          { name: 'QC Team', email: 'qc@screeningstar.in' },
+                                          { name: 'QC Team', email: 'qc@screeningstar.com' },
                                           ...ccArr,
                                         ];
 
@@ -2295,7 +2295,7 @@ exports.generateReport = (req, res) => {
                                                                     ];
 
                                                                     const toReadyForReportCCEmails = [
-                                                                      { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                                                      { name: 'QC Team', email: 'qc@screeningstar.com' }
                                                                     ];
 
                                                                     readyForReport(
@@ -2941,7 +2941,7 @@ exports.upload = async (req, res) => {
                                   ];
 
                                   const toFinalReportCCEmails = [
-                                    { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                    { name: 'QC Team', email: 'qc@screeningstar.com' }
                                   ];
                                   finalReportMail(
                                     "cmt",
@@ -2983,7 +2983,7 @@ exports.upload = async (req, res) => {
                                 // QC report email
                                 else if (emailStatus == 2) {
                                   const toQCTeam = [
-                                    { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                    { name: 'QC Team', email: 'qc@screeningstar.com' }
                                   ];
                                   qcReportCheckMail(
                                     "cmt",
@@ -3025,7 +3025,7 @@ exports.upload = async (req, res) => {
                                     { name: 'Manjunath', email: ' manjunath@screeningstar.com' }
                                   ];
                                   const toReadyForReportCCEmails = [
-                                    { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                    { name: 'QC Team', email: 'qc@screeningstar.com' }
                                   ];
 
                                   readyForReport(

@@ -361,7 +361,7 @@ exports.chat = (req, res) => {
                       }));
 
                       const toCC = [
-                        { name: 'QC Team', email: 'qc@screeningstar.in' }
+                        { name: 'QC Team', email: 'qc@screeningstar.com' }
                       ];
 
                       // Notify admins about the raised ticket

@@ -141,7 +141,7 @@ exports.create = (req, res) => {
                     ];
 
                     const toCC = [
-                        { name: 'QC Team', email: 'qc@screeningstar.in' },
+                        { name: 'QC Team', email: 'qc@screeningstar.com' },
                         { name: 'Rohit Webstep', email: 'rohitwebstep@gmail.com' },
                     ];
 
@@ -443,7 +443,7 @@ exports.response = (req, res) => {
                         ];
 
                         const toCC = [
-                            { name: 'QC Team', email: 'qc@screeningstar.in' }
+                            { name: 'QC Team', email: 'qc@screeningstar.com' }
                         ];
 
                         // Send an email notification
@@ -820,7 +820,7 @@ exports.upload = async (req, res) => {
                                         ];
 
                                         const toCC = [
-                                            { name: 'QC Team', email: 'qc@screeningstar.in' }
+                                            { name: 'QC Team', email: 'qc@screeningstar.com' }
                                         ];
 
                                         // const toCC = [

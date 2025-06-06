@@ -456,7 +456,7 @@ const sendNotificationEmails = (
                       ];
 
                       const toCC = [
-                        { name: 'QC Team', email: 'qc@screeningstar.in' }
+                        { name: 'QC Team', email: 'qc@screeningstar.com' }
                       ];
 
                       // console.log("step 8: Merged emails - ", mergedEmails);

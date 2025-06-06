@@ -709,7 +709,7 @@ exports.create = (req, res) => {
                                                         })
                                                       );
 
-                                                    const toCC = [{ name: 'QC Team', email: 'qc@screeningstar.in' }];
+                                                    const toCC = [{ name: 'QC Team', email: 'qc@screeningstar.com' }];
 
                                                     // Create email for head branch
                                                     createMail(
@@ -1072,7 +1072,7 @@ exports.upload = async (req, res) => {
                           // Iterate through each branch
                           dbBranches.forEach((dbBranch) => {
                             const toCC = [
-                              { name: 'QC Team', email: 'qc@screeningstar.in' }
+                              { name: 'QC Team', email: 'qc@screeningstar.com' }
                             ];
 
                             // Check if the branch is a head branch
