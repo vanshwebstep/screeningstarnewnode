@@ -113,7 +113,7 @@ exports.isApplicationExist = (req, res) => {
     candidate_application_id,
     branch_id,
     customer_id,
-    (err, applicationResult) => {
+    (err, currentCandidateApplication) => {
       if (err) {
         console.error("Database error:", err);
         return res.status(500).json({
@@ -121,16 +121,6 @@ exports.isApplicationExist = (req, res) => {
           message: err.message,
         });
       }
-
-      if (!applicationResult.status) {
-        return res.status(404).json({
-          status: false,
-          message: applicationResult.message,
-        });
-      }
-
-      // Store application data if status is true
-      const currentCandidateApplication = applicationResult.data;
 
       if (currentCandidateApplication) {
         CEF.getCEFApplicationById(
@@ -179,16 +169,41 @@ exports.isApplicationExist = (req, res) => {
             ) {
               return res.status(400).json({
                 status: false,
-                message: "An application has already been submitted.",
+                message: `The application has already been submitted. Candidate Application ID: CD-${currentCustomer.client_unique_id}-${candidate_application_id}`,
               });
             }
             */
 
+                if (
+                  currentCEFApplication && currentCEFApplication.is_submitted == 1
+                ) {
+                  return res.status(400).json({
+                    status: false,
+                    message: `The application has already been submitted. Candidate Application ID: CD-${currentCustomer.client_unique_id}-${candidate_application_id}`,
+                  });
+                }
+
+                const services = currentCandidateApplication.services;
+
+                // Check if services exists and is not empty
+                if (!services || services.trim() === "") {
+                  return res.status(200).json({
+                    status: true,
+                    data: {
+                      application: currentCandidateApplication,
+                      cefApplication: currentCEFApplication,
+                      serviceData: [],
+                      customer: currentCustomer,
+                    },
+                    message: "Application exists.",
+                  });
+                }
+
                 const service_ids = Array.isArray(
-                  currentCandidateApplication.services
+                  services
                 )
-                  ? currentCandidateApplication.services
-                  : currentCandidateApplication.services
+                  ? services
+                  : services
                     .split(",")
                     .map((item) => item.trim());
                 CEF.formJsonWithData(
@@ -340,7 +355,7 @@ exports.unsubmittedApplications = (req, res) => {
                       { name: 'QC Team', email: 'qc@screeningstar.com' },
                       ...uniqueEmails
                     ];
-                    
+
                     const ccArr = [
                       ...new Map(
                         [...ccArr1, ...ccArr2].map((item) => [

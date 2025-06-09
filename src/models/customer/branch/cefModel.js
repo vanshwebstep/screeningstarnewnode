@@ -134,22 +134,24 @@ const cef = {
     }
   },
 
-  getCEFApplicationById: async (
-    candidate_application_id,
-    branch_id,
-    customer_id,
-    callback
-  ) => {
+  getCEFApplicationById: async (candidate_application_id, branch_id, customer_id, callback) => {
+    try {
+      const sql = `
+            SELECT * FROM \`cef_applications\` 
+            WHERE \`candidate_application_id\` = ? 
+            AND \`branch_id\` = ? 
+            AND \`customer_id\` = ?`;
 
-    const sql =
-      "SELECT * FROM `cef_applications` WHERE `candidate_application_id` = ? AND `branch_id` = ? AND `customer_id` = ?";
-    const results = await sequelize.query(sql, {
-      replacements: [candidate_application_id, branch_id, customer_id], // Positional replacements using ?
-      type: QueryTypes.SELECT,
-    });
-    callback(null, results[0]);
+      const results = await sequelize.query(sql, {
+        replacements: [candidate_application_id, branch_id, customer_id],
+        type: QueryTypes.SELECT,
+      });
 
-
+      callback(null, results.length > 0 ? results[0] : null);
+    } catch (error) {
+      console.error("Error in getCEFApplicationById:", error);
+      callback({ message: "Database query failed", error }, null);
+    }
   },
 
   create: async (

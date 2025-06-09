@@ -224,24 +224,26 @@ const candidateApplication = {
   },
 
   isApplicationExist: async (app_id, branch_id, customer_id, callback) => {
-    const sql = `
-        SELECT ca.*, c.name AS company_name
-        FROM candidate_applications ca
-        INNER JOIN customers c ON c.id = ca.customer_id
-        WHERE ca.id = ? 
-        AND ca.branch_id = ? 
-        AND ca.customer_id = ? 
-        AND ca.is_submitted = 0;
-    `;
+    const sql = `SELECT CA.*, C.is_custom_bgv AS is_custom_bgv, C.name AS customer_name, B.name AS branch_name
+          FROM candidate_applications AS CA 
+          INNER JOIN customers AS C ON C.id = CA.customer_id
+          INNER JOIN branches AS B ON B.id = CA.branch_id
+          WHERE CA.id = ? 
+            AND CA.branch_id = ? 
+            AND CA.customer_id = ?`;
+
     const results = await sequelize.query(sql, {
       replacements: [app_id, branch_id, customer_id], // Positional replacements using ?
       type: QueryTypes.SELECT,
     });
-    if (results.length === 0) {
+
+    const entry = results.length > 0 ? results[0] : false;
+
+    if (!entry) {
       return callback(null, { status: false, message: "Application not found" });
     }
 
-    const application = results[0];
+    const application = entry;
 
     if (application.reminder_sent === 3) {
       const lastReminderDate = new Date(
