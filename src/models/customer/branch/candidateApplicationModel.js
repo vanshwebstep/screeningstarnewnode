@@ -224,7 +224,7 @@ const candidateApplication = {
   },
 
   isApplicationExist: async (app_id, branch_id, customer_id, callback) => {
-    const sql = `SELECT CA.*, C.is_custom_bgv AS is_custom_bgv, C.name AS customer_name, B.name AS branch_name
+    const sql = `SELECT CA.*, C.name AS company_name, B.name AS branch_name
           FROM candidate_applications AS CA 
           INNER JOIN customers AS C ON C.id = CA.customer_id
           INNER JOIN branches AS B ON B.id = CA.branch_id
