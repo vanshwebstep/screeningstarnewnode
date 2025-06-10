@@ -1,25 +1,37 @@
 const { sequelize } = require("../../config/db");
 const { QueryTypes } = require("sequelize");
 const Service = {
-  create:async (
-    customer_id, month, year, orgenization_name, gst_number, state, state_code,
-    invoice_date, invoice_number, taxable_value, cgst, sgst, igst, total_gst,
-    invoice_subtotal, callback
+  create: async (
+    customer_id,
+    month,
+    year,
+    orgenization_name,
+    gst_number,
+    state,
+    state_code,
+    invoice_date,
+    invoice_number,
+    taxable_value,
+    cgst,
+    sgst,
+    igst,
+    total_gst,
+    invoice_subtotal,
+    callback
   ) => {
     const checkTableSql = `SHOW TABLES LIKE 'invoice_masters'`;
-      const tableResults = await sequelize.query(checkTableSql, {
-        type: QueryTypes.SHOW,
-      });
-       
-        if (tableResults.length === 0) {
-          createInvoiceTable(connection, callback); // Create table if not exists
-        } else {
-          proceedWithInsertOrUpdate(connection, callback); // Proceed to insert or update
-        }
+    const tableResults = await sequelize.query(checkTableSql, {
+      type: QueryTypes.SHOW,
+    });
 
+    if (tableResults.length === 0) {
+      createInvoiceTable(callback); // Create table if not exists
+    } else {
+      proceedWithInsertOrUpdate(callback); // Proceed to insert or update
+    }
 
     // Function to create the 'invoice_masters' table
-   async function createInvoiceTable(connection, callback) {
+    async function createInvoiceTable(callback) {
       const createTableSql = `
         CREATE TABLE \`invoice_masters\` (
           \`id\` INT AUTO_INCREMENT PRIMARY KEY,
@@ -57,12 +69,11 @@ const Service = {
         type: QueryTypes.CREATE,
       });
 
-        proceedWithInsertOrUpdate(connection, callback); // Proceed after table creation
-   
+      proceedWithInsertOrUpdate(callback); // Proceed after table creation
     }
 
     // Function to proceed with insert or update
-  async  function proceedWithInsertOrUpdate(connection, callback) {
+    async function proceedWithInsertOrUpdate(callback) {
       const checkInvoiceSql = `
         SELECT * FROM \`invoice_masters\` WHERE \`customer_id\` = ? AND \`month\` = ? AND \`year\` = ?
       `;
@@ -70,16 +81,15 @@ const Service = {
         replacements: [customer_id, month, year], // Positional replacements using ?
         type: QueryTypes.SELECT,
       });
-        if (invoiceResults.length > 0) {
-          updateInvoice(connection, callback); // Update existing invoice if found
-        } else {
-          insertInvoice(connection, callback); // Insert new invoice if not found
-        }
-      
+      if (invoiceResults.length > 0) {
+        updateInvoice(callback); // Update existing invoice if found
+      } else {
+        insertInvoice(callback); // Insert new invoice if not found
+      }
     }
 
     // Function to update the invoice
-    async function updateInvoice(connection, callback) {
+    async function updateInvoice(callback) {
       const updateInvoiceSql = `
         UPDATE \`invoice_masters\` SET
           \`orgenization_name\` = ?,
@@ -97,17 +107,30 @@ const Service = {
         WHERE \`customer_id\` = ? AND \`month\` = ? AND \`year\` = ?
       `;
       const results = await sequelize.query(updateInvoiceSql, {
-        replacements: [orgenization_name, gst_number, state, state_code, invoice_date, invoice_number, taxable_value,
-          cgst, sgst, igst, total_gst, invoice_subtotal,
-          customer_id, month, year], // Positional replacements using ?
-        type: QueryTypes.SELECT,
+        replacements: [
+          orgenization_name,
+          gst_number,
+          state,
+          state_code,
+          invoice_date,
+          invoice_number,
+          taxable_value,
+          cgst,
+          sgst,
+          igst,
+          total_gst,
+          invoice_subtotal,
+          customer_id,
+          month,
+          year,
+        ], // Positional replacements using ?
+        type: QueryTypes.UPDATE,
       });
-          callback(null, { insertId: results.insertId, type: "Updated" });
-      
+      callback(null, { insertId: results.insertId, type: "Updated" });
     }
 
     // Function to insert a new invoice
-  async  function insertInvoice(connection, callback) {
+    async function insertInvoice(callback) {
       const insertInvoiceSql = `
         INSERT INTO \`invoice_masters\` (
           \`customer_id\`, \`month\`, \`year\`, \`orgenization_name\`, \`gst_number\`, \`state\`, \`state_code\`,
@@ -116,11 +139,26 @@ const Service = {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const results = await sequelize.query(insertInvoiceSql, {
-        replacements: [customer_id, month, year, orgenization_name, gst_number, state, state_code, invoice_date, invoice_number,
-          taxable_value, cgst, sgst, igst, total_gst, invoice_subtotal], // Positional replacements using ?
-        type: QueryTypes.SELECT,
+        replacements: [
+          customer_id,
+          month,
+          year,
+          orgenization_name,
+          gst_number,
+          state,
+          state_code,
+          invoice_date,
+          invoice_number,
+          taxable_value,
+          cgst,
+          sgst,
+          igst,
+          total_gst,
+          invoice_subtotal,
+        ], // Positional replacements using ?
+        type: QueryTypes.INSERT,
       });
-          callback(null, { insertId: results.insertId, type: "Created" });  
+      callback(null, { insertId: results.insertId, type: "Created" });
     }
   },
 
@@ -131,7 +169,6 @@ const Service = {
       type: QueryTypes.SELECT,
     });
     callback(null, results);
-
   },
 
   update: async (
@@ -146,7 +183,8 @@ const Service = {
     tds_percentage,
     payment_remarks,
     balance_payment,
-    ammount_received, callback
+    ammount_received,
+    callback
   ) => {
     // Define the update SQL query with placeholders
     const updateInvoiceSql = `
@@ -172,21 +210,25 @@ const Service = {
         payment_remarks,
         balance_payment,
         ammount_received,
-        id,              // Add the `id` to the query
+        id, // Add the `id` to the query
         customer_id,
         month,
-        year], // Positional replacements using ?
+        year,
+      ], // Positional replacements using ?
       type: QueryTypes.UPDATE,
     });
 
     if (results.affectedRows > 0) {
       // Record was found and updated
-      callback(null, { status: true, message: "Invoice updated successfully." });
+      callback(null, {
+        status: true,
+        message: "Invoice updated successfully.",
+      });
     } else {
       // No rows affected, meaning record was not found
       callback({ error: "Record not found." }, null);
     }
-  }
+  },
 };
 
 module.exports = Service;
