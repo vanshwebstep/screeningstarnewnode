@@ -148,60 +148,73 @@ const generateInvoiceModel = {
           });
         });
 
-        const applicationServicePromises = applicationResults.map((application) => {
-          const services = application.services.split(",");
-          const servicePromises = services.map((serviceId) => {
-            return new Promise(async (resolve, reject) => {
-              const reportFormQuery = `SELECT json FROM report_forms WHERE service_id = ?;`;
-              const reportFormResults = await sequelize.query(reportFormQuery, {
-                replacements: [serviceId],
-                type: QueryTypes.SELECT,
-              });
+        const applicationServicePromises = applicationResults.map(
+          (application) => {
+            const services = application.services.split(",");
+            const servicePromises = services.map((serviceId) => {
+              return new Promise(async (resolve, reject) => {
+                const reportFormQuery = `SELECT json FROM report_forms WHERE service_id = ?;`;
+                const reportFormResults = await sequelize.query(
+                  reportFormQuery,
+                  {
+                    replacements: [serviceId],
+                    type: QueryTypes.SELECT,
+                  }
+                );
 
-              if (reportFormResults.length > 0) {
-                const reportFormJson = JSON.parse(reportFormResults[0].json);
-                const dbTable = reportFormJson.db_table;
-                // console.log(`🔧 Processing service ${serviceId} in table: ${dbTable}`);
+                if (reportFormResults.length > 0) {
+                  const reportFormJson = JSON.parse(reportFormResults[0].json);
+                  const dbTable = reportFormJson.db_table;
+                  // console.log(`🔧 Processing service ${serviceId} in table: ${dbTable}`);
 
-                const additionalFeeColumnQuery = `SHOW COLUMNS FROM \`${dbTable}\` WHERE \`Field\` LIKE 'additional_fee%'`;
-                const columnResults = await sequelize.query(additionalFeeColumnQuery, {
-                  type: QueryTypes.SHOW,
-                });
+                  const additionalFeeColumnQuery = `SHOW COLUMNS FROM \`${dbTable}\` WHERE \`Field\` LIKE 'additional_fee%'`;
 
-                const additionalFeeColumn =
-                  columnResults.length > 0 ? columnResults[0].Field : null;
+                  const columnResults = await sequelize.query(
+                    additionalFeeColumnQuery,
+                    {
+                      type: QueryTypes.SHOW,
+                    }
+                  );
 
-                const statusQuery = `
-                  SELECT status${additionalFeeColumn ? `, ${additionalFeeColumn}` : ""}
+                  const additionalFeeColumn =
+                    columnResults[0] && columnResults[0][0]
+                      ? columnResults[0][0].Field
+                      : null;
+
+                  const statusQuery = `
+                  SELECT status${
+                    additionalFeeColumn ? `, ${additionalFeeColumn}` : ""
+                  }
                   FROM ${dbTable}
                   WHERE client_application_id = ?;
                 `;
 
-                const statusResults = await sequelize.query(statusQuery, {
-                  replacements: [application.id],
-                  type: QueryTypes.SELECT,
-                });
+                  const statusResults = await sequelize.query(statusQuery, {
+                    replacements: [application.id],
+                    type: QueryTypes.SELECT,
+                  });
 
-                // console.log(`📊 Status fetched for application ${application.id}`);
-
-                application.statusDetails.push({
-                  serviceId,
-                  status: statusResults.length > 0 ? statusResults[0].status : null,
-                  additionalFee:
-                    additionalFeeColumn && statusResults.length > 0
-                      ? statusResults[0][additionalFeeColumn]
-                      : null,
-                });
-                resolve();
-              } else {
-                // console.warn(`❌ No report form found for service ID: ${serviceId}`);
-                resolve();
-              }
+                  // console.log(`📊 Status fetched for application ${application.id}`);
+                  application.statusDetails.push({
+                    serviceId,
+                    status:
+                      statusResults.length > 0 ? statusResults[0].status : null,
+                    additionalFee:
+                      additionalFeeColumn && statusResults.length > 0
+                        ? statusResults[0][additionalFeeColumn]
+                        : null,
+                  });
+                  resolve();
+                } else {
+                  // console.warn(`❌ No report form found for service ID: ${serviceId}`);
+                  resolve();
+                }
+              });
             });
-          });
 
-          return Promise.all(servicePromises);
-        });
+            return Promise.all(servicePromises);
+          }
+        );
 
         Promise.all(applicationServicePromises)
           .then(() => Promise.all(branchPromises))
