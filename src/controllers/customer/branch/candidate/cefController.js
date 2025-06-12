@@ -190,7 +190,7 @@ exports.isApplicationExist = (req, res) => {
                   return res.status(200).json({
                     status: true,
                     data: {
-                      application: currentCandidateApplication,
+                      application: currentCandidateApplication.data,
                       cefApplication: currentCEFApplication,
                       serviceData: [],
                       customer: currentCustomer,
@@ -222,8 +222,8 @@ exports.isApplicationExist = (req, res) => {
                     return res.status(200).json({
                       status: true,
                       data: {
-                        application: currentCandidateApplication,
-                        cefApplication: currentCEFApplication,
+                        application: currentCandidateApplication.data,
+                        cefApplication: currentCEFApplication.data,
                         serviceData,
                         customer: currentCustomer,
                       },

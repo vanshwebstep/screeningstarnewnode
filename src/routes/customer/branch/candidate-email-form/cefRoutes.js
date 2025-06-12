@@ -10,5 +10,4 @@ router.get("/is-application-exist", cefController.isApplicationExist);
 router.put("/submit", cefController.submit);
 router.post("/upload", cefController.upload);
 
-
 module.exports = router;
