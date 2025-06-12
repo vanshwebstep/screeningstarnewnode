@@ -183,7 +183,7 @@ exports.isApplicationExist = (req, res) => {
                   });
                 }
 
-                const services = currentCandidateApplication.services;
+                const services = currentCandidateApplication.data.services;
 
                 // Check if services exists and is not empty
                 if (!services || services.trim() === "") {
