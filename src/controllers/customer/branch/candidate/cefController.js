@@ -175,7 +175,7 @@ exports.isApplicationExist = (req, res) => {
             */
 
                 if (
-                  currentCEFApplication && currentCEFApplication.is_submitted == 1
+                  currentCEFApplication && currentCEFApplication?.is_submitted == 1
                 ) {
                   return res.status(400).json({
                     status: false,
@@ -223,7 +223,7 @@ exports.isApplicationExist = (req, res) => {
                       status: true,
                       data: {
                         application: currentCandidateApplication.data,
-                        cefApplication: currentCEFApplication.data,
+                        cefApplication: currentCEFApplication,
                         serviceData,
                         customer: currentCustomer,
                       },
