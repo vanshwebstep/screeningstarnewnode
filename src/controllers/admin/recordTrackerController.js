@@ -293,16 +293,24 @@ exports.recordTracker = async (req, res) => {
 };
 
 exports.list = (req, res) => {
-  const { admin_id, _token, month, year } = req.query;
+  const { admin_id, _token, month, year ,from_month , from_year , to_month, to_year} = req.query;
 
   let missingFields = [];
 
-  if (!month || month === "" || month === undefined || month === "undefined") {
-    missingFields.push("Invoice Month");
+  if (!from_month || from_month === "" || from_month === undefined || from_month === "undefined") {
+    missingFields.push("Invoice From_Month");
   }
 
-  if (!year || year === "" || year === undefined || year === "undefined") {
-    missingFields.push("Invoice Year");
+  if (!from_year || from_year === "" || from_year === undefined || from_year === "undefined") {
+    missingFields.push("Invoice From Year");
+  }
+  
+  if (!to_month || to_month === "" || to_month === undefined || to_month === "undefined") {
+    missingFields.push("Invoice To Month");
+  }
+
+  if (!to_year || to_year === "" || to_year === undefined || to_year === "undefined") {
+    missingFields.push("Invoice To Year");
   }
 
   if (!admin_id || admin_id === "" || admin_id === undefined || admin_id === "undefined") {
@@ -343,7 +351,7 @@ exports.list = (req, res) => {
       const newToken = result.newToken;
       let filter_status;
       // Fetch customer list with filter status
-      recordTrackerModel.list(month, year, (err, customerResults) => {
+      recordTrackerModel.list(from_month, from_year, to_month, to_year, (err, customerResults) => {
         if (err) {
           console.error("Database error:", err);
           return res.status(500).json({
