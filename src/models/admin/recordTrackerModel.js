@@ -266,9 +266,14 @@ const recordTrackerModel = {
 
 
   },
-  
+
   list: async (from_month, from_year, to_month, to_year, callback) => {
     try {
+      // Construct full start and end date strings
+      const startDate = `${from_year}-${String(from_month).padStart(2, '0')}-01`;
+      const endDate = new Date(to_year, to_month, 0); // Last day of to_month
+      const formattedEndDate = endDate.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+
       const finalSql = `
                         WITH BranchesCTE AS (
                             SELECT 
@@ -317,13 +322,7 @@ const recordTrackerModel = {
                             WHERE
                                 ca.is_data_qc = 1
                                 AND ca.status IN ('complete', 'completed', 'closed')
-                                AND (
-                                  (YEAR(cmt.report_date) = ? AND MONTH(cmt.report_date) >= ?)
-                                  OR 
-                                  (YEAR(cmt.report_date) = ? AND MONTH(cmt.report_date) <= ?)
-                                  OR 
-                                  (YEAR(cmt.report_date) > ? AND YEAR(cmt.report_date) < ?)
-                                )
+                                AND DATE(cmt.report_date) BETWEEN ? AND ?
                                 AND ca.is_deleted != 1
                               GROUP BY 
                                 b.customer_id
@@ -335,11 +334,7 @@ const recordTrackerModel = {
                               application_counts.latest_application_date DESC;`;
 
       const results = await sequelize.query(finalSql, {
-        replacements: [
-          from_year, from_month,    // Start range
-          to_year, to_month,        // End range
-          from_year, to_year        // Full year span
-        ],
+        replacements: [startDate, formattedEndDate],
         type: QueryTypes.SELECT,
       });
 
