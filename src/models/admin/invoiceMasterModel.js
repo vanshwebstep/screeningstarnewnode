@@ -217,15 +217,12 @@ const Service = {
       ], // Positional replacements using ?
       type: QueryTypes.UPDATE,
     });
-
-    if (results.affectedRows > 0) {
-      // Record was found and updated
+    if (results[1] > 0) {
       callback(null, {
         status: true,
         message: "Invoice updated successfully.",
       });
     } else {
-      // No rows affected, meaning record was not found
       callback({ error: "Record not found." }, null);
     }
   },
