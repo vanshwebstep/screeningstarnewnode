@@ -163,7 +163,15 @@ const Service = {
   },
 
   list: async (callback) => {
-    const sql = `SELECT IM.*, C.name AS customer_name FROM \`invoice_masters\` AS IM INNER JOIN \`customers\` AS C ON C.id = IM.customer_id WHERE C.is_deleted != 1`;
+    const sql = `
+        SELECT 
+            IM.*, 
+            C.name AS customer_name 
+        FROM invoice_masters AS IM 
+        INNER JOIN customers AS C ON C.id = IM.customer_id 
+        WHERE C.is_deleted != 1 
+        ORDER BY IM.created_at DESC
+    `;
 
     const results = await sequelize.query(sql, {
       type: QueryTypes.SELECT,
