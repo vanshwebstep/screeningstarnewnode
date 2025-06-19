@@ -40,6 +40,7 @@ const clientMasterTrackerRoutes = require("./routes/admin/clientMasterTrackerRou
 const externalLoginCredentials = require("./routes/admin/externalLoginCredentialsRoutes");
 const documentCheckInTrackerRoutes = require("./routes/admin/documentCheckInTrackerRoutes");
 const candidateMasterTrackerRoutes = require("./routes/admin/candidateMasterTrackerRoutes");
+const expenseTrackerRoutes = require("./routes/admin/expenseTrackerRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -78,6 +79,8 @@ app.use("/escalation-manager", escalationManagerRoutes);
 app.use("/record-tracker", recordTrackerRoutes);
 app.use("/invoice-master", invoiceMasterRoutes);
 app.use("/generate-invoice", generateInvoiceRoutes);
+app.use("/expense-tracker", expenseTrackerRoutes);
+
 
 // =====----- REPORT MASTER -----=====
 app.use("/report-master", reportMasterRoutes);
