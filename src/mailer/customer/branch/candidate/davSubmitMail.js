@@ -62,7 +62,7 @@ async function davSubmitMail(
             type: QueryTypes.SELECT,
         });
         if (!emailRows || emailRows.length === 0) throw new Error("Email template not found");
-        const email = emailRows;  // Assign the first (and only) element to email
+        const email = emailRow[0];  // Assign the first (and only) element to email
 
         // Fetch SMTP credentials
         const [smtpRows] = await sequelize.query("SELECT * FROM smtp_credentials WHERE module = ? AND action = ? AND status = '1'", {
@@ -70,7 +70,7 @@ async function davSubmitMail(
             type: QueryTypes.SELECT,
         });
         if (smtpRows.length === 0) throw new Error("SMTP credentials not found");
-        const smtp = smtpRows;  // Assign the first (and only) element to smtp
+        const smtp = smtpRows[0];  // Assign the first (and only) element to smtp
 
         // Create transporter
         const transporter = nodemailer.createTransport({
