@@ -1110,7 +1110,7 @@ exports.sendLink = (req, res) => {
                           });
                           return;
                         }
-
+              
                         const id = serviceIds[index];
                         Service.getServiceRequiredDocumentsByServiceId(
                           id,
